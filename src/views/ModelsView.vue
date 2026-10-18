@@ -464,13 +464,14 @@ async function restore(entry: CatalogEntry) {
               替换…
             </button>
             <button
+              v-if="key === 'body' || key === 'cloth'"
               class="btn"
               type="button"
-              title="用内置素体替换这个部位"
+              title="用内置人偶素体替换该部位：自动贴合尺寸、续骨架权重，用作打底/占位"
               :disabled="busy === selected.id"
               @click="applyBuiltin(selected, key, 'basebody')"
             >
-              素体
+              内置素体
             </button>
             <button
               class="btn"
@@ -485,6 +486,11 @@ async function restore(entry: CatalogEntry) {
         </div>
       </div>
 
+      <p class="parts__hint">
+        替换… = 用你自己导出的 <code>.exmtmesh</code> 覆盖 ·
+        内置素体 = 内置人偶打底（会撑起没有躯干的空洞，粗糙但能占位）·
+        隐藏 = 该部位不再渲染
+      </p>
       <div class="model-actions">
         <button
           class="btn btn--accent"
@@ -810,6 +816,21 @@ async function restore(entry: CatalogEntry) {
   opacity: 0.55;
 }
 
+.parts__hint {
+  margin: 10px 0 0;
+  font-size: 11.5px;
+  line-height: 18px;
+  color: var(--text-3);
+}
+
+.parts__hint code {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding: 1px 4px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
 .parts {
   display: flex;
   flex-direction: column;
@@ -819,25 +840,30 @@ async function restore(entry: CatalogEntry) {
 
 .parts__row {
   display: grid;
-  grid-template-columns: 70px 1fr auto;
+  grid-template-columns: 62px minmax(0, 1fr);
+  grid-template-areas: "key mesh" "actions actions";
   align-items: center;
-  gap: 12px;
+  gap: 4px 12px;
   padding: 8px 10px;
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.03);
 }
 
 .parts__actions {
+  grid-area: actions;
   display: flex;
+  flex-wrap: wrap;
   gap: 6px;
 }
 
 .parts__key {
+  grid-area: key;
   font-size: 12px;
   opacity: 0.7;
 }
 
 .parts__mesh {
+  grid-area: mesh;
   font-size: 12px;
   overflow: hidden;
   text-overflow: ellipsis;
