@@ -51,6 +51,72 @@ export interface TexIndex {
   textures: Record<string, string[]>;
 }
 
+/** Texture role suffix, used to order a submesh's maps (diffuse first). */
+const ROLE_RANK: Record<string, number> = {
+  d: 0,
+  da: 1,
+  dif: 2,
+  bt: 3,
+  dt: 4,
+  nt: 5,
+  n: 6,
+  rmo: 7,
+  spc: 8,
+};
+
+export function textureRole(name: string): string {
+  const match = /_(da|dif|dt|bt|nt|rmo|spc|d|n)$/i.exec(name);
+  return match ? match[1].toLowerCase() : "";
+}
+
+/** Texture name without its role suffix, e.g. `…_cloth1_d` → `…_cloth1`. */
+export function textureStem(name: string): string {
+  return name.replace(/_(da|dif|dt|bt|nt|rmo|spc|d|n)$/i, "");
+}
+
+/**
+ * One submesh's textures, by the part stem they share.
+ *
+ * The game keeps meshes and textures in different bundles and the material
+ * bundles are mostly missing, so name sharing is the only local evidence:
+ * `c_X_slg_cloth1_lod0` → `c_X_slg_cloth1_d/_n/_rmo`; a mesh named `cloth`
+ * also picks up `cloth01` / `cloth02` (a mesh can carry several material
+ * families). Textures matched by no mesh are returned by
+ * `unassignedTextures` instead of being hidden.
+ */
+export function submeshStem(meshName: string): string {
+  return meshName
+    .replace(/_lod\d+/gi, "")
+    .replace(/_(dorm|fight)$/i, "");
+}
+
+export function texturesForMesh(meshName: string, textures: TextureEntry[]): TextureEntry[] {
+  const stem = submeshStem(meshName);
+  if (!stem) return [];
+  return textures
+    .filter((tex) => tex.name.startsWith(stem))
+    .sort((a, b) => {
+      // 先按贴图家族分组（cloth1 / cloth2），同族内再按 D/N/RMO 排
+      const family = textureStem(a.name).localeCompare(textureStem(b.name));
+      if (family) return family;
+      const ra = ROLE_RANK[textureRole(a.name)] ?? 99;
+      const rb = ROLE_RANK[textureRole(b.name)] ?? 99;
+      return ra - rb || a.name.localeCompare(b.name);
+    });
+}
+
+/** Textures that no submesh claims — face/eye maps are often in this group. */
+export function unassignedTextures(
+  meshes: SkinMesh[],
+  textures: TextureEntry[],
+): TextureEntry[] {
+  const assigned = new Set<string>();
+  for (const mesh of meshes) {
+    for (const tex of texturesForMesh(mesh.name, textures)) assigned.add(tex.name);
+  }
+  return textures.filter((tex) => !assigned.has(tex.name));
+}
+
 export interface WorkspaceResult {
   dir: string;
   meshes: number;

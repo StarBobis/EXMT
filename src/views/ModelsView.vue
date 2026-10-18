@@ -9,6 +9,9 @@ import {
   loadSkin,
   makeWorkspace,
   skinKeyOf,
+  textureRole,
+  texturesForMesh,
+  unassignedTextures,
   type PreviewGeometry,
   type SkinMesh,
   type SkinPhase,
@@ -18,7 +21,7 @@ import { characterOfEntry, label, skinLabel, type CatalogEntry } from "../lib/ro
 import { selectedSkin } from "../lib/selection";
 
 // ------------------------------------------------------------------------- //
-// studio: every mesh + every texture of the selected skin, one 3D scene
+// studio: every submesh + every texture of the selected skin, one 3D scene
 // ------------------------------------------------------------------------- //
 const meshes = ref<SkinMesh[]>([]);
 const geometries = ref<PreviewGeometry[]>([]);
@@ -27,6 +30,9 @@ const pickedMeshes = ref<string[]>([]);
 const pickedTextures = ref<string[]>([]);
 const textures = ref<TextureEntry[]>([]);
 const maps = ref<Record<string, string>>({});
+/** 当前查看贴图的子网格；null 时看「共享贴图」或空态。 */
+const activeMesh = ref<string | null>(null);
+const activeShared = ref(false);
 const busy = ref("");
 const note = ref("");
 const cacheHint = ref("");
@@ -43,18 +49,69 @@ const skinName = computed(() =>
 );
 const skinCode = computed(() => selectedSkin.value?.name ?? "");
 
-const hint = computed(
-  () =>
-    busy.value ||
-    note.value ||
-    (pickedMeshes.value.length
-      ? cacheHint.value
-      : t("models.studio.nothingPicked")),
+/** mesh name → textures whose names share its part stem. */
+const textureGroups = computed(() => {
+  const groups = new Map<string, TextureEntry[]>();
+  for (const mesh of meshes.value) {
+    groups.set(mesh.name, texturesForMesh(mesh.name, textures.value));
+  }
+  return groups;
+});
+
+/** Textures no submesh claims (face/eye maps are often here). */
+const sharedTextures = computed(() =>
+  unassignedTextures(meshes.value, textures.value),
 );
+
+const activeTextures = computed(() => {
+  if (activeShared.value) return sharedTextures.value;
+  if (!activeMesh.value) return [];
+  return textureGroups.value.get(activeMesh.value) ?? [];
+});
+
+const activeLabel = computed(() => {
+  if (activeShared.value) return t("models.studio.shared");
+  return activeMesh.value ? shortName(activeMesh.value) : "";
+});
+
+const hint = computed(() => {
+  if (busy.value) return busy.value;
+  if (note.value) return note.value;
+  if (activeShared.value) {
+    return t("models.studio.viewingShared", { n: sharedTextures.value.length });
+  }
+  if (activeMesh.value) {
+    return t("models.studio.viewing", {
+      name: shortName(activeMesh.value),
+      n: activeTextures.value.length,
+    });
+  }
+  return cacheHint.value || t("models.studio.pickSubmesh");
+});
 
 function shortName(name: string) {
   const prefix = skinKey ? `${skinKey}_` : "";
   return prefix && name.startsWith(prefix) ? name.slice(prefix.length) : name;
+}
+
+function textureCount(name: string) {
+  return textureGroups.value.get(name)?.length ?? 0;
+}
+
+function textureMeta(tex: TextureEntry) {
+  const size = tex.width && tex.height ? `${tex.width}×${tex.height}` : "";
+  const role = textureRole(tex.name).toUpperCase();
+  return [size, role].filter(Boolean).join(" · ");
+}
+
+function activateMesh(name: string) {
+  activeShared.value = false;
+  activeMesh.value = name;
+}
+
+function activateShared() {
+  activeMesh.value = null;
+  activeShared.value = true;
 }
 
 function compact(n: number) {
@@ -71,15 +128,25 @@ function toggleMesh(name: string) {
 
 /** 勾选 = 会导出；默认全不勾，用户只勾想改的那几个。 */
 function togglePickMesh(name: string) {
-  pickedMeshes.value = pickedMeshes.value.includes(name)
-    ? pickedMeshes.value.filter((item) => item !== name)
-    : [...pickedMeshes.value, name];
+  if (pickedMeshes.value.includes(name)) {
+    pickedMeshes.value = pickedMeshes.value.filter((item) => item !== name);
+    return;
+  }
+  pickedMeshes.value = [...pickedMeshes.value, name];
+  // 勾选子网格时顺便展开它的贴图，少点一次
+  activateMesh(name);
 }
 
 function togglePickTexture(name: string) {
-  pickedTextures.value = pickedTextures.value.includes(name)
-    ? pickedTextures.value.filter((item) => item !== name)
-    : [...pickedTextures.value, name];
+  if (pickedTextures.value.includes(name)) {
+    pickedTextures.value = pickedTextures.value.filter((item) => item !== name);
+    return;
+  }
+  pickedTextures.value = [...pickedTextures.value, name];
+  // 勾贴图就意味着要改这个子网格；顺手把它纳入导出，避免“只勾贴图不能制作”
+  if (activeMesh.value && !activeShared.value && !pickedMeshes.value.includes(activeMesh.value)) {
+    pickedMeshes.value = [...pickedMeshes.value, activeMesh.value];
+  }
 }
 
 function stamp(iso: string | null) {
@@ -98,6 +165,8 @@ function clearStudio() {
   pickedTextures.value = [];
   textures.value = [];
   maps.value = {};
+  activeMesh.value = null;
+  activeShared.value = false;
   note.value = "";
   cacheHint.value = "";
   status.value = null;
@@ -134,8 +203,13 @@ async function openStudio(entry: CatalogEntry) {
     pickedMeshes.value = [];
     pickedTextures.value = [];
     if (data.cached) cacheHint.value = t("models.studio.cached", { time: stamp(data.builtAt) });
-    if (!data.meshes.length) note.value = t("models.studio.noMesh");
-    else if (!data.textures.length) note.value = t("models.studio.noTex");
+    if (!data.meshes.length) {
+      note.value = t("models.studio.noMesh");
+      // 没有子网格时至少让共享贴图可见，方便单独导出
+      if (data.textures.length) activeShared.value = true;
+    } else if (!data.textures.length) {
+      note.value = t("models.studio.noTex");
+    }
   } catch (e) {
     if (mine === token) note.value = String(e);
   } finally {
@@ -172,8 +246,9 @@ async function startMaking() {
   const entry = selectedSkin.value;
   if (!entry || !meshes.value.length) return;
   const exportMeshes = meshes.value.filter((mesh) => pickedMeshes.value.includes(mesh.name));
-  const exportTextures = textures.value.filter(
-    (tex) => tex.png && pickedTextures.value.includes(tex.name),
+  // 缩略图解码失败不代表贴图不能导出；能不能写出来交给核心的 failed_textures
+  const exportTextures = textures.value.filter((tex) =>
+    pickedTextures.value.includes(tex.name),
   );
   if (!exportMeshes.length) {
     status.value = { kind: "err", text: t("models.studio.pickOne") };
@@ -234,6 +309,7 @@ async function startMaking() {
       </p>
 
       <div class="studio__grid">
+        <!-- 左：子网格。点一行 = 看它的贴图；复选框 = 纳入导出 -->
         <section class="studio__meshes">
           <div class="studio__head">
             <span>{{ t("models.studio.meshes") }}</span>
@@ -247,6 +323,7 @@ async function startMaking() {
               :class="{
                 'meshline--off': hidden.includes(mesh.name),
                 'meshline--picked': pickedMeshes.includes(mesh.name),
+                'meshline--active': activeMesh === mesh.name,
               }"
             >
               <input
@@ -266,37 +343,57 @@ async function startMaking() {
               >
                 <span class="glyph">{{ hidden.includes(mesh.name) ? "\uED1A" : "\uE890" }}</span>
               </button>
-              <button class="meshline__body" type="button" @click="togglePickMesh(mesh.name)">
+              <button
+                class="meshline__body"
+                type="button"
+                :aria-pressed="activeMesh === mesh.name"
+                @click="activateMesh(mesh.name)"
+              >
                 <span class="meshline__name mono">{{ shortName(mesh.name) }}</span>
                 <span class="meshline__meta">
                   {{ t("models.studio.verts", { n: compact(mesh.verts), m: compact(mesh.tris) }) }}
+                  · {{ t("models.studio.texCount", { n: textureCount(mesh.name) }) }}
                 </span>
               </button>
             </div>
+
+            <template v-if="sharedTextures.length">
+              <div class="meshline-sep" role="separator"></div>
+              <button
+                class="meshline meshline--shared"
+                :class="{ 'meshline--active': activeShared }"
+                type="button"
+                :title="t('models.studio.sharedHint')"
+                :aria-pressed="activeShared"
+                @click="activateShared"
+              >
+                <span class="glyph meshline__shared-icon">&#xE8B9;</span>
+                <span class="meshline__name">{{ t("models.studio.shared") }}</span>
+                <span class="meshline__texcount">{{ sharedTextures.length }}</span>
+              </button>
+            </template>
+
             <p v-if="!meshes.length && !busy" class="studio__empty">
               {{ t("models.studio.noMesh") }}
             </p>
           </div>
         </section>
 
-        <div class="studio__viewer">
-          <MeshViewer
-            :meshes="geometries"
-            :hidden="hidden"
-            :selected="pickedMeshes"
-            :maps="maps"
-            :loading="!!busy"
-          />
-        </div>
-
+        <!-- 中：当前子网格关联的贴图，勾选 = 导出 -->
         <section class="studio__textures">
           <div class="studio__head">
-            <span>{{ t("models.studio.textures") }}</span>
-            <span class="chip">{{ textures.length }}</span>
+            <span class="studio__head-main">
+              {{ activeShared ? t("models.studio.shared") : t("models.studio.textures") }}
+              <span v-if="!activeShared && activeLabel" class="studio__active mono">
+                · {{ activeLabel }}
+              </span>
+            </span>
+            <span class="chip">{{ activeTextures.length }}</span>
           </div>
-          <div class="texgrid">
+
+          <div v-if="activeTextures.length" class="texgrid">
             <button
-              v-for="tex in textures"
+              v-for="tex in activeTextures"
               :key="tex.name"
               type="button"
               class="texcard"
@@ -314,27 +411,46 @@ async function startMaking() {
                   :alt="tex.name"
                 />
                 <span v-else class="texcard__ph">?</span>
-                <span
-                  v-if="pickedTextures.includes(tex.name)"
-                  class="texcard__tick"
-                  aria-hidden="true"
-                  >✓</span
-                >
+                <span class="texcard__check" aria-hidden="true">
+                  {{ pickedTextures.includes(tex.name) ? "✓" : "" }}
+                </span>
               </span>
-              <span class="texcard__caption mono">{{ shortName(tex.name) }}</span>
+              <span class="texcard__caption">
+                <span class="texcard__name mono">{{ shortName(tex.name) }}</span>
+                <span class="texcard__meta">{{ textureMeta(tex) }}</span>
+              </span>
             </button>
-            <p v-if="!textures.length && !busy" class="studio__empty">
-              {{ t("models.studio.noTex") }}
-            </p>
           </div>
+
+          <p v-else-if="busy" class="studio__empty">{{ busy }}</p>
+          <p v-else-if="!activeMesh && !activeShared" class="studio__empty studio__empty--center">
+            {{ t("models.studio.pickSubmesh") }}
+          </p>
+          <p v-else class="studio__empty">{{ t("models.studio.noSubmeshTex") }}</p>
+
+          <p v-if="activeTextures.length" class="studio__note">
+            {{ t("models.studio.texScope") }}
+          </p>
         </section>
+
+        <!-- 右：9:16 竖版 3D，人物站立时占满高度 -->
+        <div class="studio__viewer">
+          <MeshViewer
+            :meshes="geometries"
+            :hidden="hidden"
+            :selected="pickedMeshes"
+            :active="activeMesh"
+            :maps="maps"
+            :loading="!!busy"
+          />
+        </div>
       </div>
     </div>
   </section>
 </template>
 
 <style scoped>
-/* ---------- 工作台：网格 / 3D / 贴图 ---------- */
+/* ---------- 工作台：子网格 / 贴图 / 竖版 3D ---------- */
 .studio-page {
   display: flex;
   flex-direction: column;
@@ -397,11 +513,10 @@ async function startMaking() {
   gap: 8px;
 }
 
+/* 三栏：子网格 / 贴图 / 9:16 3D */
 .studio__grid {
-  display: grid;
+  display: flex;
   flex: 1;
-  grid-template-columns: 232px minmax(0, 1fr);
-  grid-template-rows: minmax(0, 1fr) 172px;
   gap: 12px;
   min-width: 0;
   min-height: 0;
@@ -417,6 +532,22 @@ async function startMaking() {
   color: var(--text-2);
 }
 
+.studio__head-main {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+}
+
+.studio__active {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 10.5px;
+  color: var(--text-3);
+}
+
 .studio__meshes,
 .studio__textures {
   display: flex;
@@ -426,20 +557,19 @@ async function startMaking() {
 }
 
 .studio__meshes {
-  grid-column: 1;
-  grid-row: 1;
-}
-
-.studio__viewer {
-  grid-column: 2;
-  grid-row: 1;
-  min-width: 0;
-  min-height: 0;
+  flex: 0 0 232px;
 }
 
 .studio__textures {
-  grid-column: 1 / -1;
-  grid-row: 2;
+  flex: 1 1 auto;
+}
+
+/* 高度决定宽度：人物是站立的，画布固定 9:16 */
+.studio__viewer {
+  flex: none;
+  height: 100%;
+  aspect-ratio: 9 / 16;
+  min-width: 0;
 }
 
 .meshline-list {
@@ -467,10 +597,19 @@ async function startMaking() {
   background: rgba(255, 255, 255, 0.07);
 }
 
-/* 勾选 = 会导出；没勾的保持灰色，导出的那批在 3D 里也是这个蓝色 */
+/* 勾选 = 会导出；没勾的保持灰色 */
 .meshline--picked {
   border-color: rgba(76, 194, 255, 0.55);
   background: rgba(76, 194, 255, 0.08);
+}
+
+/* 当前正在看的那一行：压一层更亮的底，不等于“勾选导出” */
+.meshline--active {
+  background: rgba(76, 194, 255, 0.16);
+}
+
+.meshline--active:not(.meshline--picked) {
+  border-color: rgba(76, 194, 255, 0.32);
 }
 
 .meshline--off {
@@ -518,6 +657,7 @@ async function startMaking() {
   border: none;
   background: transparent;
   color: inherit;
+  font: inherit;
   text-align: left;
   cursor: pointer;
 }
@@ -532,50 +672,125 @@ async function startMaking() {
 
 .meshline__meta {
   font-size: 9px;
-  opacity: 0.5;
+  opacity: 0.55;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-/* 贴图是横向胶片条：正方形格子，1:1 由 padding-top 固定 */
+/* 没有子网格认领的共享贴图 */
+.meshline-sep {
+  flex: none;
+  height: 1px;
+  margin: 4px 2px;
+  background: var(--stroke, rgba(255, 255, 255, 0.08));
+}
+
+.meshline--shared {
+  width: 100%;
+  justify-content: flex-start;
+  padding: 7px 6px;
+  border-color: transparent;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.meshline--shared:hover {
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.meshline--shared.meshline--active {
+  background: rgba(76, 194, 255, 0.16);
+  border-color: rgba(76, 194, 255, 0.32);
+}
+
+.meshline__shared-icon {
+  flex: none;
+  width: 20px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-2);
+}
+
+.meshline__texcount {
+  flex: none;
+  margin-left: auto;
+  min-width: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--accent-soft, rgba(76, 194, 255, 0.12));
+  color: var(--text-2);
+  font-size: 9px;
+  line-height: 15px;
+  text-align: center;
+}
+
+/* 贴图卡：正方形，勾选在左上角 */
 .texgrid {
-  display: flex;
+  display: grid;
   flex: 1;
-  gap: 8px;
+  grid-template-columns: repeat(auto-fill, minmax(156px, 1fr));
+  justify-content: start;
+  gap: 10px;
+  align-content: start;
+  align-items: start;
+  /* 行高必须按内容算：否则固定高度会把卡片压扁、裁掉名称 */
+  grid-auto-rows: max-content;
   min-height: 0;
-  overflow-x: auto;
-  overflow-y: hidden;
-  padding: 2px 4px 8px 2px;
-  align-items: flex-start;
+  overflow-y: auto;
+  padding: 2px 4px 6px 2px;
 }
 
 .texcard {
-  flex: 0 0 100px;
+  width: 100%;
+  max-width: 200px;
   margin: 0;
   padding: 0;
+  display: flex;
+  flex-direction: column;
+  border: none;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  opacity: 0.8;
+  transition: 120ms ease;
+}
+
+.texcard:hover {
+  opacity: 1;
+}
+
+/* 边框只包住 1:1 的贴图本身，名称在框外；这样“正方形”是硬性的 */
+.texcard__frame {
+  position: relative;
+  display: block;
+  width: 100%;
+  padding-top: 100%;
   border: 1px solid var(--stroke, rgba(255, 255, 255, 0.08));
   border-radius: 8px;
   overflow: hidden;
   background:
     repeating-conic-gradient(rgba(255, 255, 255, 0.05) 0% 25%, transparent 0% 50%) 0 0 / 12px 12px,
     rgba(255, 255, 255, 0.02);
-  color: inherit;
-  text-align: left;
-  cursor: pointer;
-  opacity: 0.72;
+  transition: 120ms ease;
 }
 
-/* 选中的贴图加边框，未选中的压暗 */
+.texcard:hover .texcard__frame {
+  border-color: var(--stroke-strong, rgba(255, 255, 255, 0.16));
+}
+
 .texcard--picked {
   opacity: 1;
-  border-color: var(--accent, #4cc2ff);
-  box-shadow: 0 0 0 1px var(--accent, #4cc2ff) inset;
 }
 
-.texcard__frame {
-  position: relative;
-  display: block;
-  width: 100%;
-  padding-top: 100%;
+.texcard--picked .texcard__frame {
+  border-color: var(--accent, #4cc2ff);
+  box-shadow: 0 0 0 1px var(--accent, #4cc2ff) inset;
 }
 
 .texcard__img,
@@ -597,26 +812,46 @@ async function startMaking() {
   opacity: 0.35;
 }
 
-.texcard__tick {
+.texcard__check {
   position: absolute;
-  right: 4px;
-  top: 4px;
-  width: 16px;
-  height: 16px;
-  border-radius: 50%;
-  background: var(--accent, #4cc2ff);
-  color: #04121f;
+  left: 5px;
+  top: 5px;
+  width: 18px;
+  height: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  border-radius: 4px;
+  background: rgba(8, 12, 18, 0.55);
+  color: transparent;
   font-size: 11px;
   line-height: 16px;
   font-weight: 700;
   text-align: center;
 }
 
+.texcard--picked .texcard__check {
+  background: var(--accent, #4cc2ff);
+  border-color: var(--accent, #4cc2ff);
+  color: var(--accent-contrast, #04121f);
+}
+
 .texcard__caption {
-  display: block;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 5px 2px 0;
+  min-width: 0;
+}
+
+.texcard__name {
+  font-size: 9.5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.texcard__meta {
   font-size: 8.5px;
-  padding: 3px 5px;
-  opacity: 0.65;
+  color: var(--text-3);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -627,6 +862,23 @@ async function startMaking() {
   font-size: 11px;
   opacity: 0.55;
   line-height: 16px;
+}
+
+.studio__empty--center {
+  flex: 1;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  line-height: 1.8;
+}
+
+.studio__note {
+  flex: none;
+  margin: 6px 0 0;
+  font-size: 9.5px;
+  line-height: 14px;
+  color: var(--text-3);
+  opacity: 0.7;
 }
 
 .status-line {
@@ -648,10 +900,21 @@ async function startMaking() {
   color: #ff9b9b;
 }
 
+/* 鼠标点选不出现 focus 框 */
+.meshline__body:focus,
+.meshline__body:focus-visible,
+.meshline__eye:focus,
+.meshline__eye:focus-visible,
+.meshline--shared:focus,
+.meshline--shared:focus-visible,
+.texcard:focus,
+.texcard:focus-visible {
+  outline: none;
+}
+
 @media (max-width: 1120px) {
-  .studio__grid {
-    grid-template-columns: 200px minmax(0, 1fr);
-    grid-template-rows: minmax(0, 1fr) 164px;
+  .studio__meshes {
+    flex-basis: 200px;
   }
 
   .studio__code {
@@ -660,6 +923,10 @@ async function startMaking() {
 
   .studio__hint {
     max-width: 220px;
+  }
+
+  .texgrid {
+    grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
   }
 }
 </style>

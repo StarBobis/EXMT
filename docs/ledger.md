@@ -87,7 +87,7 @@
 | 扫描只解 node0，不解 `.resS`；node0 > 512 KiB 的多为 mesh 包，直接跳过 → 全量 50 GB 不必读 | `max_sf_for_index`，`_peek_texture_names` |
 | 皮肤范围 = 名字前缀 `c_<Skin>_`：Alva 默认皮肤的 bundle（`cddc7a5b`）里有 **7 个网格**（body / hair / cloth1-4 / emitter），全要；catalog `parts` 只写了 hair/body，**不能当全集** | `entry.bundle = cddc7a5b`；`list_meshes` 实测 7 个，`parts` 只有 2 个 |
 | 整皮肤几何一次返回：`geoset` 只解析一次 Bundle，7 个网格 2.8 MB JSON（核心 0.1 s），前端一次 IPC + 一个 three.js 场景全部画出来 | `python -m exmt_core geoset <spec.json>`；UI 截图里是完整角色 |
-| 网格与贴图**平级**：贴图按皮肤前缀整组取（Alva 20 张），不做"某网格的贴图"过滤；导出也是整套 | 20 张实测；截图里贴图条与网格列表并列 |
+| 网格与贴图在**数据层平级**：贴图仍按皮肤前缀整组取（Alva 20 张），不按 bundle 过滤；UI 自 2026-10-19 起改为按子网格查看（§2.8），导出只含勾选的那批 | 20 张实测；`shot_061017.png` |
 | 游戏贴图都是正方形：格子用 `padding-top:100%` 固定 1:1（不依赖 `aspect-ratio`），横向胶片条，别把页面撑高 | 截图；1:1 由 padding 保证 |
 | 整套导出：7 网格 + 20 贴图 = 4.4 MB；Blender headless 导入 7 个 mesh、**1 副共用骨架**、11 张贴图进材质 | `make_workspace` + `EXMT_OT_import_workspace` 实测 |
 | `make_workspace` 的 spec 必须把**贴图所在的 bundle** 也放进 `bundles`，否则每张贴图都 `failed_textures`（曾 20/20 失败） | 第一次 CLI 验证只放网格包；UI 侧同时收集网格与贴图的 bundle |
@@ -119,7 +119,7 @@
 | 侧卡点击会改 `selected` → 触发 `openStudio`；给按钮加 `@mousedown.prevent` 后，点卡不再把 `.app__content` 滚走（原来焦点会让页面跳 ~80px） | 点击前后截图对比：加之前 header 被滚出视口，加之后停在原位 |
 | 启动时若已存游戏路径，`App.vue` 必须先 `checkGamePath`，否则新进程直接点"模型"会误显示"先设置游戏路径"占位（实际路径可用） | 本轮重启后复现，修好后页面直接显示真实路径状态 |
 
-### 2.7 页面分工：首页 = 角色 + 立绘，模型页 = 网格/3D/贴图（2026-10-19）
+### 2.7 页面分工：首页 = 角色 + 立绘，模型页 = 子网格/贴图/3D（2026-10-19）
 
 | 事实 | 证据 |
 | --- | --- |
@@ -127,10 +127,24 @@
 | 首页卡牌仍是 380:752、环形叠放；尺寸 `--deck-h: clamp(380px, 56vh, 600px)`，卡片宽度由高度算；当前卡居中，侧卡可点选 | 同上；Edge 1650×921 复查截图 `C:\DevCache\tauri-logs\edge_home.png` |
 | 皮肤选择只有一处：`src/lib/selection.ts` 的 `selectedChar`/`selectedSkin` 共享；写 `localStorage["exmt.skin"]`，重启恢复；`characters`/卡牌整理移入 `src/lib/roster.ts` | 重启后首页直接停在上次皮肤；leveldb 里可见 `exmt.skin` 写入 |
 | 首页「进入模型页」与模型页「换皮肤」用 `src/lib/nav.ts` 的 `currentView` ref 往返；`App.vue` 不再自己持有当前页 | 点击两按钮实测切换，回到首页时卡牌仍停在该皮肤 |
-| 模型页只剩三个工作区：**网格列表 / 3D 预览 / 贴图胶片条**；顶栏一行显示角色、皮肤标签、`N 网格 · N 贴图`、皮肤码，右侧「换皮肤 / 开始制作」 | 截图 `C:\DevCache\tauri-logs\final_models.png` |
-| 模型页布局：`height: calc(100vh - titlebar - 50px)`；grid `232px + 1fr`，行 `1fr + 172px`；贴图行必须是 172px——158px 时 100px 贴图卡+说明+12px 横向滚动条放不下，说明文字会被裁掉 | 158px 截图 `models_alva_default.png` 说明被裁；改 172px 后 `models_alva_default2.png` 完整 |
+| 模型页只剩三个工作区（**旧布局，已被 §2.8 取代**）：网格列表 / 3D 预览 / 贴图胶片条；顶栏一行显示角色、皮肤标签、`N 网格 · N 贴图`、皮肤码，右侧「换皮肤 / 开始制作」 | 历史截图 `C:\DevCache\tauri-logs\final_models.png` |
+| 旧布局：`height: calc(100vh - titlebar - 50px)`；grid `232px + 1fr`，行 `1fr + 172px`；贴图行 172px——158px 时 100px 贴图卡+说明+横向滚动条放不下 | 历史截图 `models_alva_default2.png`；现已被 §2.8 的三栏取代 |
 | 模型页只在**被激活时**才读共享皮肤（`onActivated`），避免在首页连点卡牌时后台逐个解析/解码；页内激活期间由 `watch(selectedSkin)` 兜底 | `ModelsView.vue` 的 `sync()`/`active` |
 
+### 2.8 模型页按子网格查看贴图 + 9:16 竖版 3D（2026-10-19）
+
+| 事实 | 证据 |
+| --- | --- |
+| 模型页三栏：**左子网格列表 / 中当前子网格关联贴图 / 右 9:16 竖版 3D**；底部贴图胶片条删除；三栏顺序固定 | 终版截图 `C:\DevCache\tauri-logs\shot_061200.png`（cloth1 3 张方形贴图）、`shot_061017.png`（共享贴图组） |
+| 3D 容器 `height:100%; aspect-ratio:9/16`；1729×960 物理窗口下实测约 410×730，人物站立占满高度 | 同上；CSS `.studio__viewer` |
+| 贴图归属按名称前缀：子网格名去掉 `_lodN`/`_Dorm`/`_Fight` 后，贴图名以该前缀开头即归属；`cloth` 会吃到 `cloth01/02`，`Dorm`/`Fight` 两个变体共用同一组贴图 | `texturesForMesh()`；AlvaSSR0101 的 `slg_cloth_lod0_Dorm`/`_Fight` 各 7 张，`cloth1` 4 张、`cloth2` 3 张 |
+| 没有任何子网格认领的贴图进“共享贴图”组（AlvaSSR01 20 张里 17 张归子网格，3 张 `face_d`/`eye_d`/`eyeblend` 进共享）；没有材质引用，无法证明它们真属于哪个子网格 | `unassignedTextures()`；`shot_061017.png`；blender 侧材质缺失见 §2.6 |
+| 行点击 = 查看（active，3D 淡蓝），复选框 = 导出；勾贴图自动勾当前子网格，避免“只勾贴图不能制作” | 截图 `shot_060748.png`（Dorm + Fight 两行与对应贴图同时勾上） |
+| 贴图方框 1:1：`padding-top:100%`，**边框只包方框，名称/尺寸在框外**；实测 162×162 CSS | 固定高度网格只写 `align-content:start` 会把行压扁、`overflow:hidden` 裁掉说明；加 `align-items:start; grid-auto-rows:max-content` 后 162×162，说明完整 |
+| UI 术语统一为“子网格”（`models.studio.meshes` = 子网格 / Submeshes）；左行 meta 显示 `N 贴图`；顶部计数变成 `N 个子网格 · N 张贴图` | `src/lib/i18n.ts`；截图 `shot_060900.png` |
+| 旧布局（grid 232px + 1fr，行 1fr+172px，贴图底部胶片条）已被本节取代 | `final_models.png` 仅作历史对照 |
+
+**未决**：目前贴图归属是名称前缀推断，不是材质引用；如果后续能从 prefab/material 读到真实 slot，应替换 `texturesForMesh()`，尤其是 `face`/`eye` 这类进共享组的贴图。
 
 ---
 

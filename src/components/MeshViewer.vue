@@ -17,6 +17,8 @@ const props = defineProps<{
   meshes: PreviewGeometry[];
   hidden: string[];
   selected: string[];
+  /** 当前正在查看贴图的子网格（只加一层淡蓝，不改变导出选中态） */
+  active?: string | null;
   /** mesh name → `data:` URL of its diffuse texture */
   maps: Record<string, string>;
   loading?: boolean;
@@ -39,6 +41,7 @@ const built = new Map<string, THREE.Mesh>();
 let framing: { center: THREE.Vector3; maxDim: number } | null = null;
 
 const COLOR_PICKED = 0xffffff;
+const COLOR_ACTIVE = 0xc4d5e4;
 const COLOR_IDLE = 0x6c737c;
 const textureLoader = new THREE.TextureLoader();
 
@@ -224,8 +227,11 @@ function build(all: PreviewGeometry[]) {
       map.anisotropy = renderer?.capabilities.getMaxAnisotropy() ?? 4;
     }
 
+    const picked = props.selected.includes(geo.name);
+    const isActive = props.active === geo.name;
     const material = new THREE.MeshStandardMaterial({
-      color: props.selected.includes(geo.name) ? COLOR_PICKED : COLOR_IDLE,
+      color: picked ? COLOR_PICKED : isActive ? COLOR_ACTIVE : COLOR_IDLE,
+      emissive: picked ? 0x0a1a26 : isActive ? 0x0a2436 : 0x000000,
       map,
       metalness: 0.05,
       roughness: 0.72,
@@ -248,13 +254,14 @@ function syncVisibility() {
   render();
 }
 
-/** 勾选的网格用原色贴图，没勾的压暗，列表和 3D 的选中状态一致。 */
+/** 勾选的子网格用原色贴图，没勾的压暗，列表和 3D 的选中状态一致。 */
 function syncColors() {
   for (const [name, mesh] of built) {
     const material = mesh.material as THREE.MeshStandardMaterial;
     const picked = props.selected.includes(name);
-    material.color.setHex(picked ? COLOR_PICKED : COLOR_IDLE);
-    material.emissive.setHex(picked ? 0x0a1a26 : 0x000000);
+    const isActive = props.active === name;
+    material.color.setHex(picked ? COLOR_PICKED : isActive ? COLOR_ACTIVE : COLOR_IDLE);
+    material.emissive.setHex(picked ? 0x0a1a26 : isActive ? 0x0a2436 : 0x000000);
   }
   render();
 }
@@ -332,6 +339,7 @@ watch(
 watch(() => props.maps, () => build(props.meshes), { deep: true });
 watch(() => props.hidden, syncVisibility, { deep: true });
 watch(() => props.selected, syncColors, { deep: true });
+watch(() => props.active, syncColors);
 
 onBeforeUnmount(() => {
   cancelAnimationFrame(raf);
@@ -483,10 +491,12 @@ onBeforeUnmount(() => {
 
 .meshviewer__hint {
   position: absolute;
-  left: 10px;
+  left: 8px;
+  right: 8px;
   bottom: 6px;
   margin: 0;
   font-size: 10px;
+  line-height: 1.4;
   color: var(--text-3);
   opacity: 0.55;
   pointer-events: none;
