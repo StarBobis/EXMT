@@ -225,6 +225,7 @@ Memory.scanSync(base, size, '55 6E 69 74 79 46 53 00');   // "UnityFS\0"
 | `objdump` / pwntools 类 REA 工具在 Windows 不可用 | `capability_unavailable: unsupported_host` | 改用 Ghidra provider，或自己用 PowerShell 解析 PE |
 | Frida spawn 时 GameAssembly.dll 未加载 | 全部 IL2CPP 导出解析为 0 | 两阶段架构 + 轮询 |
 | 假定"大 DLL = 反作弊" | 误判可行性 | 看 `.managed` 节与导出种类；崩溃上报器很常见 |
+| 默认"整文件都被加密" | 头对、数据全错；改包写回后 Unity 报 `File may be corrupted` | 用 N 扫描 + "所有压缩块都能解出"当判据定边界（实测常是前 32KB），见 references §16 |
 
 ## 交付物清单
 
