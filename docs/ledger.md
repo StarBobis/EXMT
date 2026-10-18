@@ -95,6 +95,8 @@
 | 皮肤级持久缓存：`<cache>/skins/<skinKey>/{meshes,geometry,thumbs,meta}.json`（Alva 默认 geometry 2.76 MB + thumbs 876 KB + meshes 831 B + meta 251 B）；签名 = 相关 bundle 的 size+mtime | `C:\EXMTCacheFolder\skins\c_AlvaSSR01\*`；meta 里 `signature` 三个包 |
 | 冷启动（新进程）里 2 秒内出完整皮肤并显示「本地缓存 · 2026-10-18 23:51」；同一会话内切走再切回不重新解析 | 截图 `cold-cache2.png`、`cache-back.png`（切回 2 秒内已渲染） |
 | 页面状态用 `<KeepAlive>` 保留：首页→模型来回切，选中皮肤/网格可见性/贴图都不丢 | 截图 `keepalive.png` 与切走前逐像素一致 |
+| Tauri 的**同步**命令跑在主线程：`run_core` 原来是 `fn`，导出 8 秒里窗口会假死；改成 `async fn` + `tauri::async_runtime::spawn_blocking` 后，同一次导出期间 24 次 `Get-Process exmt-modbox).Responding` 采样**全部 True** | `src-tauri/src/lib.rs` 的 `run_core` / `run_core_blocking`；导出 00:12:35 完成、采样间隔 300 ms |
+| 导出完成后自动打开工作空间：`openPath(result.dir)`，实测资源管理器停在 `file:///C:/EXMTCacheFolder/workspace/c_AlvaSSR01` | `Shell.Application.Windows().LocationURL` |
 
 
 ---

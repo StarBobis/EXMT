@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
+import { openPath } from "@tauri-apps/plugin-opener";
 import { t } from "../lib/i18n";
 import MeshViewer from "../components/MeshViewer.vue";
 import { isTauri } from "../lib/tauri";
@@ -229,6 +230,8 @@ async function startMaking() {
       kind: "ok",
       text: t("models.made", { meshes: result.meshes, textures: result.textures, dir: result.dir }),
     };
+    // 导出完成后直接打开工作空间，省得用户自己找路径
+    await openPath(result.dir).catch(() => undefined);
   } catch (e) {
     status.value = { kind: "err", text: String(e) };
   } finally {

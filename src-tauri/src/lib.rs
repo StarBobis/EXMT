@@ -33,8 +33,11 @@ struct CoreOutput {
 /// The GUI never shells out to arbitrary commands: the caller selects a Python
 /// interpreter and a core directory (both explicit), and the argument vector is
 /// passed through without a shell, so nothing is re-interpreted.
-#[tauri::command]
-fn run_core(python: String, core_dir: String, args: Vec<String>) -> Result<CoreOutput, String> {
+fn run_core_blocking(
+    python: String,
+    core_dir: String,
+    args: Vec<String>,
+) -> Result<CoreOutput, String> {
     if !std::path::Path::new(&core_dir).is_dir() {
         return Err(format!("core directory not found: {core_dir}"));
     }
@@ -52,6 +55,18 @@ fn run_core(python: String, core_dir: String, args: Vec<String>) -> Result<CoreO
         stdout: String::from_utf8_lossy(&out.stdout).into_owned(),
         stderr: String::from_utf8_lossy(&out.stderr).into_owned(),
     })
+}
+
+/// Async wrapper so a long Python run never blocks the window's event loop.
+///
+/// A synchronous `#[tauri::command]` runs on the main thread, and the whole app
+/// looks frozen while the core parses bundles; `spawn_blocking` moves the child
+/// process to a worker thread instead.
+#[tauri::command]
+async fn run_core(python: String, core_dir: String, args: Vec<String>) -> Result<CoreOutput, String> {
+    tauri::async_runtime::spawn_blocking(move || run_core_blocking(python, core_dir, args))
+        .await
+        .map_err(|e| format!("core task failed: {e}"))?
 }
 
 /// Reveal the main window once web content is ready.

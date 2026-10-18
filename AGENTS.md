@@ -125,6 +125,7 @@ bun run check     # 见 §6
 | 2026-10-18 | 贴图被拉成长方形 | 游戏贴图都是正方形：格子用 `padding-top:100%` 固定 1:1（不依赖 `aspect-ratio`），横向滚动的胶片条，别换成竖排大网格把页面撑出屏幕 |
 | 2026-10-18 | 「模型 / 选角色 · 导出改 · 装回来」是无效 UI | 模型页不要页头标题/副标题；搜索框与角色数量放进左侧角色区顶部 |
 | 2026-10-18 | 切个立绘就重新解析/解码，缓存目录形同虚设 | 皮肤级**持久缓存**：`<cache>/skins/<skinKey>/{meshes,geometry,thumbs,meta}.json`，签名 = 相关 bundle 的 size+mtime（游戏更新才失效）；内存 LRU 保留最近 4 个皮肤；页面用 `<KeepAlive>` 保状态，别一切页就重建 |
+| 2026-10-19 | 点「开始制作」窗口卡死 | Tauri 的**同步** `#[tauri::command]` 跑在主线程，长任务会把窗口冻住；一律写成 `async fn` + `tauri::async_runtime::spawn_blocking`。导出成功后 `openPath(result.dir)` 直接把工作空间打开 |
 | 2026-10-18 | 为什么没有 docs/skill 更新 | 本文件 §1 RSI 循环 |
 
 ---

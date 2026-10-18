@@ -229,6 +229,25 @@ if flags != 4 or size > 512 * 1024: return []
 - 切换页面的状态用 Vue 的 `<KeepAlive>`，不要用 `:key` 强制重建；否则每次进页面都重新拉数据。
 - 首屏要能感知到缓存：界面角落显示「本地缓存 · 时间」，用户才知道缓存真的生效。
 
+### 10.3.4 Rust 命令一律 async，否则窗口会假死
+
+Tauri 2 的 `#[tauri::command] fn`（同步）在**主线程**执行；里面跑一个几秒的子进程，窗口就不响应点击/拖动，用户只会说"卡死"。
+
+```rust
+fn run_core_blocking(...) -> Result<CoreOutput, String> { /* std::process::Command */ }
+
+#[tauri::command]
+async fn run_core(...) -> Result<CoreOutput, String> {
+    tauri::async_runtime::spawn_blocking(move || run_core_blocking(...))
+        .await.map_err(|e| format!("core task failed: {e}"))?
+}
+```
+
+自检方式：长任务运行时高频读 `(Get-Process <app>).Responding`，全 True 才算异步；
+同步命令会在这几秒里返回 False（或窗口直接无响应）。
+
+长任务结束想给用户"结果"时，顺手 `openPath(result.dir)` 打开目录，别让用户自己去找路径。
+
 ### 10.4 导出成"工作空间"而不是一堆文件
 
 ```
