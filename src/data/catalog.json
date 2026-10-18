@@ -1,0 +1,5766 @@
+{
+ "generated_at": "",
+ "source": "local-cache",
+ "characters": [
+  {
+   "id": "c_AgentDorm",
+   "name": "AgentDorm",
+   "display": "特工 · 宿舍",
+   "variant": "dorm",
+   "bundle": "319a58c1aca092ac767096b221b42b36",
+   "parts": {
+    "cloth": "c_AgentDorm_slg_cloth_lod0",
+    "hair": "c_AgentDorm_slg_hair_lod0",
+    "body": "c_AgentDorm_slg_body_lod0"
+   },
+   "part_bundles": {
+    "cloth": [
+     "319a58c1aca092ac767096b221b42b36"
+    ],
+    "hair": [
+     "319a58c1aca092ac767096b221b42b36"
+    ],
+    "body": [
+     "319a58c1aca092ac767096b221b42b36"
+    ]
+   },
+   "portrait": {
+    "bundle": "9d5e9b62aa891bb0a2d55389c5e73106",
+    "texture": "Avatar_Head_AgentDorm"
+   }
+  },
+  {
+   "id": "c_AgentSSR01",
+   "name": "AgentSSR01",
+   "display": "特工",
+   "variant": "slg",
+   "bundle": "b5aa1115d41060900af6164897ca98cd",
+   "parts": {
+    "hair": "c_AgentSSR01_slg_hair_lod0",
+    "body": "c_AgentSSR01_slg_body_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "b5aa1115d41060900af6164897ca98cd"
+    ],
+    "body": [
+     "b5aa1115d41060900af6164897ca98cd"
+    ]
+   },
+   "portrait": {
+    "bundle": "9d5e9b62aa891bb0a2d55389c5e73106",
+    "texture": "Avatar_Head_AgentSSR01"
+   }
+  },
+  {
+   "id": "c_AgentSSR0101",
+   "name": "AgentSSR0101",
+   "display": "特工",
+   "variant": "slg",
+   "bundle": "22eea3e37245386fd7146ae6a796fedd",
+   "parts": {
+    "body": "c_AgentSSR0101_slg_body_lod0"
+   },
+   "part_bundles": {
+    "body": [
+     "22eea3e37245386fd7146ae6a796fedd"
+    ]
+   },
+   "portrait": {
+    "bundle": "9d5e9b62aa891bb0a2d55389c5e73106",
+    "texture": "Avatar_Head_AgentSSR"
+   }
+  },
+  {
+   "id": "c_AlvaDorm",
+   "name": "AlvaDorm",
+   "display": "阿尔瓦 · 宿舍",
+   "variant": "dorm",
+   "bundle": "d914df70f7ba4ed7a825946b01205770",
+   "parts": {
+    "hair": "c_AlvaDorm_slg_hair_lod0",
+    "cloth": "c_AlvaDorm_slg_cloth_lod0",
+    "body": "c_AlvaDorm_slg_body_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "d914df70f7ba4ed7a825946b01205770"
+    ],
+    "cloth": [
+     "d914df70f7ba4ed7a825946b01205770"
+    ],
+    "body": [
+     "d914df70f7ba4ed7a825946b01205770"
+    ]
+   },
+   "portrait": {
+    "bundle": "6991487f3b03e4e5930472937acb2b10",
+    "texture": "Avatar_Head_AlvaSSR"
+   }
+  },
+  {
+   "id": "c_AlvaSSR01",
+   "name": "AlvaSSR01",
+   "display": "阿尔瓦",
+   "variant": "slg",
+   "bundle": "cddc7a5b7285eef66173505dd5ede578",
+   "parts": {
+    "hair": "c_AlvaSSR01_slg_hair_lod0",
+    "body": "c_AlvaSSR01_slg_body_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "cddc7a5b7285eef66173505dd5ede578"
+    ],
+    "body": [
+     "cddc7a5b7285eef66173505dd5ede578"
+    ]
+   },
+   "portrait": {
+    "bundle": "6991487f3b03e4e5930472937acb2b10",
+    "texture": "Avatar_Head_AlvaSSR01"
+   }
+  },
+  {
+   "id": "c_AlvaSSR0101",
+   "name": "AlvaSSR0101",
+   "display": "阿尔瓦",
+   "variant": "slg",
+   "bundle": "a75eb9c24873fc90bf2e31f779f455ec",
+   "parts": {
+    "hair": "c_AlvaSSR0101_slg_hair_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "a75eb9c24873fc90bf2e31f779f455ec"
+    ]
+   },
+   "portrait": {
+    "bundle": "6991487f3b03e4e5930472937acb2b10",
+    "texture": "Avatar_Head_AlvaSSR"
+   }
+  },
+  {
+   "id": "c_AlvaSSR0102",
+   "name": "AlvaSSR0102",
+   "display": "阿尔瓦 ·2",
+   "variant": "slg",
+   "bundle": "0e834224a797a15aefbffd3df0029e8f",
+   "parts": {
+    "body": "c_AlvaSSR0102_slg_body_lod0",
+    "hair": "c_AlvaSSR0102_slg_hair_lod0"
+   },
+   "part_bundles": {
+    "body": [
+     "0e834224a797a15aefbffd3df0029e8f"
+    ],
+    "hair": [
+     "0e834224a797a15aefbffd3df0029e8f"
+    ]
+   },
+   "portrait": {
+    "bundle": "6991487f3b03e4e5930472937acb2b10",
+    "texture": "Avatar_Head_AlvaSSR"
+   }
+  },
+  {
+   "id": "c_AndorisDorm",
+   "name": "AndorisDorm",
+   "display": "安德里斯 · 宿舍",
+   "variant": "dorm",
+   "bundle": "0c6b6207f9a01e55ecf946b28c77c5f8",
+   "parts": {
+    "cloth": "c_AndorisDorm_slg_cloth_lod0",
+    "body": "c_AndorisDorm_slg_body_lod0",
+    "hair": "c_AndorisDorm_slg_hair_lod0"
+   },
+   "part_bundles": {
+    "cloth": [
+     "0c6b6207f9a01e55ecf946b28c77c5f8"
+    ],
+    "body": [
+     "0c6b6207f9a01e55ecf946b28c77c5f8"
+    ],
+    "hair": [
+     "0c6b6207f9a01e55ecf946b28c77c5f8"
+    ]
+   },
+   "portrait": {
+    "bundle": "3341a4089881c3e1b5fa7f585ec76470",
+    "texture": "Avatar_Head_AndorisSSR"
+   }
+  },
+  {
+   "id": "c_AndorisSR01",
+   "name": "AndorisSR01",
+   "display": "安德里斯",
+   "variant": "slg",
+   "bundle": "0c6b6207f9a01e55ecf946b28c77c5f8",
+   "parts": {
+    "hair": "c_AndorisSR01_slg_hair_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "0c6b6207f9a01e55ecf946b28c77c5f8"
+    ]
+   },
+   "portrait": {
+    "bundle": "3341a4089881c3e1b5fa7f585ec76470",
+    "texture": "Avatar_Head_AndorisSSR"
+   }
+  },
+  {
+   "id": "c_AndorisSSR01",
+   "name": "AndorisSSR01",
+   "display": "安德里斯",
+   "variant": "slg",
+   "bundle": "3322cbaf50d2f75b99eeddd045a4d861",
+   "parts": {
+    "hair": "c_AndorisSSR01_slg_hair_lod0",
+    "body": "c_AndorisSSR01_slg_body_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "3322cbaf50d2f75b99eeddd045a4d861"
+    ],
+    "body": [
+     "3322cbaf50d2f75b99eeddd045a4d861"
+    ]
+   },
+   "portrait": {
+    "bundle": "7654a9a6eea84eb45ea1b4ddd2241c25",
+    "texture": "Avatar_Head_AndorisSSR01"
+   }
+  },
+  {
+   "id": "c_AndorisSSR0101",
+   "name": "AndorisSSR0101",
+   "display": "安德里斯",
+   "variant": "slg",
+   "bundle": "135ea019bb05e08a1dda6350dff4fbcc",
+   "parts": {
+    "hair": "c_AndorisSSR0101_slg_hair_lod0",
+    "body": "c_AndorisSSR0101_slg_body_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "135ea019bb05e08a1dda6350dff4fbcc"
+    ],
+    "body": [
+     "135ea019bb05e08a1dda6350dff4fbcc"
+    ]
+   },
+   "portrait": {
+    "bundle": "3341a4089881c3e1b5fa7f585ec76470",
+    "texture": "Avatar_Head_AndorisSSR"
+   }
+  },
+  {
+   "id": "c_AsteriaDorm",
+   "name": "AsteriaDorm",
+   "display": "阿斯特里亚 · 宿舍",
+   "variant": "dorm",
+   "bundle": "b96fa15f2d008730bce4a31876f6b536",
+   "parts": {
+    "hair": "c_AsteriaDorm_slg_hair_lod0",
+    "cloth": "c_AsteriaDorm_slg_cloth_lod0",
+    "body": "c_AsteriaDorm_slg_body_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "b96fa15f2d008730bce4a31876f6b536"
+    ],
+    "cloth": [
+     "b96fa15f2d008730bce4a31876f6b536"
+    ],
+    "body": [
+     "b96fa15f2d008730bce4a31876f6b536"
+    ]
+   },
+   "portrait": {
+    "bundle": "a3861f795bd5e3a36f3f703e8c30213f",
+    "texture": "Avatar_Head_AsteriaDorm"
+   }
+  },
+  {
+   "id": "c_AsteriaSSR01",
+   "name": "AsteriaSSR01",
+   "display": "阿斯特里亚",
+   "variant": "slg",
+   "bundle": "d226945aee30d9508494376d5b544449",
+   "parts": {
+    "body": "c_AsteriaSSR01_slg_body_lod0",
+    "hair": "c_AsteriaSSR01_slg_hair_lod0"
+   },
+   "part_bundles": {
+    "body": [
+     "d226945aee30d9508494376d5b544449"
+    ],
+    "hair": [
+     "b96fa15f2d008730bce4a31876f6b536",
+     "d226945aee30d9508494376d5b544449"
+    ]
+   },
+   "portrait": {
+    "bundle": "a3861f795bd5e3a36f3f703e8c30213f",
+    "texture": "Avatar_Head_AsteriaSSR01"
+   }
+  },
+  {
+   "id": "c_AsteriaSSR0101",
+   "name": "AsteriaSSR0101",
+   "display": "阿斯特里亚",
+   "variant": "slg",
+   "bundle": "0d5abf0d601957300e76d4d37568313d",
+   "parts": {
+    "hair": "c_AsteriaSSR0101_slg_hair_lod0",
+    "body": "c_AsteriaSSR0101_slg_body_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "0d5abf0d601957300e76d4d37568313d"
+    ],
+    "body": [
+     "0d5abf0d601957300e76d4d37568313d"
+    ]
+   },
+   "portrait": {
+    "bundle": "a3861f795bd5e3a36f3f703e8c30213f",
+    "texture": "Avatar_Head_AsteriaSSR"
+   }
+  },
+  {
+   "id": "c_BalthildeDorm",
+   "name": "BalthildeDorm",
+   "display": "巴希达 · 宿舍",
+   "variant": "dorm",
+   "bundle": "fe4d6af23d1d4a4dd0753e53f66466ec",
+   "parts": {
+    "hair": "c_BalthildeDorm_slg_hair_lod0",
+    "body": "c_BalthildeDorm_slg_body_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "fe4d6af23d1d4a4dd0753e53f66466ec"
+    ],
+    "body": [
+     "fe4d6af23d1d4a4dd0753e53f66466ec"
+    ]
+   },
+   "portrait": {
+    "bundle": "13abb558e8ebe9f748953750cc11d55f",
+    "texture": "Avatar_Head_BalthildeSSR"
+   }
+  },
+  {
+   "id": "c_BalthildeSSR01",
+   "name": "BalthildeSSR01",
+   "display": "巴希达",
+   "variant": "slg",
+   "bundle": "11cb4e2b4465d64fd89b851517ac8c17",
+   "parts": {
+    "hair": "c_BalthildeSSR01_slg_hair_lod0",
+    "body": "c_BalthildeSSR01_slg_body_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "11cb4e2b4465d64fd89b851517ac8c17"
+    ],
+    "body": [
+     "11cb4e2b4465d64fd89b851517ac8c17"
+    ]
+   },
+   "portrait": {
+    "bundle": "13abb558e8ebe9f748953750cc11d55f",
+    "texture": "Avatar_Head_BalthildeSSR"
+   }
+  },
+  {
+   "id": "c_BastiDorm",
+   "name": "BastiDorm",
+   "display": "巴斯提 · 宿舍",
+   "variant": "dorm",
+   "bundle": "31f6ff011fd77202bc97418f7e2d1e6d",
+   "parts": {
+    "hair": "c_BastiDorm_slg_hair_lod0",
+    "body": "c_BastiDorm_slg_body_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "31f6ff011fd77202bc97418f7e2d1e6d"
+    ],
+    "body": [
+     "31f6ff011fd77202bc97418f7e2d1e6d"
+    ]
+   },
+   "portrait": {
+    "bundle": "7305451c9eb0738fc1340639600f76e8",
+    "texture": "Avatar_Head_BastiSSR"
+   }
+  },
+  {
+   "id": "c_BastiSSR01",
+   "name": "BastiSSR01",
+   "display": "巴斯提",
+   "variant": "slg",
+   "bundle": "1ec1b90ac3035eb65a8ea90d0744053a",
+   "parts": {
+    "body": "c_BastiSSR01_slg_body_lod0",
+    "hair": "c_BastiSSR01_slg_hair_lod0",
+    "plush": "c_BastiSSR01_slg_plush_lod0"
+   },
+   "part_bundles": {
+    "body": [
+     "1ec1b90ac3035eb65a8ea90d0744053a"
+    ],
+    "hair": [
+     "1ec1b90ac3035eb65a8ea90d0744053a",
+     "dd21ba2936bb3420385050661acbf7d6"
+    ],
+    "plush": [
+     "1ec1b90ac3035eb65a8ea90d0744053a"
+    ]
+   },
+   "portrait": {
+    "bundle": "7305451c9eb0738fc1340639600f76e8",
+    "texture": "Avatar_Head_BastiSSR01"
+   }
+  },
+  {
+   "id": "c_BastiSSR0101",
+   "name": "BastiSSR0101",
+   "display": "巴斯提",
+   "variant": "slg",
+   "bundle": "dd21ba2936bb3420385050661acbf7d6",
+   "parts": {
+    "hair": "c_BastiSSR0101_slg_hair_lod0",
+    "body": "c_BastiSSR0101_slg_body_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "dd21ba2936bb3420385050661acbf7d6"
+    ],
+    "body": [
+     "dd21ba2936bb3420385050661acbf7d6"
+    ]
+   },
+   "portrait": {
+    "bundle": "7305451c9eb0738fc1340639600f76e8",
+    "texture": "Avatar_Head_BastiSSR"
+   }
+  },
+  {
+   "id": "c_BiyocaDorm",
+   "name": "BiyocaDorm",
+   "display": "比约卡 · 宿舍",
+   "variant": "dorm",
+   "bundle": "2fb3869ab323991bbfc867724312ffd3",
+   "parts": {
+    "body": "c_BiyocaDorm_slg_body_lod0",
+    "hair": "c_BiyocaDorm_slg_hair_lod0"
+   },
+   "part_bundles": {
+    "body": [
+     "2fb3869ab323991bbfc867724312ffd3"
+    ],
+    "hair": [
+     "2fb3869ab323991bbfc867724312ffd3"
+    ]
+   },
+   "portrait": {
+    "bundle": "0a7e616dd18cf82cf49b6edb868f0a68",
+    "texture": "Avatar_Head_BiyocaSSR"
+   }
+  },
+  {
+   "id": "c_BiyocaSSR01",
+   "name": "BiyocaSSR01",
+   "display": "比约卡",
+   "variant": "slg",
+   "bundle": "518ee456a06871aa4fba9594991780e7",
+   "parts": {
+    "body": "c_BiyocaSSR01_slg_body_lod0",
+    "hair": "c_BiyocaSSR01_slg_hair_lod0"
+   },
+   "part_bundles": {
+    "body": [
+     "518ee456a06871aa4fba9594991780e7"
+    ],
+    "hair": [
+     "518ee456a06871aa4fba9594991780e7"
+    ]
+   },
+   "portrait": {
+    "bundle": "0a7e616dd18cf82cf49b6edb868f0a68",
+    "texture": "Avatar_Head_BiyocaSSR01"
+   }
+  },
+  {
+   "id": "c_BiyocaSSR0101",
+   "name": "BiyocaSSR0101",
+   "display": "比约卡",
+   "variant": "slg",
+   "bundle": "3a67d55c047dc489c7fb460b41660acc",
+   "parts": {
+    "body": "c_BiyocaSSR0101_slg_body_lod0",
+    "cloth": "c_BiyocaSSR0101_slg_cloth_lod0",
+    "hair": "c_BiyocaSSR0101_slg_hair_lod0"
+   },
+   "part_bundles": {
+    "body": [
+     "3a67d55c047dc489c7fb460b41660acc"
+    ],
+    "cloth": [
+     "3a67d55c047dc489c7fb460b41660acc"
+    ],
+    "hair": [
+     "3a67d55c047dc489c7fb460b41660acc"
+    ]
+   },
+   "portrait": {
+    "bundle": "0a7e616dd18cf82cf49b6edb868f0a68",
+    "texture": "Avatar_Head_BiyocaSSR"
+   }
+  },
+  {
+   "id": "c_CeciliaDorm",
+   "name": "CeciliaDorm",
+   "display": "塞西莉亚 · 宿舍",
+   "variant": "dorm",
+   "bundle": "50dbebec8c151414f6c41441cda9c627",
+   "parts": {
+    "hair": "c_CeciliaDorm_slg_hair_lod0",
+    "cloth": "c_CeciliaDorm_slg_cloth_lod0",
+    "body": "c_CeciliaDorm_slg_body_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "50dbebec8c151414f6c41441cda9c627"
+    ],
+    "cloth": [
+     "50dbebec8c151414f6c41441cda9c627"
+    ],
+    "body": [
+     "50dbebec8c151414f6c41441cda9c627"
+    ]
+   },
+   "portrait": {
+    "bundle": "96046eb3911cd145f6affc8035e5565f",
+    "texture": "Avatar_Head_CeciliaDorm"
+   }
+  },
+  {
+   "id": "c_CeciliaSSR01",
+   "name": "CeciliaSSR01",
+   "display": "塞西莉亚",
+   "variant": "slg",
+   "bundle": "30488b9d112e93d13e22322eab06bbe5",
+   "parts": {
+    "body": "c_CeciliaSSR01_slg_body_lod0",
+    "hair": "c_CeciliaSSR01_slg_hair_lod0"
+   },
+   "part_bundles": {
+    "body": [
+     "30488b9d112e93d13e22322eab06bbe5"
+    ],
+    "hair": [
+     "30488b9d112e93d13e22322eab06bbe5"
+    ]
+   },
+   "portrait": {
+    "bundle": "96046eb3911cd145f6affc8035e5565f",
+    "texture": "Avatar_Head_CeciliaSSR01"
+   }
+  },
+  {
+   "id": "c_CeciliaSSR0101",
+   "name": "CeciliaSSR0101",
+   "display": "塞西莉亚",
+   "variant": "slg",
+   "bundle": "6bee6e5338bb1f07318dbcee7e2f3af7",
+   "parts": {
+    "body": "c_CeciliaSSR0101_slg_body_lod0",
+    "hair": "c_CeciliaSSR0101_slg_hair_lod0"
+   },
+   "part_bundles": {
+    "body": [
+     "6bee6e5338bb1f07318dbcee7e2f3af7"
+    ],
+    "hair": [
+     "6bee6e5338bb1f07318dbcee7e2f3af7"
+    ]
+   },
+   "portrait": {
+    "bundle": "96046eb3911cd145f6affc8035e5565f",
+    "texture": "Avatar_Head_CeciliaSSR"
+   }
+  },
+  {
+   "id": "c_CentaureissiDorm",
+   "name": "CentaureissiDorm",
+   "display": "琴陶蕾西 · 宿舍",
+   "variant": "dorm",
+   "bundle": "01d24fec26c7b85cbcd1a9d07e1671bb",
+   "parts": {
+    "hair": "c_CentaureissiDorm_slg_hair_lod0",
+    "body": "c_CentaureissiDorm_slg_body_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "01d24fec26c7b85cbcd1a9d07e1671bb"
+    ],
+    "body": [
+     "01d24fec26c7b85cbcd1a9d07e1671bb"
+    ]
+   },
+   "portrait": {
+    "bundle": "85d6be07690c0e9a9c496f1ad611bb5e",
+    "texture": "Avatar_Head_CentaureissiSSR"
+   }
+  },
+  {
+   "id": "c_CentaureissiSSR01",
+   "name": "CentaureissiSSR01",
+   "display": "琴陶蕾西",
+   "variant": "slg",
+   "bundle": "7d890656f43dc876577a324f693c5b62",
+   "parts": {
+    "hair": "c_CentaureissiSSR01_slg_hair_lod0",
+    "body": "c_CentaureissiSSR01_slg_body_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "7d890656f43dc876577a324f693c5b62"
+    ],
+    "body": [
+     "7d890656f43dc876577a324f693c5b62"
+    ]
+   },
+   "portrait": {
+    "bundle": "564c30fe97d3ecb879678c6d8b1776ba",
+    "texture": "Avatar_Head_CentaureissiSSR01"
+   }
+  },
+  {
+   "id": "c_CentaureissiSSR0101",
+   "name": "CentaureissiSSR0101",
+   "display": "琴陶蕾西",
+   "variant": "slg",
+   "bundle": "bd82ce92250de9068349598fca60df4d",
+   "parts": {
+    "body": "c_CentaureissiSSR0101_slg_body_lod0",
+    "hair": "c_CentaureissiSSR0101_slg_hair_lod0"
+   },
+   "part_bundles": {
+    "body": [
+     "bd82ce92250de9068349598fca60df4d"
+    ],
+    "hair": [
+     "bd82ce92250de9068349598fca60df4d"
+    ]
+   },
+   "portrait": {
+    "bundle": "85d6be07690c0e9a9c496f1ad611bb5e",
+    "texture": "Avatar_Head_CentaureissiSSR"
+   }
+  },
+  {
+   "id": "c_CentaureissiSSR0102",
+   "name": "CentaureissiSSR0102",
+   "display": "琴陶蕾西 ·2",
+   "variant": "slg",
+   "bundle": "b7fa6b06cc1e1f3485a4f198531eb7fe",
+   "parts": {
+    "body": "c_CentaureissiSSR0102_slg_body_lod0",
+    "hair": "c_CentaureissiSSR0102_slg_hair_lod0"
+   },
+   "part_bundles": {
+    "body": [
+     "b7fa6b06cc1e1f3485a4f198531eb7fe"
+    ],
+    "hair": [
+     "b7fa6b06cc1e1f3485a4f198531eb7fe"
+    ]
+   },
+   "portrait": {
+    "bundle": "85d6be07690c0e9a9c496f1ad611bb5e",
+    "texture": "Avatar_Head_CentaureissiSSR"
+   }
+  },
+  {
+   "id": "c_CharolicDorm",
+   "name": "CharolicDorm",
+   "display": "CharolicDorm",
+   "variant": "dorm",
+   "bundle": "feee40a8bbba9e6f4959008c160c5298",
+   "parts": {
+    "body": "c_CharolicDorm_slg_body_lod0",
+    "cloth": "c_CharolicDorm_slg_cloth_lod0"
+   },
+   "part_bundles": {
+    "body": [
+     "feee40a8bbba9e6f4959008c160c5298"
+    ],
+    "cloth": [
+     "feee40a8bbba9e6f4959008c160c5298"
+    ]
+   },
+   "portrait": {
+    "bundle": "47e2948d4c471d00bcb6f817f244d176",
+    "texture": "Avatar_Head_CharolicSR"
+   }
+  },
+  {
+   "id": "c_CharolicSR01",
+   "name": "CharolicSR01",
+   "display": "CharolicSR01",
+   "variant": "slg",
+   "bundle": "d9c8063cc89cad0ee59d384e3d1c11d6",
+   "parts": {
+    "hair": "c_CharolicSR01_slg_hair_lod0",
+    "body": "c_CharolicSR01_slg_body_lod0",
+    "cloth": "c_CharolicSR01_slg_cloth_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "765ce3d76f42f24172b4ecf4319c51d3",
+     "d9c8063cc89cad0ee59d384e3d1c11d6",
+     "feee40a8bbba9e6f4959008c160c5298"
+    ],
+    "body": [
+     "d9c8063cc89cad0ee59d384e3d1c11d6"
+    ],
+    "cloth": [
+     "d9c8063cc89cad0ee59d384e3d1c11d6"
+    ]
+   },
+   "portrait": {
+    "bundle": "47e2948d4c471d00bcb6f817f244d176",
+    "texture": "Avatar_Head_CharolicSR01"
+   }
+  },
+  {
+   "id": "c_CharolicSR0101",
+   "name": "CharolicSR0101",
+   "display": "CharolicSR0101",
+   "variant": "slg",
+   "bundle": "765ce3d76f42f24172b4ecf4319c51d3",
+   "parts": {
+    "hair": "c_CharolicSR0101_slg_hair_lod0",
+    "cloth": "c_CharolicSR0101_slg_cloth_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "765ce3d76f42f24172b4ecf4319c51d3"
+    ],
+    "cloth": [
+     "765ce3d76f42f24172b4ecf4319c51d3"
+    ]
+   },
+   "portrait": {
+    "bundle": "47e2948d4c471d00bcb6f817f244d176",
+    "texture": "Avatar_Head_CharolicSR"
+   }
+  },
+  {
+   "id": "c_CharolicSR0103",
+   "name": "CharolicSR0103",
+   "display": "CharolicSR0103",
+   "variant": "slg",
+   "bundle": "5fb4afa87f908df0abaff2f7432bbf51",
+   "parts": {
+    "hair": "c_CharolicSR0103_slg_hair_lod0",
+    "cloth": "c_CharolicSR0103_slg_cloth_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "5fb4afa87f908df0abaff2f7432bbf51"
+    ],
+    "cloth": [
+     "5fb4afa87f908df0abaff2f7432bbf51"
+    ]
+   },
+   "portrait": {
+    "bundle": "47e2948d4c471d00bcb6f817f244d176",
+    "texture": "Avatar_Head_CharolicSR"
+   }
+  },
+  {
+   "id": "c_CheetaDorm",
+   "name": "CheetaDorm",
+   "display": "奇塔 · 宿舍",
+   "variant": "dorm",
+   "bundle": "80c6146c36ab4c528198b2330f24361e",
+   "parts": {
+    "hair": "c_CheetaDorm_slg_hair_lod0",
+    "body": "c_CheetaDorm_slg_body_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "80c6146c36ab4c528198b2330f24361e"
+    ],
+    "body": [
+     "80c6146c36ab4c528198b2330f24361e"
+    ]
+   },
+   "portrait": {
+    "bundle": "6a9197179e0bb0d7894240dea83cb332",
+    "texture": "Avatar_Head_CheetaSR"
+   }
+  },
+  {
+   "id": "c_CheetaSR01",
+   "name": "CheetaSR01",
+   "display": "奇塔",
+   "variant": "slg",
+   "bundle": "f16b2cc24571fd11bc95f918d0cd084e",
+   "parts": {
+    "cloth": "c_CheetaSR01_slg_cloth_lod0",
+    "hair": "c_CheetaSR01_slg_hair_lod0",
+    "body": "c_CheetaSR01_slg_body_lod0"
+   },
+   "part_bundles": {
+    "cloth": [
+     "f16b2cc24571fd11bc95f918d0cd084e"
+    ],
+    "hair": [
+     "f16b2cc24571fd11bc95f918d0cd084e"
+    ],
+    "body": [
+     "f16b2cc24571fd11bc95f918d0cd084e"
+    ]
+   },
+   "portrait": {
+    "bundle": "3d0e3f1908a04b0336839bd48f5ae97b",
+    "texture": "Avatar_Head_CheetaSR01"
+   }
+  },
+  {
+   "id": "c_CheetaSR0101",
+   "name": "CheetaSR0101",
+   "display": "奇塔",
+   "variant": "slg",
+   "bundle": "bbde0b648879c3c269ba6bad7cdc2233",
+   "parts": {
+    "hair": "c_CheetaSR0101_slg_hair_lod0",
+    "body": "c_CheetaSR0101_slg_body_lod0",
+    "cloth": "c_CheetaSR0101_slg_cloth_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "bbde0b648879c3c269ba6bad7cdc2233"
+    ],
+    "body": [
+     "bbde0b648879c3c269ba6bad7cdc2233"
+    ],
+    "cloth": [
+     "bbde0b648879c3c269ba6bad7cdc2233"
+    ]
+   },
+   "portrait": {
+    "bundle": "6a9197179e0bb0d7894240dea83cb332",
+    "texture": "Avatar_Head_CheetaSR"
+   }
+  },
+  {
+   "id": "c_CheyanneDorm",
+   "name": "CheyanneDorm",
+   "display": "夏安 · 宿舍",
+   "variant": "dorm",
+   "bundle": "550adbd535a332615b13d3dd5d525145",
+   "parts": {
+    "body": "c_CheyanneDorm_slg_body_lod0",
+    "cloth": "c_CheyanneDorm_slg_cloth_lod0",
+    "hair": "c_CheyanneDorm_slg_hair_lod0"
+   },
+   "part_bundles": {
+    "body": [
+     "550adbd535a332615b13d3dd5d525145"
+    ],
+    "cloth": [
+     "550adbd535a332615b13d3dd5d525145"
+    ],
+    "hair": [
+     "550adbd535a332615b13d3dd5d525145"
+    ]
+   },
+   "portrait": {
+    "bundle": "74c690ddb0bd33552eebec4904c9d849",
+    "texture": "Avatar_Head_CheyanneSSR"
+   }
+  },
+  {
+   "id": "c_CheyanneSSR01",
+   "name": "CheyanneSSR01",
+   "display": "夏安",
+   "variant": "slg",
+   "bundle": "07413918a21d010f9e64f4c8497eab5b",
+   "parts": {
+    "body": "c_CheyanneSSR01_slg_body_lod0",
+    "hair": "c_CheyanneSSR01_slg_hair_lod0"
+   },
+   "part_bundles": {
+    "body": [
+     "07413918a21d010f9e64f4c8497eab5b"
+    ],
+    "hair": [
+     "07413918a21d010f9e64f4c8497eab5b"
+    ]
+   },
+   "portrait": {
+    "bundle": "74c690ddb0bd33552eebec4904c9d849",
+    "texture": "Avatar_Head_CheyanneSSR01"
+   }
+  },
+  {
+   "id": "c_CheyanneSSR0101",
+   "name": "CheyanneSSR0101",
+   "display": "夏安",
+   "variant": "slg",
+   "bundle": "0886d0734d37cd8e993cd3f8eb081b00",
+   "parts": {
+    "body": "c_CheyanneSSR0101_slg_body_lod0",
+    "hair": "c_CheyanneSSR0101_slg_hair_lod0"
+   },
+   "part_bundles": {
+    "body": [
+     "0886d0734d37cd8e993cd3f8eb081b00"
+    ],
+    "hair": [
+     "0886d0734d37cd8e993cd3f8eb081b00"
+    ]
+   },
+   "portrait": {
+    "bundle": "74c690ddb0bd33552eebec4904c9d849",
+    "texture": "Avatar_Head_CheyanneSSR"
+   }
+  },
+  {
+   "id": "c_ClukayDorm",
+   "name": "ClukayDorm",
+   "display": "克鲁凯 · 宿舍",
+   "variant": "dorm",
+   "bundle": "f8c3d3e9dbb9f8c4a13a60ccd227d9f0",
+   "parts": {
+    "body": "c_ClukayDorm_slg_body_lod0",
+    "hair": "c_ClukayDorm_slg_hair_lod0"
+   },
+   "part_bundles": {
+    "body": [
+     "f8c3d3e9dbb9f8c4a13a60ccd227d9f0"
+    ],
+    "hair": [
+     "f8c3d3e9dbb9f8c4a13a60ccd227d9f0"
+    ]
+   },
+   "portrait": {
+    "bundle": "00db9bc6c41c1d1067a767de09b1d010",
+    "texture": "Avatar_Head_ClukaySSR"
+   }
+  },
+  {
+   "id": "c_ClukaySSR01",
+   "name": "ClukaySSR01",
+   "display": "克鲁凯",
+   "variant": "slg",
+   "bundle": "1291f2dfaae451b6c5220024b6bd0093",
+   "parts": {
+    "hair": "c_ClukaySSR01_slg_hair_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "1291f2dfaae451b6c5220024b6bd0093"
+    ]
+   },
+   "portrait": {
+    "bundle": "00db9bc6c41c1d1067a767de09b1d010",
+    "texture": "Avatar_Head_ClukaySSR01"
+   }
+  },
+  {
+   "id": "c_ClukaySSR0101",
+   "name": "ClukaySSR0101",
+   "display": "克鲁凯",
+   "variant": "slg",
+   "bundle": "dc591d03e145c4208fb39942e8c3e71e",
+   "parts": {
+    "hair": "c_ClukaySSR0101_slg_hair_lod0",
+    "cloth": "c_ClukaySSR0101_slg_cloth_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "dc591d03e145c4208fb39942e8c3e71e"
+    ],
+    "cloth": [
+     "dc591d03e145c4208fb39942e8c3e71e"
+    ]
+   },
+   "portrait": {
+    "bundle": "00db9bc6c41c1d1067a767de09b1d010",
+    "texture": "Avatar_Head_ClukaySSR"
+   }
+  },
+  {
+   "id": "c_ClukaySSR0102",
+   "name": "ClukaySSR0102",
+   "display": "克鲁凯 ·2",
+   "variant": "slg",
+   "bundle": "1bdedb7c6e0373fdecb3bbfa433e4b56",
+   "parts": {
+    "hair": "c_ClukaySSR0102_slg_hair_lod0",
+    "body": "c_ClukaySSR0102_slg_body_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "1bdedb7c6e0373fdecb3bbfa433e4b56"
+    ],
+    "body": [
+     "1bdedb7c6e0373fdecb3bbfa433e4b56"
+    ]
+   },
+   "portrait": {
+    "bundle": "00db9bc6c41c1d1067a767de09b1d010",
+    "texture": "Avatar_Head_ClukaySSR"
+   }
+  },
+  {
+   "id": "c_ClukaySSR0103",
+   "name": "ClukaySSR0103",
+   "display": "克鲁凯 ·3",
+   "variant": "slg",
+   "bundle": "73a6e5679c4e19789dbcde4e662afab1",
+   "parts": {
+    "body": "c_ClukaySSR0103_slg_body_lod0",
+    "hair": "c_ClukaySSR0103_slg_hair_lod0"
+   },
+   "part_bundles": {
+    "body": [
+     "73a6e5679c4e19789dbcde4e662afab1"
+    ],
+    "hair": [
+     "73a6e5679c4e19789dbcde4e662afab1"
+    ]
+   },
+   "portrait": {
+    "bundle": "00db9bc6c41c1d1067a767de09b1d010",
+    "texture": "Avatar_Head_ClukaySSR"
+   }
+  },
+  {
+   "id": "c_ClukaySSR0104",
+   "name": "ClukaySSR0104",
+   "display": "克鲁凯 ·4",
+   "variant": "slg",
+   "bundle": "ce74015fd2c7955576bd23f91758d350",
+   "parts": {
+    "body": "c_ClukaySSR0104_slg_body_lod0",
+    "hair": "c_ClukaySSR0104_slg_hair_lod0"
+   },
+   "part_bundles": {
+    "body": [
+     "ce74015fd2c7955576bd23f91758d350"
+    ],
+    "hair": [
+     "ce74015fd2c7955576bd23f91758d350"
+    ]
+   },
+   "portrait": {
+    "bundle": "00db9bc6c41c1d1067a767de09b1d010",
+    "texture": "Avatar_Head_ClukaySSR"
+   }
+  },
+  {
+   "id": "c_ClukaySSR0105",
+   "name": "ClukaySSR0105",
+   "display": "克鲁凯 ·5",
+   "variant": "slg",
+   "bundle": "f62273a310ff82b06e6fd63882dba5b3",
+   "parts": {
+    "hair": "c_ClukaySSR0105_slg_hair_lod0",
+    "body": "c_ClukaySSR0105_slg_body_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "f62273a310ff82b06e6fd63882dba5b3"
+    ],
+    "body": [
+     "f62273a310ff82b06e6fd63882dba5b3"
+    ]
+   },
+   "portrait": {
+    "bundle": "00db9bc6c41c1d1067a767de09b1d010",
+    "texture": "Avatar_Head_ClukaySSR"
+   }
+  },
+  {
+   "id": "c_ColphneDoppelgaengerDorm",
+   "name": "ColphneDoppelgaengerDorm",
+   "display": "科尔芙妮·二重身 · 宿舍",
+   "variant": "dorm",
+   "bundle": "5f815bf2aa02b6b127a031c720a34c9d",
+   "parts": {
+    "body": "c_ColphneDoppelgaengerDorm_slg_body_lod0",
+    "cloth": "c_ColphneDoppelgaengerDorm_slg_cloth_lod0",
+    "hair": "c_ColphneDoppelgaengerDorm_slg_hair_lod0"
+   },
+   "part_bundles": {
+    "body": [
+     "5f815bf2aa02b6b127a031c720a34c9d"
+    ],
+    "cloth": [
+     "5f815bf2aa02b6b127a031c720a34c9d"
+    ],
+    "hair": [
+     "5f815bf2aa02b6b127a031c720a34c9d"
+    ]
+   },
+   "portrait": {
+    "bundle": "9d5e9b62aa891bb0a2d55389c5e73106",
+    "texture": "Avatar_Head_ColphneDoppelgaengerDorm"
+   }
+  },
+  {
+   "id": "c_ColphneDoppelgaengerSSR01",
+   "name": "ColphneDoppelgaengerSSR01",
+   "display": "科尔芙妮·二重身",
+   "variant": "slg",
+   "bundle": "80811ca1ac33902f5f82483007b3804a",
+   "parts": {
+    "hair": "c_ColphneDoppelgaengerSSR01_slg_hair_lod0",
+    "body": "c_ColphneDoppelgaengerSSR01_slg_body_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "49fe692afb064578e0d912cde0453966",
+     "66c0889b3ce442b93a50ce1af17dac29",
+     "80811ca1ac33902f5f82483007b3804a",
+     "ca9bcaec2b649ad342bacebe36fccc34"
+    ],
+    "body": [
+     "80811ca1ac33902f5f82483007b3804a"
+    ]
+   },
+   "portrait": {
+    "bundle": "9d5e9b62aa891bb0a2d55389c5e73106",
+    "texture": "Avatar_Head_ColphneDoppelgaengerSSR"
+   }
+  },
+  {
+   "id": "c_ColphneDorm",
+   "name": "ColphneDorm",
+   "display": "科尔芙妮 · 宿舍",
+   "variant": "dorm",
+   "bundle": "ad58d971283cbe995868628170cec331",
+   "parts": {
+    "hair": "c_ColphneDorm_slg_hair_lod0",
+    "body": "c_ColphneDorm_slg_body_lod0",
+    "cloth": "c_ColphneDorm_slg_cloth_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "ad58d971283cbe995868628170cec331"
+    ],
+    "body": [
+     "ad58d971283cbe995868628170cec331"
+    ],
+    "cloth": [
+     "ad58d971283cbe995868628170cec331"
+    ]
+   },
+   "portrait": {
+    "bundle": "9d5e9b62aa891bb0a2d55389c5e73106",
+    "texture": "Avatar_Head_ColphneDoppelgaengerDorm"
+   }
+  },
+  {
+   "id": "c_ColphneSR01",
+   "name": "ColphneSR01",
+   "display": "科尔芙妮",
+   "variant": "slg",
+   "bundle": "c9d40a02930ed3aacd9aa13954f56c1f",
+   "parts": {
+    "hair": "c_ColphneSR01_slg_hair_lod0",
+    "body": "c_ColphneSR01_slg_body_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "c9d40a02930ed3aacd9aa13954f56c1f",
+     "f29c6bf4ef04fc104adb56b209a1a406",
+     "f9c9217275d95dd92e35aefd8b1f6c64"
+    ],
+    "body": [
+     "c9d40a02930ed3aacd9aa13954f56c1f",
+     "f29c6bf4ef04fc104adb56b209a1a406",
+     "f9c9217275d95dd92e35aefd8b1f6c64"
+    ]
+   },
+   "portrait": {
+    "bundle": "f5ac049ab609ca55e46985fc8aa17dd9",
+    "texture": "Avatar_Head_ColphneSR01"
+   }
+  },
+  {
+   "id": "c_ColphneSR0101",
+   "name": "ColphneSR0101",
+   "display": "科尔芙妮",
+   "variant": "slg",
+   "bundle": "ae71b2b4f1b58b2739e96fb21b81e306",
+   "parts": {
+    "hair": "c_ColphneSR0101_slg_hair_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "ae71b2b4f1b58b2739e96fb21b81e306"
+    ]
+   },
+   "portrait": {
+    "bundle": "83a30022f0c08f8e25ea3512f25d20b8",
+    "texture": "Avatar_Head_ColphneSR"
+   }
+  },
+  {
+   "id": "c_ColphneSR0103",
+   "name": "ColphneSR0103",
+   "display": "科尔芙妮 ·3",
+   "variant": "slg",
+   "bundle": "6aea97f740a01235b62137d5e8ada0fa",
+   "parts": {
+    "hair": "c_ColphneSR0103_slg_hair_lod0",
+    "cloth": "c_ColphneSR0103_slg_cloth_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "6aea97f740a01235b62137d5e8ada0fa"
+    ],
+    "cloth": [
+     "6aea97f740a01235b62137d5e8ada0fa"
+    ]
+   },
+   "portrait": {
+    "bundle": "83a30022f0c08f8e25ea3512f25d20b8",
+    "texture": "Avatar_Head_ColphneSR"
+   }
+  },
+  {
+   "id": "c_CommanderFemale",
+   "name": "CommanderFemale",
+   "display": "指挥官（女）",
+   "variant": "slg",
+   "bundle": "5fc44999d698e322d0667d0bbdd72ca2",
+   "parts": {
+    "hair": "c_CommanderFemale_dorm_hair_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "5fc44999d698e322d0667d0bbdd72ca2",
+     "848b77c2636025bd09bafa109874eb0d"
+    ]
+   },
+   "portrait": null
+  },
+  {
+   "id": "c_CommanderFemale02",
+   "name": "CommanderFemale02",
+   "display": "CommanderFemale02",
+   "variant": "dorm",
+   "bundle": "5adf0cbe17dd89c29d2411efc4800f87",
+   "parts": {
+    "hair": "c_CommanderFemale02_dorm_hair_lod0",
+    "body": "c_CommanderFemale02_dorm_body_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "5adf0cbe17dd89c29d2411efc4800f87"
+    ],
+    "body": [
+     "5adf0cbe17dd89c29d2411efc4800f87"
+    ]
+   },
+   "portrait": null
+  },
+  {
+   "id": "c_CommanderFemale03",
+   "name": "CommanderFemale03",
+   "display": "CommanderFemale03",
+   "variant": "dorm",
+   "bundle": "fe40d65231c33246e1ea049f0c8d662b",
+   "parts": {
+    "body": "c_CommanderFemale03_dorm_body_lod0",
+    "hair": "c_CommanderFemale03_dorm_hair_lod0"
+   },
+   "part_bundles": {
+    "body": [
+     "fe40d65231c33246e1ea049f0c8d662b"
+    ],
+    "hair": [
+     "fe40d65231c33246e1ea049f0c8d662b"
+    ]
+   },
+   "portrait": null
+  },
+  {
+   "id": "c_CommanderMale",
+   "name": "CommanderMale",
+   "display": "指挥官（男）",
+   "variant": "slg",
+   "bundle": "a0d7f16f9c77edf4fd4df93950d3f6c2",
+   "parts": {
+    "hair": "c_CommanderMale_dorm_hair_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "a0d7f16f9c77edf4fd4df93950d3f6c2",
+     "f2ba5a4325c0f70fc641be2a748c2071"
+    ]
+   },
+   "portrait": null
+  },
+  {
+   "id": "c_CommanderMale01",
+   "name": "CommanderMale01",
+   "display": "CommanderMale01",
+   "variant": "slg",
+   "bundle": "435a93da8d98daa8b5fa51dd74da7999",
+   "parts": {
+    "hair": "c_CommanderMale01_dorm_hair_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "435a93da8d98daa8b5fa51dd74da7999"
+    ]
+   },
+   "portrait": null
+  },
+  {
+   "id": "c_CommanderMale02",
+   "name": "CommanderMale02",
+   "display": "CommanderMale02",
+   "variant": "dorm",
+   "bundle": "3c661954f980eaf9298b0ef18ff126db",
+   "parts": {
+    "body": "c_CommanderMale02_dorm_body_lod0",
+    "hair": "c_CommanderMale02_dorm_hair_lod0"
+   },
+   "part_bundles": {
+    "body": [
+     "3c661954f980eaf9298b0ef18ff126db"
+    ],
+    "hair": [
+     "3c661954f980eaf9298b0ef18ff126db"
+    ]
+   },
+   "portrait": null
+  },
+  {
+   "id": "c_CommanderMale03",
+   "name": "CommanderMale03",
+   "display": "CommanderMale03",
+   "variant": "dorm",
+   "bundle": "0ecfea5d1104490430460b71dbf3c969",
+   "parts": {
+    "hair": "c_CommanderMale03_dorm_hair_lod0",
+    "body": "c_CommanderMale03_dorm_body_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "0ecfea5d1104490430460b71dbf3c969",
+     "366dfe9507c9b149cd4892f866a03aca"
+    ],
+    "body": [
+     "0ecfea5d1104490430460b71dbf3c969",
+     "366dfe9507c9b149cd4892f866a03aca"
+    ]
+   },
+   "portrait": null
+  },
+  {
+   "id": "c_DaiyanDorm",
+   "name": "DaiyanDorm",
+   "display": "黛烟 · 宿舍",
+   "variant": "dorm",
+   "bundle": "7b598ae10a21d31f5cae138b2e5403a3",
+   "parts": {
+    "body": "c_DaiyanDorm_slg_body_lod0",
+    "hair": "c_DaiyanDorm_slg_hair_lod0",
+    "cloth": "c_DaiyanDorm_slg_cloth_lod0"
+   },
+   "part_bundles": {
+    "body": [
+     "7b598ae10a21d31f5cae138b2e5403a3"
+    ],
+    "hair": [
+     "7b598ae10a21d31f5cae138b2e5403a3"
+    ],
+    "cloth": [
+     "7b598ae10a21d31f5cae138b2e5403a3"
+    ]
+   },
+   "portrait": {
+    "bundle": "ac4046528ab10b13ed55a761929045f1",
+    "texture": "Avatar_Head_DaiyanSSR"
+   }
+  },
+  {
+   "id": "c_DaiyanSSR01",
+   "name": "DaiyanSSR01",
+   "display": "黛烟",
+   "variant": "slg",
+   "bundle": "0dfb4175ad256ca8674f12f385b3bb75",
+   "parts": {
+    "hair": "c_DaiyanSSR01_slg_hair_lod0",
+    "body": "c_DaiyanSSR01_slg_body_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "0dfb4175ad256ca8674f12f385b3bb75"
+    ],
+    "body": [
+     "0dfb4175ad256ca8674f12f385b3bb75"
+    ]
+   },
+   "portrait": {
+    "bundle": "ac4046528ab10b13ed55a761929045f1",
+    "texture": "Avatar_Head_DaiyanSSR"
+   }
+  },
+  {
+   "id": "c_DaiyanSSR0103",
+   "name": "DaiyanSSR0103",
+   "display": "黛烟 ·3",
+   "variant": "slg",
+   "bundle": "0b24877d7316e9b0bce9b462293a577e",
+   "parts": {
+    "hair": "c_DaiyanSSR0103_slg_hair_lod0",
+    "body": "c_DaiyanSSR0103_slg_body_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "0b24877d7316e9b0bce9b462293a577e"
+    ],
+    "body": [
+     "0b24877d7316e9b0bce9b462293a577e"
+    ]
+   },
+   "portrait": {
+    "bundle": "ac4046528ab10b13ed55a761929045f1",
+    "texture": "Avatar_Head_DaiyanSSR"
+   }
+  },
+  {
+   "id": "c_DusevnyjDorm",
+   "name": "DusevnyjDorm",
+   "display": "杜舍夫内 · 宿舍",
+   "variant": "dorm",
+   "bundle": "b9c9ab688972b9a013eb918dfaed9921",
+   "parts": {
+    "body": "c_DusevnyjDorm_slg_body_lod0"
+   },
+   "part_bundles": {
+    "body": [
+     "b9c9ab688972b9a013eb918dfaed9921"
+    ]
+   },
+   "portrait": {
+    "bundle": "26df298580b99bff02b4598130646ffe",
+    "texture": "Avatar_Head_DusevnyjSSR"
+   }
+  },
+  {
+   "id": "c_DusevnyjSSR01",
+   "name": "DusevnyjSSR01",
+   "display": "杜舍夫内",
+   "variant": "slg",
+   "bundle": "505423163134f6f12a5cf4f66d9d7012",
+   "parts": {
+    "hair": "c_DusevnyjSSR01_slg_hair_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "505423163134f6f12a5cf4f66d9d7012",
+     "b9c9ab688972b9a013eb918dfaed9921"
+    ]
+   },
+   "portrait": {
+    "bundle": "928ea116b676c43d28ff34484a87410e",
+    "texture": "Avatar_Head_DusevnyjSSR01"
+   }
+  },
+  {
+   "id": "c_DusevnyjSSR0101",
+   "name": "DusevnyjSSR0101",
+   "display": "杜舍夫内",
+   "variant": "slg",
+   "bundle": "79041fbc0d06076e342652e545596ef5",
+   "parts": {
+    "hair": "c_DusevnyjSSR0101_slg_hair_lod0",
+    "cloth": "c_DusevnyjSSR0101_slg_cloth_lod0",
+    "body": "c_DusevnyjSSR0101_slg_body_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "79041fbc0d06076e342652e545596ef5"
+    ],
+    "cloth": [
+     "79041fbc0d06076e342652e545596ef5"
+    ],
+    "body": [
+     "79041fbc0d06076e342652e545596ef5"
+    ]
+   },
+   "portrait": {
+    "bundle": "26df298580b99bff02b4598130646ffe",
+    "texture": "Avatar_Head_DusevnyjSSR"
+   }
+  },
+  {
+   "id": "c_EaglettaDorm",
+   "name": "EaglettaDorm",
+   "display": "伊格莱塔 · 宿舍",
+   "variant": "dorm",
+   "bundle": "7cdde6c33f64ebe16c0ecd5075d35bfc",
+   "parts": {
+    "cloth": "c_EaglettaDorm_slg_cloth_lod0",
+    "body": "c_EaglettaDorm_slg_body_lod0",
+    "hair": "c_EaglettaDorm_slg_hair_lod0"
+   },
+   "part_bundles": {
+    "cloth": [
+     "7cdde6c33f64ebe16c0ecd5075d35bfc"
+    ],
+    "body": [
+     "7cdde6c33f64ebe16c0ecd5075d35bfc"
+    ],
+    "hair": [
+     "7cdde6c33f64ebe16c0ecd5075d35bfc"
+    ]
+   },
+   "portrait": {
+    "bundle": "75f924133fd86dae7adeb678177a467a",
+    "texture": "Avatar_Head_EaglettaDorm"
+   }
+  },
+  {
+   "id": "c_EaglettaSSR01",
+   "name": "EaglettaSSR01",
+   "display": "伊格莱塔",
+   "variant": "slg",
+   "bundle": "86564b4aaee840ab9fa59817ffe132d9",
+   "parts": {
+    "hair": "c_EaglettaSSR01_slg_hair_lod0",
+    "body": "c_EaglettaSSR01_slg_body_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "86564b4aaee840ab9fa59817ffe132d9"
+    ],
+    "body": [
+     "86564b4aaee840ab9fa59817ffe132d9"
+    ]
+   },
+   "portrait": {
+    "bundle": "75f924133fd86dae7adeb678177a467a",
+    "texture": "Avatar_Head_EaglettaSSR01"
+   }
+  },
+  {
+   "id": "c_EaglettaSSR0101",
+   "name": "EaglettaSSR0101",
+   "display": "伊格莱塔",
+   "variant": "slg",
+   "bundle": "07cec0bf8c2dd604378cfec6168c5e70",
+   "parts": {
+    "body": "c_EaglettaSSR0101_slg_body_lod0",
+    "hair": "c_EaglettaSSR0101_slg_hair_lod0"
+   },
+   "part_bundles": {
+    "body": [
+     "07cec0bf8c2dd604378cfec6168c5e70"
+    ],
+    "hair": [
+     "07cec0bf8c2dd604378cfec6168c5e70"
+    ]
+   },
+   "portrait": {
+    "bundle": "75f924133fd86dae7adeb678177a467a",
+    "texture": "Avatar_Head_EaglettaSSR"
+   }
+  },
+  {
+   "id": "c_FaelynnDorm",
+   "name": "FaelynnDorm",
+   "display": "法琳 · 宿舍",
+   "variant": "dorm",
+   "bundle": "6a755c1e621da912a2157309e6cd58ff",
+   "parts": {
+    "hair": "c_FaelynnDorm_slg_hair_lod0",
+    "body": "c_FaelynnDorm_slg_body_lod0",
+    "cloth": "c_FaelynnDorm_slg_cloth_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "6a755c1e621da912a2157309e6cd58ff"
+    ],
+    "body": [
+     "6a755c1e621da912a2157309e6cd58ff"
+    ],
+    "cloth": [
+     "6a755c1e621da912a2157309e6cd58ff"
+    ]
+   },
+   "portrait": {
+    "bundle": "4ab81506fdd30b6cd127562042369663",
+    "texture": "Avatar_Head_FaelynnDorm"
+   }
+  },
+  {
+   "id": "c_FaelynnSSR01",
+   "name": "FaelynnSSR01",
+   "display": "法琳",
+   "variant": "slg",
+   "bundle": "93965365023c20b6d0aa3ed36af4fc2a",
+   "parts": {
+    "hair": "c_FaelynnSSR01_slg_hair_lod0",
+    "body": "c_FaelynnSSR01_slg_body_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "93965365023c20b6d0aa3ed36af4fc2a"
+    ],
+    "body": [
+     "93965365023c20b6d0aa3ed36af4fc2a"
+    ]
+   },
+   "portrait": {
+    "bundle": "4ab81506fdd30b6cd127562042369663",
+    "texture": "Avatar_Head_FaelynnSSR01"
+   }
+  },
+  {
+   "id": "c_FaelynnSSR0101",
+   "name": "FaelynnSSR0101",
+   "display": "法琳",
+   "variant": "slg",
+   "bundle": "6d5427044308f3d225ad75ff13d22237",
+   "parts": {
+    "cloth": "c_FaelynnSSR0101_slg_cloth_lod0",
+    "body": "c_FaelynnSSR0101_slg_body_lod0",
+    "hair": "c_FaelynnSSR0101_slg_hair_lod0"
+   },
+   "part_bundles": {
+    "cloth": [
+     "6d5427044308f3d225ad75ff13d22237"
+    ],
+    "body": [
+     "6d5427044308f3d225ad75ff13d22237"
+    ],
+    "hair": [
+     "6d5427044308f3d225ad75ff13d22237"
+    ]
+   },
+   "portrait": {
+    "bundle": "4ab81506fdd30b6cd127562042369663",
+    "texture": "Avatar_Head_FaelynnSSR"
+   }
+  },
+  {
+   "id": "c_FayeDorm",
+   "name": "FayeDorm",
+   "display": "菲 · 宿舍",
+   "variant": "dorm",
+   "bundle": "ecddb7d84b7bb867c0fab2ffcc48004c",
+   "parts": {
+    "body": "c_FayeDorm_slg_body_lod0",
+    "cloth": "c_FayeDorm_slg_cloth_lod0",
+    "hair": "c_FayeDorm_slg_hair_lod0"
+   },
+   "part_bundles": {
+    "body": [
+     "ecddb7d84b7bb867c0fab2ffcc48004c"
+    ],
+    "cloth": [
+     "ecddb7d84b7bb867c0fab2ffcc48004c"
+    ],
+    "hair": [
+     "ecddb7d84b7bb867c0fab2ffcc48004c"
+    ]
+   },
+   "portrait": {
+    "bundle": "a2a045477098220324b104e935847feb",
+    "texture": "Avatar_Head_FayeSSR"
+   }
+  },
+  {
+   "id": "c_FayeSSR01",
+   "name": "FayeSSR01",
+   "display": "菲",
+   "variant": "slg",
+   "bundle": "08c12a4ac5a08c7f3f96eae2fb76af4e",
+   "parts": {
+    "body": "c_FayeSSR01_slg_body_lod0",
+    "hair": "c_FayeSSR01_slg_hair_lod0"
+   },
+   "part_bundles": {
+    "body": [
+     "08c12a4ac5a08c7f3f96eae2fb76af4e"
+    ],
+    "hair": [
+     "08c12a4ac5a08c7f3f96eae2fb76af4e"
+    ]
+   },
+   "portrait": {
+    "bundle": "595d03624cd0d70fbb971d0b0e4f5dba",
+    "texture": "Avatar_Head_FayeSSR01"
+   }
+  },
+  {
+   "id": "c_FayeSSR0101",
+   "name": "FayeSSR0101",
+   "display": "菲",
+   "variant": "slg",
+   "bundle": "aef7da127c2671663baf2197cec4c6b5",
+   "parts": {
+    "hair": "c_FayeSSR0101_slg_hair_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "aef7da127c2671663baf2197cec4c6b5"
+    ]
+   },
+   "portrait": {
+    "bundle": "a2a045477098220324b104e935847feb",
+    "texture": "Avatar_Head_FayeSSR"
+   }
+  },
+  {
+   "id": "c_FlorenceDorm",
+   "name": "FlorenceDorm",
+   "display": "弗洛伦斯 · 宿舍",
+   "variant": "dorm",
+   "bundle": "5740fe13c612eb67c0c7961e661f85e6",
+   "parts": {
+    "cloth": "c_FlorenceDorm_slg_cloth_lod0",
+    "body": "c_FlorenceDorm_slg_body_lod0",
+    "hair": "c_FlorenceDorm_slg_hair_lod0"
+   },
+   "part_bundles": {
+    "cloth": [
+     "5740fe13c612eb67c0c7961e661f85e6"
+    ],
+    "body": [
+     "5740fe13c612eb67c0c7961e661f85e6"
+    ],
+    "hair": [
+     "5740fe13c612eb67c0c7961e661f85e6"
+    ]
+   },
+   "portrait": {
+    "bundle": "7e8266a93e12a2a98583340f6b9ccf0b",
+    "texture": "Avatar_Head_FlorenceSSR"
+   }
+  },
+  {
+   "id": "c_FlorenceSSR01",
+   "name": "FlorenceSSR01",
+   "display": "弗洛伦斯",
+   "variant": "slg",
+   "bundle": "dbbcdaab117b3f501fec5fb4019b952e",
+   "parts": {
+    "body": "c_FlorenceSSR01_slg_body_lod0",
+    "hair": "c_FlorenceSSR01_slg_hair_lod0"
+   },
+   "part_bundles": {
+    "body": [
+     "dbbcdaab117b3f501fec5fb4019b952e"
+    ],
+    "hair": [
+     "dbbcdaab117b3f501fec5fb4019b952e"
+    ]
+   },
+   "portrait": {
+    "bundle": "7e8266a93e12a2a98583340f6b9ccf0b",
+    "texture": "Avatar_Head_FlorenceSSR01"
+   }
+  },
+  {
+   "id": "c_FlorenceSSR0101",
+   "name": "FlorenceSSR0101",
+   "display": "弗洛伦斯",
+   "variant": "slg",
+   "bundle": "25a8620858b7b0db53b91ab31e0b1119",
+   "parts": {
+    "hair": "c_FlorenceSSR0101_slg_hair_lod0",
+    "cloth": "c_FlorenceSSR0101_slg_cloth_lod0",
+    "body": "c_FlorenceSSR0101_slg_body_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "25a8620858b7b0db53b91ab31e0b1119"
+    ],
+    "cloth": [
+     "25a8620858b7b0db53b91ab31e0b1119"
+    ],
+    "body": [
+     "25a8620858b7b0db53b91ab31e0b1119"
+    ]
+   },
+   "portrait": {
+    "bundle": "7e8266a93e12a2a98583340f6b9ccf0b",
+    "texture": "Avatar_Head_FlorenceSSR"
+   }
+  },
+  {
+   "id": "c_FlorenceSSR0102",
+   "name": "FlorenceSSR0102",
+   "display": "弗洛伦斯 ·2",
+   "variant": "slg",
+   "bundle": "ce1b0f11ae307e1d428d1b45d9dde4a5",
+   "parts": {
+    "cloth": "c_FlorenceSSR0102_slg_cloth_lod0",
+    "plush": "c_FlorenceSSR0102_slg_plush_lod0",
+    "hair": "c_FlorenceSSR0102_slg_hair_lod0",
+    "body": "c_FlorenceSSR0102_slg_body_lod0"
+   },
+   "part_bundles": {
+    "cloth": [
+     "ce1b0f11ae307e1d428d1b45d9dde4a5"
+    ],
+    "plush": [
+     "ce1b0f11ae307e1d428d1b45d9dde4a5"
+    ],
+    "hair": [
+     "ce1b0f11ae307e1d428d1b45d9dde4a5"
+    ],
+    "body": [
+     "ce1b0f11ae307e1d428d1b45d9dde4a5"
+    ]
+   },
+   "portrait": {
+    "bundle": "7e8266a93e12a2a98583340f6b9ccf0b",
+    "texture": "Avatar_Head_FlorenceSSR"
+   }
+  },
+  {
+   "id": "c_GrozaDorm",
+   "name": "GrozaDorm",
+   "display": "格罗扎 · 宿舍",
+   "variant": "dorm",
+   "bundle": "ac2515be8eed166ffb19cef71e7b2795",
+   "parts": {
+    "body": "c_GrozaDorm_slg_body_lod0",
+    "hair": "c_GrozaDorm_slg_hair_lod0",
+    "cloth": "c_GrozaDorm_slg_cloth_lod0"
+   },
+   "part_bundles": {
+    "body": [
+     "ac2515be8eed166ffb19cef71e7b2795"
+    ],
+    "hair": [
+     "ac2515be8eed166ffb19cef71e7b2795"
+    ],
+    "cloth": [
+     "ac2515be8eed166ffb19cef71e7b2795"
+    ]
+   },
+   "portrait": {
+    "bundle": "602c4b304f2e415ed249baf32c2f645a",
+    "texture": "Avatar_Head_GrozaSR"
+   }
+  },
+  {
+   "id": "c_GrozaR01",
+   "name": "GrozaR01",
+   "display": "格罗扎",
+   "variant": "slg",
+   "bundle": "f8cb571ee0ce581c4aa2f1054595f2a2",
+   "parts": {
+    "body": "c_GrozaR01_slg_body_lod0",
+    "cloth": "c_GrozaR01_slg_cloth_lod0",
+    "hair": "c_GrozaR01_slg_hair_lod0"
+   },
+   "part_bundles": {
+    "body": [
+     "f8cb571ee0ce581c4aa2f1054595f2a2"
+    ],
+    "cloth": [
+     "f8cb571ee0ce581c4aa2f1054595f2a2"
+    ],
+    "hair": [
+     "f8cb571ee0ce581c4aa2f1054595f2a2"
+    ]
+   },
+   "portrait": {
+    "bundle": "602c4b304f2e415ed249baf32c2f645a",
+    "texture": "Avatar_Head_GrozaSR"
+   }
+  },
+  {
+   "id": "c_GrozaSR01",
+   "name": "GrozaSR01",
+   "display": "格罗扎",
+   "variant": "slg",
+   "bundle": "0cd593e000a8f6c20e8009d2a6b67f6b",
+   "parts": {
+    "hair": "c_GrozaSR01_slg_hair_lod0",
+    "cloth": "c_GrozaSR01_slg_cloth_lod0",
+    "body": "c_GrozaSR01_slg_body_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "0cd593e000a8f6c20e8009d2a6b67f6b",
+     "5f8e0acd49580945a96f4a2c1b3e6701",
+     "78ac317460e0bde84f84e159dd9227d5",
+     "98a79b4218f0197b7d201eb3bba8d500"
+    ],
+    "cloth": [
+     "0cd593e000a8f6c20e8009d2a6b67f6b",
+     "78ac317460e0bde84f84e159dd9227d5",
+     "98a79b4218f0197b7d201eb3bba8d500"
+    ],
+    "body": [
+     "0cd593e000a8f6c20e8009d2a6b67f6b",
+     "78ac317460e0bde84f84e159dd9227d5",
+     "98a79b4218f0197b7d201eb3bba8d500"
+    ]
+   },
+   "portrait": {
+    "bundle": "602c4b304f2e415ed249baf32c2f645a",
+    "texture": "Avatar_Head_GrozaSR01"
+   }
+  },
+  {
+   "id": "c_GrozaSR0102",
+   "name": "GrozaSR0102",
+   "display": "格罗扎 ·2",
+   "variant": "slg",
+   "bundle": "457f711e02451919ff8c1c833963acb2",
+   "parts": {
+    "hair": "c_GrozaSR0102_slg_hair_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "457f711e02451919ff8c1c833963acb2",
+     "ad1560ee1eb6e04706bbff7fe6e1cc91",
+     "c915010837f5735e2edf502308d50e9f"
+    ]
+   },
+   "portrait": {
+    "bundle": "602c4b304f2e415ed249baf32c2f645a",
+    "texture": "Avatar_Head_GrozaSR"
+   }
+  },
+  {
+   "id": "c_GrozaSR0103",
+   "name": "GrozaSR0103",
+   "display": "格罗扎 ·3",
+   "variant": "slg",
+   "bundle": "420cdb99fb8dc210690cb3693a0f5995",
+   "parts": {
+    "hair": "c_GrozaSR0103_slg_hair_lod0",
+    "cloth": "c_GrozaSR0103_slg_cloth_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "420cdb99fb8dc210690cb3693a0f5995"
+    ],
+    "cloth": [
+     "420cdb99fb8dc210690cb3693a0f5995"
+    ]
+   },
+   "portrait": {
+    "bundle": "602c4b304f2e415ed249baf32c2f645a",
+    "texture": "Avatar_Head_GrozaSR"
+   }
+  },
+  {
+   "id": "c_GrozaSR0105",
+   "name": "GrozaSR0105",
+   "display": "格罗扎 ·5",
+   "variant": "slg",
+   "bundle": "47de3a3b8b454d011b95ba93fbb8a97d",
+   "parts": {
+    "cloth": "c_GrozaSR0105_slg_cloth_lod0",
+    "body": "c_GrozaSR0105_slg_body_lod0",
+    "hair": "c_GrozaSR0105_slg_hair_lod0"
+   },
+   "part_bundles": {
+    "cloth": [
+     "47de3a3b8b454d011b95ba93fbb8a97d"
+    ],
+    "body": [
+     "47de3a3b8b454d011b95ba93fbb8a97d"
+    ],
+    "hair": [
+     "47de3a3b8b454d011b95ba93fbb8a97d"
+    ]
+   },
+   "portrait": {
+    "bundle": "602c4b304f2e415ed249baf32c2f645a",
+    "texture": "Avatar_Head_GrozaSR"
+   }
+  },
+  {
+   "id": "c_HarpsyDorm",
+   "name": "HarpsyDorm",
+   "display": "哈比 · 宿舍",
+   "variant": "dorm",
+   "bundle": "8a122a0b3331e651c35245d4c921e508",
+   "parts": {
+    "cloth": "c_HarpsyDorm_slg_cloth_lod0",
+    "body": "c_HarpsyDorm_slg_body_lod0"
+   },
+   "part_bundles": {
+    "cloth": [
+     "8a122a0b3331e651c35245d4c921e508"
+    ],
+    "body": [
+     "8a122a0b3331e651c35245d4c921e508"
+    ]
+   },
+   "portrait": {
+    "bundle": "66532fe4c9e4bdc91a269f89f03e4bd3",
+    "texture": "Avatar_Head_HarpsySSR"
+   }
+  },
+  {
+   "id": "c_HarpsySSR01",
+   "name": "HarpsySSR01",
+   "display": "哈比",
+   "variant": "slg",
+   "bundle": "8a122a0b3331e651c35245d4c921e508",
+   "parts": {
+    "hair": "c_HarpsySSR01_slg_hair_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "8a122a0b3331e651c35245d4c921e508",
+     "a2bab4809f46253c40dfc34761f349bc"
+    ]
+   },
+   "portrait": {
+    "bundle": "66532fe4c9e4bdc91a269f89f03e4bd3",
+    "texture": "Avatar_Head_HarpsySSR"
+   }
+  },
+  {
+   "id": "c_Helena",
+   "name": "Helena",
+   "display": "海伦娜",
+   "variant": "dorm",
+   "bundle": "555cc03f9977970c3be07b2895fd1bf5",
+   "parts": {
+    "body": "c_Helena_dorm_body_lod0",
+    "hair": "c_Helena_dorm_hair_lod0"
+   },
+   "part_bundles": {
+    "body": [
+     "555cc03f9977970c3be07b2895fd1bf5"
+    ],
+    "hair": [
+     "555cc03f9977970c3be07b2895fd1bf5"
+    ]
+   },
+   "portrait": null
+  },
+  {
+   "id": "c_Helena01",
+   "name": "Helena01",
+   "display": "Helena01",
+   "variant": "slg",
+   "bundle": "555cc03f9977970c3be07b2895fd1bf5",
+   "parts": {
+    "hair": "c_Helena01_dorm_hair_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "555cc03f9977970c3be07b2895fd1bf5",
+     "fc71d5eba9fa4881b555f249c96d793e"
+    ]
+   },
+   "portrait": null
+  },
+  {
+   "id": "c_HelenDorm",
+   "name": "HelenDorm",
+   "display": "海伦 · 宿舍",
+   "variant": "dorm",
+   "bundle": "c4c0d41dea7cd82794cb03a8a1ffa937",
+   "parts": {
+    "hair": "c_HelenDorm_slg_hair_lod0",
+    "cloth": "c_HelenDorm_slg_cloth_lod0",
+    "body": "c_HelenDorm_slg_body_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "c4c0d41dea7cd82794cb03a8a1ffa937"
+    ],
+    "cloth": [
+     "c4c0d41dea7cd82794cb03a8a1ffa937"
+    ],
+    "body": [
+     "c4c0d41dea7cd82794cb03a8a1ffa937"
+    ]
+   },
+   "portrait": {
+    "bundle": "ee9251885b156fca5d308660ef35c798",
+    "texture": "Avatar_Head_HelenSSR"
+   }
+  },
+  {
+   "id": "c_HelenSSR01",
+   "name": "HelenSSR01",
+   "display": "海伦",
+   "variant": "slg",
+   "bundle": "6122d79df1294380567089edd7a77f1f",
+   "parts": {
+    "hair": "c_HelenSSR01_slg_hair_lod0",
+    "body": "c_HelenSSR01_slg_body_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "6122d79df1294380567089edd7a77f1f",
+     "f468a39bf07c9aebf1df627a2012483c"
+    ],
+    "body": [
+     "6122d79df1294380567089edd7a77f1f"
+    ]
+   },
+   "portrait": {
+    "bundle": "ee9251885b156fca5d308660ef35c798",
+    "texture": "Avatar_Head_HelenSSR01"
+   }
+  },
+  {
+   "id": "c_HelenSSR0101",
+   "name": "HelenSSR0101",
+   "display": "海伦",
+   "variant": "slg",
+   "bundle": "e76b83643f7a4447451dd365d1b599db",
+   "parts": {
+    "hair": "c_HelenSSR0101_slg_hair_lod0",
+    "body": "c_HelenSSR0101_slg_body_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "e76b83643f7a4447451dd365d1b599db"
+    ],
+    "body": [
+     "e76b83643f7a4447451dd365d1b599db"
+    ]
+   },
+   "portrait": {
+    "bundle": "ee9251885b156fca5d308660ef35c798",
+    "texture": "Avatar_Head_HelenSSR"
+   }
+  },
+  {
+   "id": "c_HelenSSR0102",
+   "name": "HelenSSR0102",
+   "display": "海伦 ·2",
+   "variant": "slg",
+   "bundle": "f468a39bf07c9aebf1df627a2012483c",
+   "parts": {
+    "hair": "c_HelenSSR0102_slg_hair_lod0",
+    "body": "c_HelenSSR0102_slg_body_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "f468a39bf07c9aebf1df627a2012483c"
+    ],
+    "body": [
+     "f468a39bf07c9aebf1df627a2012483c"
+    ]
+   },
+   "portrait": {
+    "bundle": "ee9251885b156fca5d308660ef35c798",
+    "texture": "Avatar_Head_HelenSSR"
+   }
+  },
+  {
+   "id": "c_IglaDorm",
+   "name": "IglaDorm",
+   "display": "伊格拉 · 宿舍",
+   "variant": "dorm",
+   "bundle": "2a26a28637a51e98887a38129ae3d5e1",
+   "parts": {
+    "body": "c_IglaDorm_slg_body_lod0",
+    "hair": "c_IglaDorm_slg_hair_lod0",
+    "cloth": "c_IglaDorm_slg_cloth_lod0"
+   },
+   "part_bundles": {
+    "body": [
+     "2a26a28637a51e98887a38129ae3d5e1",
+     "f81c582afaf6e93cf817ce39132e766f"
+    ],
+    "hair": [
+     "2a26a28637a51e98887a38129ae3d5e1",
+     "f81c582afaf6e93cf817ce39132e766f"
+    ],
+    "cloth": [
+     "2a26a28637a51e98887a38129ae3d5e1",
+     "f81c582afaf6e93cf817ce39132e766f"
+    ]
+   },
+   "portrait": {
+    "bundle": "9d5e9b62aa891bb0a2d55389c5e73106",
+    "texture": "Avatar_Head_IglaDorm"
+   }
+  },
+  {
+   "id": "c_IglaSSR01",
+   "name": "IglaSSR01",
+   "display": "伊格拉",
+   "variant": "slg",
+   "bundle": "ab27dcc90f31154af1733deb81937e07",
+   "parts": {
+    "hair": "c_IglaSSR01_slg_hair_lod0",
+    "body": "c_IglaSSR01_slg_body_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "ab27dcc90f31154af1733deb81937e07",
+     "ffb893758711573c60c68093c001f5fe"
+    ],
+    "body": [
+     "ab27dcc90f31154af1733deb81937e07",
+     "ffb893758711573c60c68093c001f5fe"
+    ]
+   },
+   "portrait": {
+    "bundle": "9d5e9b62aa891bb0a2d55389c5e73106",
+    "texture": "Avatar_Head_IglaSSR01"
+   }
+  },
+  {
+   "id": "c_IglaSSR0101",
+   "name": "IglaSSR0101",
+   "display": "伊格拉",
+   "variant": "slg",
+   "bundle": "b2e58cb7bac4f01fb1c73be307fb208c",
+   "parts": {
+    "hair": "c_IglaSSR0101_slg_hair_lod0",
+    "body": "c_IglaSSR0101_slg_body_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "b2e58cb7bac4f01fb1c73be307fb208c",
+     "f35c231e95ef5944eba4510146f0ecb8"
+    ],
+    "body": [
+     "b2e58cb7bac4f01fb1c73be307fb208c",
+     "f35c231e95ef5944eba4510146f0ecb8"
+    ]
+   },
+   "portrait": {
+    "bundle": "9d5e9b62aa891bb0a2d55389c5e73106",
+    "texture": "Avatar_Head_IglaSSR"
+   }
+  },
+  {
+   "id": "c_JiangyuDorm",
+   "name": "JiangyuDorm",
+   "display": "绛雨 · 宿舍",
+   "variant": "dorm",
+   "bundle": "99c2874319b684c1827df9e114870bf5",
+   "parts": {
+    "body": "c_JiangyuDorm_slg_body_lod0",
+    "hair": "c_JiangyuDorm_slg_hair_lod0"
+   },
+   "part_bundles": {
+    "body": [
+     "99c2874319b684c1827df9e114870bf5"
+    ],
+    "hair": [
+     "99c2874319b684c1827df9e114870bf5"
+    ]
+   },
+   "portrait": {
+    "bundle": "7fb91b64f9b3009748eb09c695a494fc",
+    "texture": "Avatar_Head_JiangyuSSR"
+   }
+  },
+  {
+   "id": "c_JiangyuSSR01",
+   "name": "JiangyuSSR01",
+   "display": "绛雨",
+   "variant": "slg",
+   "bundle": "90ffe685efbe2094d875fa2f22fb72a9",
+   "parts": {
+    "body": "c_JiangyuSSR01_slg_body_lod0",
+    "hair": "c_JiangyuSSR01_slg_hair_lod0"
+   },
+   "part_bundles": {
+    "body": [
+     "90ffe685efbe2094d875fa2f22fb72a9"
+    ],
+    "hair": [
+     "90ffe685efbe2094d875fa2f22fb72a9"
+    ]
+   },
+   "portrait": {
+    "bundle": "290f1bb6a5768220b27726ceec41c82d",
+    "texture": "Avatar_Head_JiangyuSSR01"
+   }
+  },
+  {
+   "id": "c_JiangyuSSR0101",
+   "name": "JiangyuSSR0101",
+   "display": "绛雨",
+   "variant": "slg",
+   "bundle": "fea8fb2b1be2b1d16c9f0b5ab6c8bf49",
+   "parts": {
+    "hair": "c_JiangyuSSR0101_slg_hair_lod0",
+    "body": "c_JiangyuSSR0101_slg_body_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "fea8fb2b1be2b1d16c9f0b5ab6c8bf49"
+    ],
+    "body": [
+     "fea8fb2b1be2b1d16c9f0b5ab6c8bf49"
+    ]
+   },
+   "portrait": {
+    "bundle": "7fb91b64f9b3009748eb09c695a494fc",
+    "texture": "Avatar_Head_JiangyuSSR"
+   }
+  },
+  {
+   "id": "c_KoledaDorm",
+   "name": "KoledaDorm",
+   "display": "科莱达 · 宿舍",
+   "variant": "dorm",
+   "bundle": "0ee0b3bdc10c828252b7fd11afd99f50",
+   "parts": {
+    "body": "c_KoledaDorm_slg_body_lod0",
+    "cloth": "c_KoledaDorm_slg_cloth_lod0",
+    "hair": "c_KoledaDorm_slg_hair_lod0"
+   },
+   "part_bundles": {
+    "body": [
+     "0ee0b3bdc10c828252b7fd11afd99f50"
+    ],
+    "cloth": [
+     "0ee0b3bdc10c828252b7fd11afd99f50"
+    ],
+    "hair": [
+     "0ee0b3bdc10c828252b7fd11afd99f50"
+    ]
+   },
+   "portrait": {
+    "bundle": "a95075829fc19838084e42a69f31757c",
+    "texture": "Avatar_Head_KoledaDorm"
+   }
+  },
+  {
+   "id": "c_KoledaSSR01",
+   "name": "KoledaSSR01",
+   "display": "科莱达",
+   "variant": "slg",
+   "bundle": "7ab041c942a4f4eca12b70c7d69a7d79",
+   "parts": {
+    "hair": "c_KoledaSSR01_slg_hair_lod0",
+    "body": "c_KoledaSSR01_slg_body_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "7ab041c942a4f4eca12b70c7d69a7d79"
+    ],
+    "body": [
+     "7ab041c942a4f4eca12b70c7d69a7d79"
+    ]
+   },
+   "portrait": {
+    "bundle": "a95075829fc19838084e42a69f31757c",
+    "texture": "Avatar_Head_KoledaSSR01"
+   }
+  },
+  {
+   "id": "c_KoledaSSR0101",
+   "name": "KoledaSSR0101",
+   "display": "科莱达",
+   "variant": "slg",
+   "bundle": "3d508b1f2174a951d882b98f2133d539",
+   "parts": {
+    "hair": "c_KoledaSSR0101_slg_hair_lod0",
+    "cloth": "c_KoledaSSR0101_slg_cloth_lod0",
+    "body": "c_KoledaSSR0101_slg_body_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "3d508b1f2174a951d882b98f2133d539"
+    ],
+    "cloth": [
+     "3d508b1f2174a951d882b98f2133d539"
+    ],
+    "body": [
+     "3d508b1f2174a951d882b98f2133d539"
+    ]
+   },
+   "portrait": {
+    "bundle": "a95075829fc19838084e42a69f31757c",
+    "texture": "Avatar_Head_KoledaSSR"
+   }
+  },
+  {
+   "id": "c_KseniaDorm",
+   "name": "KseniaDorm",
+   "display": "克谢尼娅 · 宿舍",
+   "variant": "dorm",
+   "bundle": "55007a8a22c38f16bb06a54ad20f34ef",
+   "parts": {
+    "body": "c_KseniaDorm_slg_body_lod0",
+    "hair": "c_KseniaDorm_slg_hair_lod0"
+   },
+   "part_bundles": {
+    "body": [
+     "55007a8a22c38f16bb06a54ad20f34ef"
+    ],
+    "hair": [
+     "55007a8a22c38f16bb06a54ad20f34ef"
+    ]
+   },
+   "portrait": {
+    "bundle": "114f88cf9d729491677e3a866fabd0e0",
+    "texture": "Avatar_Head_KseniaSR"
+   }
+  },
+  {
+   "id": "c_KseniaSR01",
+   "name": "KseniaSR01",
+   "display": "克谢尼娅",
+   "variant": "slg",
+   "bundle": "ed0e3cdc4d3574a3fc1832c772cd1f37",
+   "parts": {
+    "hair": "c_KseniaSR01_slg_hair_lod0",
+    "body": "c_KseniaSR01_slg_body_lod0",
+    "plush": "c_KseniaSR01_slg_plush_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "ed0e3cdc4d3574a3fc1832c772cd1f37"
+    ],
+    "body": [
+     "ed0e3cdc4d3574a3fc1832c772cd1f37"
+    ],
+    "plush": [
+     "ed0e3cdc4d3574a3fc1832c772cd1f37"
+    ]
+   },
+   "portrait": {
+    "bundle": "114f88cf9d729491677e3a866fabd0e0",
+    "texture": "Avatar_Head_KseniaSR"
+   }
+  },
+  {
+   "id": "c_LeneDorm",
+   "name": "LeneDorm",
+   "display": "蕾恩 · 宿舍",
+   "variant": "dorm",
+   "bundle": "769dd3d38d6f62c6e198d68d38e3f22d",
+   "parts": {
+    "hair": "c_LeneDorm_slg_hair_lod0",
+    "body": "c_LeneDorm_slg_body_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "769dd3d38d6f62c6e198d68d38e3f22d"
+    ],
+    "body": [
+     "769dd3d38d6f62c6e198d68d38e3f22d"
+    ]
+   },
+   "portrait": {
+    "bundle": "1a9bbf49dcae336ab44c3a07a5fb0fbe",
+    "texture": "Avatar_Head_LeneSSR"
+   }
+  },
+  {
+   "id": "c_LeneSSR01",
+   "name": "LeneSSR01",
+   "display": "蕾恩",
+   "variant": "slg",
+   "bundle": "306390fe1cc1940eca1cfa0265f9e5e2",
+   "parts": {
+    "body": "c_LeneSSR01_slg_body_lod0",
+    "hair": "c_LeneSSR01_slg_hair_lod0"
+   },
+   "part_bundles": {
+    "body": [
+     "306390fe1cc1940eca1cfa0265f9e5e2"
+    ],
+    "hair": [
+     "306390fe1cc1940eca1cfa0265f9e5e2"
+    ]
+   },
+   "portrait": {
+    "bundle": "1a9bbf49dcae336ab44c3a07a5fb0fbe",
+    "texture": "Avatar_Head_LeneSSR01"
+   }
+  },
+  {
+   "id": "c_LeneSSR0101",
+   "name": "LeneSSR0101",
+   "display": "蕾恩",
+   "variant": "slg",
+   "bundle": "e6ad5c1cc6985c0d12e556c68e016cdc",
+   "parts": {
+    "hair": "c_LeneSSR0101_slg_hair_lod0",
+    "body": "c_LeneSSR0101_slg_body_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "e6ad5c1cc6985c0d12e556c68e016cdc"
+    ],
+    "body": [
+     "e6ad5c1cc6985c0d12e556c68e016cdc"
+    ]
+   },
+   "portrait": {
+    "bundle": "1a9bbf49dcae336ab44c3a07a5fb0fbe",
+    "texture": "Avatar_Head_LeneSSR"
+   }
+  },
+  {
+   "id": "c_LennaDorm",
+   "name": "LennaDorm",
+   "display": "蕾娜 · 宿舍",
+   "variant": "dorm",
+   "bundle": "5dfc35dbddc2ac8c5474bea0ced6c594",
+   "parts": {
+    "hair": "c_LennaDorm_slg_hair_lod0",
+    "body": "c_LennaDorm_slg_body_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "5dfc35dbddc2ac8c5474bea0ced6c594"
+    ],
+    "body": [
+     "5dfc35dbddc2ac8c5474bea0ced6c594"
+    ]
+   },
+   "portrait": {
+    "bundle": "113e549e93accb6fa7b79de2a64be0af",
+    "texture": "Avatar_Head_LennaSSR"
+   }
+  },
+  {
+   "id": "c_LennaSSR01",
+   "name": "LennaSSR01",
+   "display": "蕾娜",
+   "variant": "slg",
+   "bundle": "8793f084f02772c1bd481972fb2b2bd9",
+   "parts": {
+    "body": "c_LennaSSR01_slg_body_lod0",
+    "hair": "c_LennaSSR01_slg_hair_lod0"
+   },
+   "part_bundles": {
+    "body": [
+     "8793f084f02772c1bd481972fb2b2bd9"
+    ],
+    "hair": [
+     "8793f084f02772c1bd481972fb2b2bd9"
+    ]
+   },
+   "portrait": {
+    "bundle": "e5e4eebe419b7519dd0464aac78451da",
+    "texture": "Avatar_Head_LennaSSR01"
+   }
+  },
+  {
+   "id": "c_LennaSSR0101",
+   "name": "LennaSSR0101",
+   "display": "蕾娜",
+   "variant": "slg",
+   "bundle": "bf036528e5679360d386020d1433967d",
+   "parts": {
+    "body": "c_LennaSSR0101_slg_body_lod0",
+    "hair": "c_LennaSSR0101_slg_hair_lod0"
+   },
+   "part_bundles": {
+    "body": [
+     "bf036528e5679360d386020d1433967d"
+    ],
+    "hair": [
+     "bf036528e5679360d386020d1433967d"
+    ]
+   },
+   "portrait": {
+    "bundle": "113e549e93accb6fa7b79de2a64be0af",
+    "texture": "Avatar_Head_LennaSSR"
+   }
+  },
+  {
+   "id": "c_LennaSSR0105",
+   "name": "LennaSSR0105",
+   "display": "蕾娜 ·5",
+   "variant": "slg",
+   "bundle": "349ea827b45b7069e9553b4fc22324f1",
+   "parts": {
+    "hair": "c_LennaSSR0105_slg_hair_lod0",
+    "body": "c_LennaSSR0105_slg_body_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "349ea827b45b7069e9553b4fc22324f1"
+    ],
+    "body": [
+     "349ea827b45b7069e9553b4fc22324f1"
+    ]
+   },
+   "portrait": {
+    "bundle": "113e549e93accb6fa7b79de2a64be0af",
+    "texture": "Avatar_Head_LennaSSR"
+   }
+  },
+  {
+   "id": "c_LevaDorm",
+   "name": "LevaDorm",
+   "display": "列瓦 · 宿舍",
+   "variant": "dorm",
+   "bundle": "b13297d503dfb46f7832b0fbda021bd7",
+   "parts": {
+    "hair": "c_LevaDorm_slg_hair_lod0",
+    "body": "c_LevaDorm_slg_body_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "b13297d503dfb46f7832b0fbda021bd7"
+    ],
+    "body": [
+     "b13297d503dfb46f7832b0fbda021bd7"
+    ]
+   },
+   "portrait": {
+    "bundle": "e0f4e2bf38ffa55da56cada3cc46a7d2",
+    "texture": "Avatar_Head_LevaDorm"
+   }
+  },
+  {
+   "id": "c_LevaSSR01",
+   "name": "LevaSSR01",
+   "display": "列瓦",
+   "variant": "slg",
+   "bundle": "25abaf0ce31fc3c7cac3d5e799b330a6",
+   "parts": {
+    "hair": "c_LevaSSR01_slg_hair_lod0",
+    "body": "c_LevaSSR01_slg_body_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "25abaf0ce31fc3c7cac3d5e799b330a6",
+     "303cb437083f2a09ef4413a4fb859fab",
+     "5c950a29083fc03d9a318e3efd5aa0c3",
+     "f40bb848885e616d0be093edf82e1676"
+    ],
+    "body": [
+     "25abaf0ce31fc3c7cac3d5e799b330a6",
+     "303cb437083f2a09ef4413a4fb859fab",
+     "5c950a29083fc03d9a318e3efd5aa0c3"
+    ]
+   },
+   "portrait": {
+    "bundle": "1463ff457c18e26bec8cd98d8c909561",
+    "texture": "Avatar_Head_LevaSSR01"
+   }
+  },
+  {
+   "id": "c_LevaSSR0101",
+   "name": "LevaSSR0101",
+   "display": "列瓦",
+   "variant": "slg",
+   "bundle": "a6c21c2016dd4c333d7e289a211ca3af",
+   "parts": {
+    "hair": "c_LevaSSR0101_slg_hair_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "a6c21c2016dd4c333d7e289a211ca3af"
+    ]
+   },
+   "portrait": {
+    "bundle": "1463ff457c18e26bec8cd98d8c909561",
+    "texture": "Avatar_Head_LevaSSR"
+   }
+  },
+  {
+   "id": "c_LevaSSR0102",
+   "name": "LevaSSR0102",
+   "display": "列瓦 ·2",
+   "variant": "slg",
+   "bundle": "2cda543aace3da03e3009be22847fbbc",
+   "parts": {
+    "hair": "c_LevaSSR0102_slg_hair_lod0",
+    "body": "c_LevaSSR0102_slg_body_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "2cda543aace3da03e3009be22847fbbc"
+    ],
+    "body": [
+     "2cda543aace3da03e3009be22847fbbc"
+    ]
+   },
+   "portrait": {
+    "bundle": "1463ff457c18e26bec8cd98d8c909561",
+    "texture": "Avatar_Head_LevaSSR"
+   }
+  },
+  {
+   "id": "c_LevaSSR0103",
+   "name": "LevaSSR0103",
+   "display": "列瓦 ·3",
+   "variant": "slg",
+   "bundle": "f40bb848885e616d0be093edf82e1676",
+   "parts": {
+    "body": "c_LevaSSR0103_slg_body_lod0",
+    "hair": "c_LevaSSR0103_slg_hair_lod0"
+   },
+   "part_bundles": {
+    "body": [
+     "f40bb848885e616d0be093edf82e1676"
+    ],
+    "hair": [
+     "f40bb848885e616d0be093edf82e1676"
+    ]
+   },
+   "portrait": {
+    "bundle": "1463ff457c18e26bec8cd98d8c909561",
+    "texture": "Avatar_Head_LevaSSR"
+   }
+  },
+  {
+   "id": "c_LewisDorm",
+   "name": "LewisDorm",
+   "display": "刘易斯 · 宿舍",
+   "variant": "dorm",
+   "bundle": "0b827fe5358dc0c3c68119b552676e5c",
+   "parts": {
+    "hair": "c_LewisDorm_slg_hair_lod0",
+    "body": "c_LewisDorm_slg_body_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "0b827fe5358dc0c3c68119b552676e5c"
+    ],
+    "body": [
+     "0b827fe5358dc0c3c68119b552676e5c"
+    ]
+   },
+   "portrait": {
+    "bundle": "1357163629982d103d4f4805fa1f7f21",
+    "texture": "Avatar_Head_LewisSSR"
+   }
+  },
+  {
+   "id": "c_LewisSSR01",
+   "name": "LewisSSR01",
+   "display": "刘易斯",
+   "variant": "slg",
+   "bundle": "03fc393ea83eeeca9887722a5f845f07",
+   "parts": {
+    "plush": "c_LewisSSR01_slg_plush_lod0",
+    "hair": "c_LewisSSR01_slg_hair_lod0",
+    "body": "c_LewisSSR01_slg_body_lod0"
+   },
+   "part_bundles": {
+    "plush": [
+     "03fc393ea83eeeca9887722a5f845f07"
+    ],
+    "hair": [
+     "03fc393ea83eeeca9887722a5f845f07"
+    ],
+    "body": [
+     "03fc393ea83eeeca9887722a5f845f07"
+    ]
+   },
+   "portrait": {
+    "bundle": "1357163629982d103d4f4805fa1f7f21",
+    "texture": "Avatar_Head_LewisSSR01"
+   }
+  },
+  {
+   "id": "c_LewisSSR0101",
+   "name": "LewisSSR0101",
+   "display": "刘易斯",
+   "variant": "slg",
+   "bundle": "40f7c8fef19faf1e2b6a303f0f019715",
+   "parts": {
+    "body": "c_LewisSSR0101_slg_body_lod0",
+    "hair": "c_LewisSSR0101_slg_hair_lod0"
+   },
+   "part_bundles": {
+    "body": [
+     "40f7c8fef19faf1e2b6a303f0f019715"
+    ],
+    "hair": [
+     "40f7c8fef19faf1e2b6a303f0f019715"
+    ]
+   },
+   "portrait": {
+    "bundle": "1357163629982d103d4f4805fa1f7f21",
+    "texture": "Avatar_Head_LewisSSR"
+   }
+  },
+  {
+   "id": "c_LewisSSR0102",
+   "name": "LewisSSR0102",
+   "display": "刘易斯 ·2",
+   "variant": "slg",
+   "bundle": "5bea364937efaa15bbdc435460b1ee87",
+   "parts": {
+    "hair": "c_LewisSSR0102_slg_hair_lod0",
+    "body": "c_LewisSSR0102_slg_body_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "5bea364937efaa15bbdc435460b1ee87"
+    ],
+    "body": [
+     "5bea364937efaa15bbdc435460b1ee87"
+    ]
+   },
+   "portrait": {
+    "bundle": "1357163629982d103d4f4805fa1f7f21",
+    "texture": "Avatar_Head_LewisSSR"
+   }
+  },
+  {
+   "id": "c_LindDorm",
+   "name": "LindDorm",
+   "display": "琳德 · 宿舍",
+   "variant": "dorm",
+   "bundle": "da54575f9b1e8d1124aafee27c09085e",
+   "parts": {
+    "body": "c_LindDorm_slg_body_lod0",
+    "hair": "c_LindDorm_slg_hair_lod0"
+   },
+   "part_bundles": {
+    "body": [
+     "da54575f9b1e8d1124aafee27c09085e"
+    ],
+    "hair": [
+     "da54575f9b1e8d1124aafee27c09085e"
+    ]
+   },
+   "portrait": {
+    "bundle": "7c4726474f7ea5e63492e17f7cd489e0",
+    "texture": "Avatar_Head_LindSSR01"
+   }
+  },
+  {
+   "id": "c_LindSSR01",
+   "name": "LindSSR01",
+   "display": "琳德",
+   "variant": "slg",
+   "bundle": "d5b882258ffc6889c2f387662ca33b65",
+   "parts": {
+    "hair": "c_LindSSR01_slg_hair_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "d5b882258ffc6889c2f387662ca33b65"
+    ]
+   },
+   "portrait": {
+    "bundle": "7c4726474f7ea5e63492e17f7cd489e0",
+    "texture": "Avatar_Head_LindSSR01"
+   }
+  },
+  {
+   "id": "c_LindSSR0101",
+   "name": "LindSSR0101",
+   "display": "琳德",
+   "variant": "slg",
+   "bundle": "157906c94f48a346f6ca71090fa59520",
+   "parts": {
+    "hair": "c_LindSSR0101_slg_hair_lod0",
+    "body": "c_LindSSR0101_slg_body_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "157906c94f48a346f6ca71090fa59520"
+    ],
+    "body": [
+     "157906c94f48a346f6ca71090fa59520"
+    ]
+   },
+   "portrait": {
+    "bundle": "7c4726474f7ea5e63492e17f7cd489e0",
+    "texture": "Avatar_Head_LindSSRUP"
+   }
+  },
+  {
+   "id": "c_LittaraDorm",
+   "name": "LittaraDorm",
+   "display": "莉塔拉 · 宿舍",
+   "variant": "dorm",
+   "bundle": "139cb27ab9013832744ada76483dbab3",
+   "parts": {
+    "cloth": "c_LittaraDorm_slg_cloth_lod0",
+    "body": "c_LittaraDorm_slg_body_lod0",
+    "hair": "c_LittaraDorm_slg_hair_lod0"
+   },
+   "part_bundles": {
+    "cloth": [
+     "139cb27ab9013832744ada76483dbab3"
+    ],
+    "body": [
+     "139cb27ab9013832744ada76483dbab3"
+    ],
+    "hair": [
+     "139cb27ab9013832744ada76483dbab3"
+    ]
+   },
+   "portrait": {
+    "bundle": "6d422906a5bfc5a7e889ad78b8c65c9b",
+    "texture": "Avatar_Head_LittaraSR"
+   }
+  },
+  {
+   "id": "c_LittaraSR01",
+   "name": "LittaraSR01",
+   "display": "莉塔拉",
+   "variant": "slg",
+   "bundle": "2a6f82fe924f1267f6b0f2e10a40d29e",
+   "parts": {
+    "plush": "c_LittaraSR01_slg_plush_lod0",
+    "body": "c_LittaraSR01_slg_body_lod0",
+    "hair": "c_LittaraSR01_slg_hair_lod0"
+   },
+   "part_bundles": {
+    "plush": [
+     "2a6f82fe924f1267f6b0f2e10a40d29e"
+    ],
+    "body": [
+     "2a6f82fe924f1267f6b0f2e10a40d29e"
+    ],
+    "hair": [
+     "2a6f82fe924f1267f6b0f2e10a40d29e"
+    ]
+   },
+   "portrait": {
+    "bundle": "6d422906a5bfc5a7e889ad78b8c65c9b",
+    "texture": "Avatar_Head_LittaraSR"
+   }
+  },
+  {
+   "id": "c_LiushihSSR01",
+   "name": "LiushihSSR01",
+   "display": "LiushihSSR01",
+   "variant": "slg",
+   "bundle": "90368c5c62936344d631e245b27c08e2",
+   "parts": {
+    "hair": "c_LiushihSSR01_slg_hair_lod0",
+    "body": "c_LiushihSSR01_slg_body_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "90368c5c62936344d631e245b27c08e2",
+     "99cd82dc58c76a10b70c01b92b1a5164"
+    ],
+    "body": [
+     "90368c5c62936344d631e245b27c08e2",
+     "99cd82dc58c76a10b70c01b92b1a5164"
+    ]
+   },
+   "portrait": {
+    "bundle": "0d167f7d6d46878524558cba0ba5bd9b",
+    "texture": "Avatar_Head_LiushihSSR01"
+   }
+  },
+  {
+   "id": "c_LiushihSSR0101",
+   "name": "LiushihSSR0101",
+   "display": "LiushihSSR0101",
+   "variant": "slg",
+   "bundle": "07b56fa4a64589f18afe9b949d9dd613",
+   "parts": {
+    "body": "c_LiushihSSR0101_slg_body_lod0",
+    "hair": "c_LiushihSSR0101_slg_hair_lod0"
+   },
+   "part_bundles": {
+    "body": [
+     "07b56fa4a64589f18afe9b949d9dd613"
+    ],
+    "hair": [
+     "07b56fa4a64589f18afe9b949d9dd613"
+    ]
+   },
+   "portrait": {
+    "bundle": "c28dd9ea19f297e8548865195e98b2ef",
+    "texture": "Avatar_Head_LiushihSSR"
+   }
+  },
+  {
+   "id": "c_LoreleyDorm",
+   "name": "LoreleyDorm",
+   "display": "罗蕾莱 · 宿舍",
+   "variant": "dorm",
+   "bundle": "2206d0b731c1c51deff007e9a8628104",
+   "parts": {
+    "body": "c_LoreleyDorm_slg_body_lod0",
+    "cloth": "c_LoreleyDorm_slg_cloth_lod0",
+    "hair": "c_LoreleyDorm_slg_hair_lod0"
+   },
+   "part_bundles": {
+    "body": [
+     "2206d0b731c1c51deff007e9a8628104"
+    ],
+    "cloth": [
+     "2206d0b731c1c51deff007e9a8628104"
+    ],
+    "hair": [
+     "2206d0b731c1c51deff007e9a8628104"
+    ]
+   },
+   "portrait": {
+    "bundle": "666552ee14a303aa98524121f52d7867",
+    "texture": "Avatar_Head_LoreleySSR"
+   }
+  },
+  {
+   "id": "c_LoreleySSR01",
+   "name": "LoreleySSR01",
+   "display": "罗蕾莱",
+   "variant": "slg",
+   "bundle": "2d1b5d5d916072aac48c99b7e3ae9806",
+   "parts": {
+    "body": "c_LoreleySSR01_slg_body_lod0",
+    "hair": "c_LoreleySSR01_slg_hair_lod0"
+   },
+   "part_bundles": {
+    "body": [
+     "2d1b5d5d916072aac48c99b7e3ae9806"
+    ],
+    "hair": [
+     "2d1b5d5d916072aac48c99b7e3ae9806"
+    ]
+   },
+   "portrait": {
+    "bundle": "666552ee14a303aa98524121f52d7867",
+    "texture": "Avatar_Head_LoreleySSR01"
+   }
+  },
+  {
+   "id": "c_LoreleySSR0101",
+   "name": "LoreleySSR0101",
+   "display": "罗蕾莱",
+   "variant": "slg",
+   "bundle": "4842c5d6af5e631d6c13648260fa0298",
+   "parts": {
+    "hair": "c_LoreleySSR0101_slg_hair_lod0",
+    "body": "c_LoreleySSR0101_slg_body_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "4842c5d6af5e631d6c13648260fa0298"
+    ],
+    "body": [
+     "4842c5d6af5e631d6c13648260fa0298"
+    ]
+   },
+   "portrait": {
+    "bundle": "666552ee14a303aa98524121f52d7867",
+    "texture": "Avatar_Head_LoreleySSR"
+   }
+  },
+  {
+   "id": "c_LottaDorm",
+   "name": "LottaDorm",
+   "display": "洛塔 · 宿舍",
+   "variant": "dorm",
+   "bundle": "7d703e77ae1b3eb6bae8c55406ce0417",
+   "parts": {
+    "hair": "c_LottaDorm_slg_hair_lod0",
+    "cloth": "c_LottaDorm_slg_cloth_lod0",
+    "body": "c_LottaDorm_slg_body_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "7d703e77ae1b3eb6bae8c55406ce0417"
+    ],
+    "cloth": [
+     "7d703e77ae1b3eb6bae8c55406ce0417"
+    ],
+    "body": [
+     "7d703e77ae1b3eb6bae8c55406ce0417"
+    ]
+   },
+   "portrait": {
+    "bundle": "f2af9948c9e38c8ea63cc42457ccfcdf",
+    "texture": "Avatar_Head_LottaSR"
+   }
+  },
+  {
+   "id": "c_LottaSR01",
+   "name": "LottaSR01",
+   "display": "洛塔",
+   "variant": "slg",
+   "bundle": "2827aa758bddcdd4a441c6e368bdcc0c",
+   "parts": {
+    "hair": "c_LottaSR01_slg_hair_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "2827aa758bddcdd4a441c6e368bdcc0c",
+     "7d703e77ae1b3eb6bae8c55406ce0417"
+    ]
+   },
+   "portrait": {
+    "bundle": "b09840691aba928855c024315a90c677",
+    "texture": "Avatar_Head_LottaSR01"
+   }
+  },
+  {
+   "id": "c_LottaSR0101",
+   "name": "LottaSR0101",
+   "display": "洛塔",
+   "variant": "slg",
+   "bundle": "9457293410891b1a6dbcc0873c406c67",
+   "parts": {
+    "hair": "c_LottaSR0101_slg_hair_lod0",
+    "body": "c_LottaSR0101_slg_body_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "9457293410891b1a6dbcc0873c406c67"
+    ],
+    "body": [
+     "9457293410891b1a6dbcc0873c406c67"
+    ]
+   },
+   "portrait": {
+    "bundle": "f2af9948c9e38c8ea63cc42457ccfcdf",
+    "texture": "Avatar_Head_LottaSR"
+   }
+  },
+  {
+   "id": "c_MacqiatoDorm",
+   "name": "MacqiatoDorm",
+   "display": "玛奇朵 · 宿舍",
+   "variant": "dorm",
+   "bundle": "54c56e7de755f72072c59a3930ed2e44",
+   "parts": {
+    "body": "c_MacqiatoDorm_slg_body_lod0",
+    "hair": "c_MacqiatoDorm_slg_hair_lod0"
+   },
+   "part_bundles": {
+    "body": [
+     "54c56e7de755f72072c59a3930ed2e44"
+    ],
+    "hair": [
+     "54c56e7de755f72072c59a3930ed2e44"
+    ]
+   },
+   "portrait": {
+    "bundle": "52a50f9406d079412c31e5a737753064",
+    "texture": "Avatar_Head_MacqiatoSSR"
+   }
+  },
+  {
+   "id": "c_MacqiatoSSR01",
+   "name": "MacqiatoSSR01",
+   "display": "玛奇朵",
+   "variant": "slg",
+   "bundle": "466b031f40147a4dcf707bfd173b8ec8",
+   "parts": {
+    "body": "c_MacqiatoSSR01_slg_body_lod0",
+    "hair": "c_MacqiatoSSR01_slg_hair_lod0"
+   },
+   "part_bundles": {
+    "body": [
+     "466b031f40147a4dcf707bfd173b8ec8",
+     "6af5e5e15a61840db52b5f305fb7ffa5",
+     "bdcce7b3d69ffa9a1674829a8e01f4be"
+    ],
+    "hair": [
+     "466b031f40147a4dcf707bfd173b8ec8",
+     "6af5e5e15a61840db52b5f305fb7ffa5",
+     "bdcce7b3d69ffa9a1674829a8e01f4be"
+    ]
+   },
+   "portrait": {
+    "bundle": "52a50f9406d079412c31e5a737753064",
+    "texture": "Avatar_Head_MacqiatoSSR01"
+   }
+  },
+  {
+   "id": "c_MacqiatoSSR0101",
+   "name": "MacqiatoSSR0101",
+   "display": "玛奇朵",
+   "variant": "slg",
+   "bundle": "78ba39b93fa18c5f2778b7f6f3c156de",
+   "parts": {
+    "hair": "c_MacqiatoSSR0101_slg_hair_lod0",
+    "body": "c_MacqiatoSSR0101_slg_body_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "78ba39b93fa18c5f2778b7f6f3c156de"
+    ],
+    "body": [
+     "78ba39b93fa18c5f2778b7f6f3c156de"
+    ]
+   },
+   "portrait": {
+    "bundle": "52a50f9406d079412c31e5a737753064",
+    "texture": "Avatar_Head_MacqiatoSSR"
+   }
+  },
+  {
+   "id": "c_MacqiatoSSR0102",
+   "name": "MacqiatoSSR0102",
+   "display": "玛奇朵 ·2",
+   "variant": "slg",
+   "bundle": "b9fd589056a7c336c9a045a794ae4ab5",
+   "parts": {
+    "body": "c_MacqiatoSSR0102_slg_body_lod0",
+    "hair": "c_MacqiatoSSR0102_slg_hair_lod0"
+   },
+   "part_bundles": {
+    "body": [
+     "b9fd589056a7c336c9a045a794ae4ab5"
+    ],
+    "hair": [
+     "b9fd589056a7c336c9a045a794ae4ab5"
+    ]
+   },
+   "portrait": {
+    "bundle": "52a50f9406d079412c31e5a737753064",
+    "texture": "Avatar_Head_MacqiatoSSR"
+   }
+  },
+  {
+   "id": "c_MacqiatoSSR0103",
+   "name": "MacqiatoSSR0103",
+   "display": "玛奇朵 ·3",
+   "variant": "slg",
+   "bundle": "752aca094d80381838ed1866ee57d7b7",
+   "parts": {
+    "hair": "c_MacqiatoSSR0103_slg_hair_lod0",
+    "cloth": "c_MacqiatoSSR0103_slg_cloth_lod0",
+    "body": "c_MacqiatoSSR0103_slg_body_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "752aca094d80381838ed1866ee57d7b7"
+    ],
+    "cloth": [
+     "752aca094d80381838ed1866ee57d7b7"
+    ],
+    "body": [
+     "752aca094d80381838ed1866ee57d7b7"
+    ]
+   },
+   "portrait": {
+    "bundle": "52a50f9406d079412c31e5a737753064",
+    "texture": "Avatar_Head_MacqiatoSSR"
+   }
+  },
+  {
+   "id": "c_Mayling",
+   "name": "Mayling",
+   "display": "梅岭",
+   "variant": "dorm",
+   "bundle": "36d4fd410b93148ed8ab1691f10ae7ae",
+   "parts": {
+    "body": "c_Mayling_dorm_body_lod0",
+    "hair": "c_Mayling_dorm_hair_lod0"
+   },
+   "part_bundles": {
+    "body": [
+     "36d4fd410b93148ed8ab1691f10ae7ae",
+     "87707ef7b3bc49ea0e1c908f1404abdb",
+     "b69883e33c14523f7ee21b141d4537ed",
+     "da5b956244a2c22ba24f6218394f2a58",
+     "db2853780d258f1c5cc8454fcd90601e"
+    ],
+    "hair": [
+     "36d4fd410b93148ed8ab1691f10ae7ae",
+     "87707ef7b3bc49ea0e1c908f1404abdb",
+     "b69883e33c14523f7ee21b141d4537ed",
+     "da5b956244a2c22ba24f6218394f2a58",
+     "db2853780d258f1c5cc8454fcd90601e"
+    ]
+   },
+   "portrait": {
+    "bundle": "9369ead21f8dea2a63b9173f6afcf406",
+    "texture": "Avatar_Head_Mayling"
+   }
+  },
+  {
+   "id": "c_MishtyDorm",
+   "name": "MishtyDorm",
+   "display": "米什蒂 · 宿舍",
+   "variant": "dorm",
+   "bundle": "525d3a849cb90c392b8721015a44b9e7",
+   "parts": {
+    "body": "c_MishtyDorm_slg_body_lod0",
+    "hair": "c_MishtyDorm_slg_hair_lod0",
+    "cloth": "c_MishtyDorm_slg_cloth_lod0"
+   },
+   "part_bundles": {
+    "body": [
+     "525d3a849cb90c392b8721015a44b9e7"
+    ],
+    "hair": [
+     "525d3a849cb90c392b8721015a44b9e7"
+    ],
+    "cloth": [
+     "525d3a849cb90c392b8721015a44b9e7"
+    ]
+   },
+   "portrait": {
+    "bundle": "cd82417af612cfb163c7f6ef04a5a845",
+    "texture": "Avatar_Head_MishtySSRUP"
+   }
+  },
+  {
+   "id": "c_MishtySSR01",
+   "name": "MishtySSR01",
+   "display": "米什蒂",
+   "variant": "slg",
+   "bundle": "318ec919acdf07ce30865b3e21b79a54",
+   "parts": {
+    "hair": "c_MishtySSR01_slg_hair_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "318ec919acdf07ce30865b3e21b79a54"
+    ]
+   },
+   "portrait": {
+    "bundle": "cd82417af612cfb163c7f6ef04a5a845",
+    "texture": "Avatar_Head_MishtySSRUP"
+   }
+  },
+  {
+   "id": "c_MitylDorm",
+   "name": "MitylDorm",
+   "display": "米蒂尔 · 宿舍",
+   "variant": "dorm",
+   "bundle": "ac382f51292ccf4721dc3eb61469c1a7",
+   "parts": {
+    "body": "c_MitylDorm_slg_body_lod0",
+    "hair": "c_MitylDorm_slg_hair_lod0"
+   },
+   "part_bundles": {
+    "body": [
+     "ac382f51292ccf4721dc3eb61469c1a7"
+    ],
+    "hair": [
+     "ac382f51292ccf4721dc3eb61469c1a7"
+    ]
+   },
+   "portrait": {
+    "bundle": "ba1fcef1e87a158a4fc2fa13f0992b6a",
+    "texture": "Avatar_Head_MitylDorm"
+   }
+  },
+  {
+   "id": "c_MitylSSR01",
+   "name": "MitylSSR01",
+   "display": "米蒂尔",
+   "variant": "slg",
+   "bundle": "30ee104fc12953aaac93094717d0928d",
+   "parts": {
+    "body": "c_MitylSSR01_slg_body_lod0",
+    "hair": "c_MitylSSR01_slg_hair_lod0"
+   },
+   "part_bundles": {
+    "body": [
+     "30ee104fc12953aaac93094717d0928d"
+    ],
+    "hair": [
+     "30ee104fc12953aaac93094717d0928d"
+    ]
+   },
+   "portrait": {
+    "bundle": "ba1fcef1e87a158a4fc2fa13f0992b6a",
+    "texture": "Avatar_Head_MitylSSR01UP"
+   }
+  },
+  {
+   "id": "c_MitylSSR0101",
+   "name": "MitylSSR0101",
+   "display": "米蒂尔",
+   "variant": "slg",
+   "bundle": "1ea099041ece38fd895e556f0d4f3a9b",
+   "parts": {
+    "body": "c_MitylSSR0101_slg_body_lod0",
+    "hair": "c_MitylSSR0101_slg_hair_lod0"
+   },
+   "part_bundles": {
+    "body": [
+     "1ea099041ece38fd895e556f0d4f3a9b"
+    ],
+    "hair": [
+     "1ea099041ece38fd895e556f0d4f3a9b"
+    ]
+   },
+   "portrait": {
+    "bundle": "ba1fcef1e87a158a4fc2fa13f0992b6a",
+    "texture": "Avatar_Head_MitylSSR"
+   }
+  },
+  {
+   "id": "c_MosinnagantDorm",
+   "name": "MosinnagantDorm",
+   "display": "莫辛纳甘 · 宿舍",
+   "variant": "dorm",
+   "bundle": "6b2227374447468b93064c0765f202cd",
+   "parts": {
+    "hair": "c_MosinnagantDorm_slg_hair_lod0",
+    "body": "c_MosinnagantDorm_slg_body_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "6b2227374447468b93064c0765f202cd"
+    ],
+    "body": [
+     "6b2227374447468b93064c0765f202cd"
+    ]
+   },
+   "portrait": {
+    "bundle": "a864abf3a3f5f0c84c0128811597ca9e",
+    "texture": "Avatar_Head_MosinnagantSSR"
+   }
+  },
+  {
+   "id": "c_MosinnagantSSR01",
+   "name": "MosinnagantSSR01",
+   "display": "莫辛纳甘",
+   "variant": "slg",
+   "bundle": "8f82a10ec0ff0a97446c22a2cb359fba",
+   "parts": {
+    "plush": "c_MosinnagantSSR01_slg_plush_lod0",
+    "hair": "c_MosinnagantSSR01_slg_hair_lod0"
+   },
+   "part_bundles": {
+    "plush": [
+     "8f82a10ec0ff0a97446c22a2cb359fba"
+    ],
+    "hair": [
+     "8f82a10ec0ff0a97446c22a2cb359fba"
+    ]
+   },
+   "portrait": {
+    "bundle": "580872eaec4ef288389c302c1bb71674",
+    "texture": "Avatar_Head_MosinnagantSSR01"
+   }
+  },
+  {
+   "id": "c_MosinnagantSSR0101",
+   "name": "MosinnagantSSR0101",
+   "display": "莫辛纳甘",
+   "variant": "slg",
+   "bundle": "10a9159ce8f3298b8c440e74a86328c9",
+   "parts": {
+    "hair": "c_MosinnagantSSR0101_slg_hair_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "10a9159ce8f3298b8c440e74a86328c9"
+    ]
+   },
+   "portrait": {
+    "bundle": "a864abf3a3f5f0c84c0128811597ca9e",
+    "texture": "Avatar_Head_MosinnagantSSR"
+   }
+  },
+  {
+   "id": "c_NagantDorm",
+   "name": "NagantDorm",
+   "display": "纳甘 · 宿舍",
+   "variant": "dorm",
+   "bundle": "01e005c62d0cc39313af52eaccd80bee",
+   "parts": {
+    "hair": "c_NagantDorm_slg_hair_lod0",
+    "body": "c_NagantDorm_slg_body_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "01e005c62d0cc39313af52eaccd80bee"
+    ],
+    "body": [
+     "01e005c62d0cc39313af52eaccd80bee"
+    ]
+   },
+   "portrait": {
+    "bundle": "c6ef77267441afb78772827ae80546e0",
+    "texture": "Avatar_Head_NagantSR"
+   }
+  },
+  {
+   "id": "c_NagantSR01",
+   "name": "NagantSR01",
+   "display": "纳甘",
+   "variant": "slg",
+   "bundle": "cfba3d92a58d05f01f1b3437a03cec84",
+   "parts": {
+    "hair": "c_NagantSR01_slg_hair_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "cfba3d92a58d05f01f1b3437a03cec84"
+    ]
+   },
+   "portrait": {
+    "bundle": "c6ef77267441afb78772827ae80546e0",
+    "texture": "Avatar_Head_NagantSR"
+   }
+  },
+  {
+   "id": "c_NagantSR0101",
+   "name": "NagantSR0101",
+   "display": "纳甘",
+   "variant": "slg",
+   "bundle": "d0a8769d7370d1d03c2043bfd3e87c40",
+   "parts": {
+    "hair": "c_NagantSR0101_slg_hair_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "d0a8769d7370d1d03c2043bfd3e87c40"
+    ]
+   },
+   "portrait": {
+    "bundle": "c6ef77267441afb78772827ae80546e0",
+    "texture": "Avatar_Head_NagantSR"
+   }
+  },
+  {
+   "id": "c_NemesisDorm",
+   "name": "NemesisDorm",
+   "display": "涅墨西斯 · 宿舍",
+   "variant": "dorm",
+   "bundle": "5f31da9bfa8f2b6a8a4ef0f36489c980",
+   "parts": {
+    "body": "c_NemesisDorm_slg_body_lod0",
+    "hair": "c_NemesisDorm_slg_hair_lod0",
+    "cloth": "c_NemesisDorm_slg_cloth_lod0"
+   },
+   "part_bundles": {
+    "body": [
+     "5f31da9bfa8f2b6a8a4ef0f36489c980"
+    ],
+    "hair": [
+     "5f31da9bfa8f2b6a8a4ef0f36489c980"
+    ],
+    "cloth": [
+     "5f31da9bfa8f2b6a8a4ef0f36489c980"
+    ]
+   },
+   "portrait": {
+    "bundle": "b5a3f23e9c2e78eea1a786fc33748c87",
+    "texture": "Avatar_Head_NemesisGnosisSSR"
+   }
+  },
+  {
+   "id": "c_NemesisGnosisDorm",
+   "name": "NemesisGnosisDorm",
+   "display": "涅墨西斯 · 宿舍",
+   "variant": "dorm",
+   "bundle": "d1b78147ace8857b7061d855665c3d1d",
+   "parts": {
+    "body": "c_NemesisGnosisDorm_slg_body_lod0",
+    "cloth": "c_NemesisGnosisDorm_slg_cloth_lod0",
+    "hair": "c_NemesisGnosisDorm_slg_hair_lod0"
+   },
+   "part_bundles": {
+    "body": [
+     "d1b78147ace8857b7061d855665c3d1d"
+    ],
+    "cloth": [
+     "d1b78147ace8857b7061d855665c3d1d"
+    ],
+    "hair": [
+     "d1b78147ace8857b7061d855665c3d1d"
+    ]
+   },
+   "portrait": {
+    "bundle": "b5a3f23e9c2e78eea1a786fc33748c87",
+    "texture": "Avatar_Head_NemesisGnosisSSR"
+   }
+  },
+  {
+   "id": "c_NemesisGnosisSSR01",
+   "name": "NemesisGnosisSSR01",
+   "display": "涅墨西斯 · 灵知",
+   "variant": "slg",
+   "bundle": "24648e376a95f77c270107a0a1638596",
+   "parts": {
+    "body": "c_NemesisGnosisSSR01_slg_body_lod0",
+    "hair": "c_NemesisGnosisSSR01_slg_hair_lod0"
+   },
+   "part_bundles": {
+    "body": [
+     "24648e376a95f77c270107a0a1638596"
+    ],
+    "hair": [
+     "24648e376a95f77c270107a0a1638596"
+    ]
+   },
+   "portrait": {
+    "bundle": "b5a3f23e9c2e78eea1a786fc33748c87",
+    "texture": "Avatar_Head_NemesisGnosisSSR"
+   }
+  },
+  {
+   "id": "c_NemesisSR01",
+   "name": "NemesisSR01",
+   "display": "涅墨西斯",
+   "variant": "slg",
+   "bundle": "5cb57b2ddcf59607edb0cae76ad328f2",
+   "parts": {
+    "body": "c_NemesisSR01_slg_body_lod0",
+    "hair": "c_NemesisSR01_slg_hair_lod0"
+   },
+   "part_bundles": {
+    "body": [
+     "5cb57b2ddcf59607edb0cae76ad328f2"
+    ],
+    "hair": [
+     "02f492416f36c4aa51f1774a3685ca7b",
+     "5cb57b2ddcf59607edb0cae76ad328f2"
+    ]
+   },
+   "portrait": {
+    "bundle": "a573462dd8602d5e272a472d8e9d4826",
+    "texture": "Avatar_Head_NemesisSR"
+   }
+  },
+  {
+   "id": "c_NemesisSR0103",
+   "name": "NemesisSR0103",
+   "display": "涅墨西斯 ·3",
+   "variant": "slg",
+   "bundle": "44a080104012965b5b442843a560ee69",
+   "parts": {
+    "hair": "c_NemesisSR0103_slg_hair_lod0",
+    "cloth": "c_NemesisSR0103_slg_cloth_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "44a080104012965b5b442843a560ee69"
+    ],
+    "cloth": [
+     "44a080104012965b5b442843a560ee69"
+    ]
+   },
+   "portrait": {
+    "bundle": "a573462dd8602d5e272a472d8e9d4826",
+    "texture": "Avatar_Head_NemesisSR"
+   }
+  },
+  {
+   "id": "c_NemesisSR0104",
+   "name": "NemesisSR0104",
+   "display": "涅墨西斯 ·4",
+   "variant": "slg",
+   "bundle": "12ea943280a8d8e4709ab395fb9fe0fd",
+   "parts": {
+    "hair": "c_NemesisSR0104_slg_hair_lod0",
+    "body": "c_NemesisSR0104_slg_body_lod0",
+    "cloth": "c_NemesisSR0104_slg_cloth_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "12ea943280a8d8e4709ab395fb9fe0fd"
+    ],
+    "body": [
+     "12ea943280a8d8e4709ab395fb9fe0fd"
+    ],
+    "cloth": [
+     "12ea943280a8d8e4709ab395fb9fe0fd"
+    ]
+   },
+   "portrait": {
+    "bundle": "a573462dd8602d5e272a472d8e9d4826",
+    "texture": "Avatar_Head_NemesisSR"
+   }
+  },
+  {
+   "id": "c_NemesisSR0105",
+   "name": "NemesisSR0105",
+   "display": "涅墨西斯 ·5",
+   "variant": "slg",
+   "bundle": "02f492416f36c4aa51f1774a3685ca7b",
+   "parts": {
+    "body": "c_NemesisSR0105_slg_body_lod0"
+   },
+   "part_bundles": {
+    "body": [
+     "02f492416f36c4aa51f1774a3685ca7b"
+    ]
+   },
+   "portrait": {
+    "bundle": "a573462dd8602d5e272a472d8e9d4826",
+    "texture": "Avatar_Head_NemesisSR"
+   }
+  },
+  {
+   "id": "c_NikketaDorm",
+   "name": "NikketaDorm",
+   "display": "尼基塔 · 宿舍",
+   "variant": "dorm",
+   "bundle": "439b38472d1b369914634636334ba35d",
+   "parts": {
+    "hair": "c_NikketaDorm_slg_hair_lod0",
+    "body": "c_NikketaDorm_slg_body_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "439b38472d1b369914634636334ba35d"
+    ],
+    "body": [
+     "439b38472d1b369914634636334ba35d"
+    ]
+   },
+   "portrait": {
+    "bundle": "8067d1e8814c80d5004922fab50cbab2",
+    "texture": "Avatar_Head_NikketaSSR"
+   }
+  },
+  {
+   "id": "c_NikketaSSR01",
+   "name": "NikketaSSR01",
+   "display": "尼基塔",
+   "variant": "slg",
+   "bundle": "d2d0add7fd6cbf7da89825bf20e0b248",
+   "parts": {
+    "body": "c_NikketaSSR01_slg_body_lod0",
+    "hair": "c_NikketaSSR01_slg_hair_lod0"
+   },
+   "part_bundles": {
+    "body": [
+     "d2d0add7fd6cbf7da89825bf20e0b248"
+    ],
+    "hair": [
+     "6604367d15334b5112e7a1900bcaeb86",
+     "d2d0add7fd6cbf7da89825bf20e0b248"
+    ]
+   },
+   "portrait": {
+    "bundle": "8067d1e8814c80d5004922fab50cbab2",
+    "texture": "Avatar_Head_NikketaSSR01"
+   }
+  },
+  {
+   "id": "c_NikketaSSR0101",
+   "name": "NikketaSSR0101",
+   "display": "尼基塔",
+   "variant": "slg",
+   "bundle": "393a3d7141a2ab411e0daf900e325861",
+   "parts": {
+    "hair": "c_NikketaSSR0101_slg_hair_lod0",
+    "body": "c_NikketaSSR0101_slg_body_lod0",
+    "cloth": "c_NikketaSSR0101_slg_cloth_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "393a3d7141a2ab411e0daf900e325861"
+    ],
+    "body": [
+     "393a3d7141a2ab411e0daf900e325861"
+    ],
+    "cloth": [
+     "393a3d7141a2ab411e0daf900e325861"
+    ]
+   },
+   "portrait": {
+    "bundle": "8067d1e8814c80d5004922fab50cbab2",
+    "texture": "Avatar_Head_NikketaSSR"
+   }
+  },
+  {
+   "id": "c_NikketaSSR0102",
+   "name": "NikketaSSR0102",
+   "display": "尼基塔 ·2",
+   "variant": "slg",
+   "bundle": "823406788316031ef39d0111b77e6e91",
+   "parts": {
+    "hair": "c_NikketaSSR0102_slg_hair_lod0",
+    "body": "c_NikketaSSR0102_slg_body_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "823406788316031ef39d0111b77e6e91"
+    ],
+    "body": [
+     "823406788316031ef39d0111b77e6e91"
+    ]
+   },
+   "portrait": {
+    "bundle": "8067d1e8814c80d5004922fab50cbab2",
+    "texture": "Avatar_Head_NikketaSSR"
+   }
+  },
+  {
+   "id": "c_NikketaSSR0103",
+   "name": "NikketaSSR0103",
+   "display": "尼基塔 ·3",
+   "variant": "slg",
+   "bundle": "6604367d15334b5112e7a1900bcaeb86",
+   "parts": {
+    "body": "c_NikketaSSR0103_slg_body_lod0",
+    "hair": "c_NikketaSSR0103_slg_hair_lod0"
+   },
+   "part_bundles": {
+    "body": [
+     "6604367d15334b5112e7a1900bcaeb86"
+    ],
+    "hair": [
+     "6604367d15334b5112e7a1900bcaeb86"
+    ]
+   },
+   "portrait": {
+    "bundle": "8067d1e8814c80d5004922fab50cbab2",
+    "texture": "Avatar_Head_NikketaSSR"
+   }
+  },
+  {
+   "id": "c_OTs14Dorm",
+   "name": "OTs14Dorm",
+   "display": "OTs-14 · 宿舍",
+   "variant": "dorm",
+   "bundle": "29ae09f60293ba048537f010d5761b2f",
+   "parts": {
+    "body": "c_OTs14Dorm_slg_body_lod0",
+    "hair": "c_OTs14Dorm_slg_hair_lod0",
+    "cloth": "c_OTs14Dorm_slg_cloth_lod0"
+   },
+   "part_bundles": {
+    "body": [
+     "29ae09f60293ba048537f010d5761b2f"
+    ],
+    "hair": [
+     "29ae09f60293ba048537f010d5761b2f"
+    ],
+    "cloth": [
+     "29ae09f60293ba048537f010d5761b2f"
+    ]
+   },
+   "portrait": {
+    "bundle": "193a87f82c1aed721e26e7b8a722008d",
+    "texture": "Avatar_Head_OTs14SSR"
+   }
+  },
+  {
+   "id": "c_OTs14SSR01",
+   "name": "OTs14SSR01",
+   "display": "OTs-14",
+   "variant": "slg",
+   "bundle": "5870dc4fb9581f58a78e1084ee0f31ef",
+   "parts": {
+    "body": "c_OTs14SSR01_slg_body_lod0",
+    "hair": "c_OTs14SSR01_slg_hair_lod0"
+   },
+   "part_bundles": {
+    "body": [
+     "5870dc4fb9581f58a78e1084ee0f31ef"
+    ],
+    "hair": [
+     "5870dc4fb9581f58a78e1084ee0f31ef"
+    ]
+   },
+   "portrait": {
+    "bundle": "193a87f82c1aed721e26e7b8a722008d",
+    "texture": "Avatar_Head_OTs14SSR01"
+   }
+  },
+  {
+   "id": "c_OTs14SSR0101",
+   "name": "OTs14SSR0101",
+   "display": "OTs-14",
+   "variant": "slg",
+   "bundle": "770c983581cf43bf0b869fcf59c2165c",
+   "parts": {
+    "hair": "c_OTs14SSR0101_slg_hair_lod0",
+    "body": "c_OTs14SSR0101_slg_body_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "770c983581cf43bf0b869fcf59c2165c"
+    ],
+    "body": [
+     "770c983581cf43bf0b869fcf59c2165c"
+    ]
+   },
+   "portrait": {
+    "bundle": "193a87f82c1aed721e26e7b8a722008d",
+    "texture": "Avatar_Head_OTs14SSR"
+   }
+  },
+  {
+   "id": "c_OTs14SSR0102",
+   "name": "OTs14SSR0102",
+   "display": "OTs-14 ·2",
+   "variant": "slg",
+   "bundle": "263734e87d1b8d9345f90bdf32675775",
+   "parts": {
+    "hair": "c_OTs14SSR0102_slg_hair_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "263734e87d1b8d9345f90bdf32675775",
+     "78551295f4431495648ec29b3e6c2af5"
+    ]
+   },
+   "portrait": {
+    "bundle": "193a87f82c1aed721e26e7b8a722008d",
+    "texture": "Avatar_Head_OTs14SSR"
+   }
+  },
+  {
+   "id": "c_PapashaDorm",
+   "name": "PapashaDorm",
+   "display": "帕帕莎 · 宿舍",
+   "variant": "dorm",
+   "bundle": "c53b6132eff14e7d9fd7423bfc8e294f",
+   "parts": {
+    "cloth": "c_PapashaDorm_slg_cloth_lod0",
+    "hair": "c_PapashaDorm_slg_hair_lod0",
+    "plush": "c_PapashaDorm_slg_plush_lod0",
+    "body": "c_PapashaDorm_slg_body_lod0"
+   },
+   "part_bundles": {
+    "cloth": [
+     "c53b6132eff14e7d9fd7423bfc8e294f"
+    ],
+    "hair": [
+     "c53b6132eff14e7d9fd7423bfc8e294f"
+    ],
+    "plush": [
+     "c53b6132eff14e7d9fd7423bfc8e294f"
+    ],
+    "body": [
+     "c53b6132eff14e7d9fd7423bfc8e294f"
+    ]
+   },
+   "portrait": {
+    "bundle": "801a3833d6ce80b745192baf90c5b679",
+    "texture": "Avatar_Head_PapashaSSR"
+   }
+  },
+  {
+   "id": "c_PapashaSSR01",
+   "name": "PapashaSSR01",
+   "display": "帕帕莎",
+   "variant": "slg",
+   "bundle": "f635b5730d9e147e1d55ba6f90518112",
+   "parts": {
+    "hair": "c_PapashaSSR01_slg_hair_lod0",
+    "body": "c_PapashaSSR01_slg_body_lod0",
+    "plush": "c_PapashaSSR01_slg_plush_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "f635b5730d9e147e1d55ba6f90518112"
+    ],
+    "body": [
+     "f635b5730d9e147e1d55ba6f90518112"
+    ],
+    "plush": [
+     "f635b5730d9e147e1d55ba6f90518112"
+    ]
+   },
+   "portrait": {
+    "bundle": "801a3833d6ce80b745192baf90c5b679",
+    "texture": "Avatar_Head_PapashaSSR"
+   }
+  },
+  {
+   "id": "c_PeriDorm",
+   "name": "PeriDorm",
+   "display": "佩里 · 宿舍",
+   "variant": "dorm",
+   "bundle": "6db0262a7950f752257936f1e8fd8d5e",
+   "parts": {
+    "hair": "c_PeriDorm_slg_hair_lod0",
+    "cloth": "c_PeriDorm_slg_cloth_lod0",
+    "body": "c_PeriDorm_slg_body_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "6db0262a7950f752257936f1e8fd8d5e"
+    ],
+    "cloth": [
+     "6db0262a7950f752257936f1e8fd8d5e"
+    ],
+    "body": [
+     "6db0262a7950f752257936f1e8fd8d5e"
+    ]
+   },
+   "portrait": {
+    "bundle": "2c3fa9ea40f5b3c1e5f289bdf1e9b750",
+    "texture": "Avatar_Head_PeriSSR"
+   }
+  },
+  {
+   "id": "c_PeriSSR01",
+   "name": "PeriSSR01",
+   "display": "佩里",
+   "variant": "slg",
+   "bundle": "96dbbf1322841b325f1fa4ef67850388",
+   "parts": {
+    "hair": "c_PeriSSR01_slg_hair_lod0",
+    "body": "c_PeriSSR01_slg_body_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "96dbbf1322841b325f1fa4ef67850388"
+    ],
+    "body": [
+     "96dbbf1322841b325f1fa4ef67850388"
+    ]
+   },
+   "portrait": {
+    "bundle": "cd4f7691bd5a6e4823996991fbe04b7b",
+    "texture": "Avatar_Head_PeriSSR01"
+   }
+  },
+  {
+   "id": "c_PeriSSR0101",
+   "name": "PeriSSR0101",
+   "display": "佩里",
+   "variant": "slg",
+   "bundle": "b0fc23bc5927e8fad1498a826fdc446b",
+   "parts": {
+    "body": "c_PeriSSR0101_slg_body_lod0",
+    "hair": "c_PeriSSR0101_slg_hair_lod0"
+   },
+   "part_bundles": {
+    "body": [
+     "b0fc23bc5927e8fad1498a826fdc446b"
+    ],
+    "hair": [
+     "b0fc23bc5927e8fad1498a826fdc446b"
+    ]
+   },
+   "portrait": {
+    "bundle": "2c3fa9ea40f5b3c1e5f289bdf1e9b750",
+    "texture": "Avatar_Head_PeriSSR"
+   }
+  },
+  {
+   "id": "c_PerityaDorm",
+   "name": "PerityaDorm",
+   "display": "佩里提亚 · 宿舍",
+   "variant": "dorm",
+   "bundle": "6efb3819dbef2070ba64458c6765b248",
+   "parts": {
+    "hair": "c_PerityaDorm_slg_hair_lod0",
+    "body": "c_PerityaDorm_slg_body_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "6efb3819dbef2070ba64458c6765b248"
+    ],
+    "body": [
+     "6efb3819dbef2070ba64458c6765b248"
+    ]
+   },
+   "portrait": {
+    "bundle": "833cf217cd1f90f835e3b6619355ce0a",
+    "texture": "Avatar_Head_PerityaSSR"
+   }
+  },
+  {
+   "id": "c_PerityaSSR01",
+   "name": "PerityaSSR01",
+   "display": "佩里提亚",
+   "variant": "slg",
+   "bundle": "e3679f397d22a625d8e1716b87d7dfa0",
+   "parts": {
+    "hair": "c_PerityaSSR01_slg_hair_lod0",
+    "body": "c_PerityaSSR01_slg_body_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "e3679f397d22a625d8e1716b87d7dfa0"
+    ],
+    "body": [
+     "e3679f397d22a625d8e1716b87d7dfa0"
+    ]
+   },
+   "portrait": {
+    "bundle": "273d21e3e15b6707972e0f1121b32a67",
+    "texture": "Avatar_Head_PerityaSSR01"
+   }
+  },
+  {
+   "id": "c_PerityaSSR0101",
+   "name": "PerityaSSR0101",
+   "display": "佩里提亚",
+   "variant": "slg",
+   "bundle": "0f897ea3dfdd2c6b281476107e8af7d3",
+   "parts": {
+    "cloth": "c_PerityaSSR0101_slg_cloth_lod0",
+    "body": "c_PerityaSSR0101_slg_body_lod0",
+    "hair": "c_PerityaSSR0101_slg_hair_lod0"
+   },
+   "part_bundles": {
+    "cloth": [
+     "0f897ea3dfdd2c6b281476107e8af7d3"
+    ],
+    "body": [
+     "0f897ea3dfdd2c6b281476107e8af7d3"
+    ],
+    "hair": [
+     "0f897ea3dfdd2c6b281476107e8af7d3"
+    ]
+   },
+   "portrait": {
+    "bundle": "833cf217cd1f90f835e3b6619355ce0a",
+    "texture": "Avatar_Head_PerityaSSR"
+   }
+  },
+  {
+   "id": "c_PerityaSSR0102",
+   "name": "PerityaSSR0102",
+   "display": "佩里提亚 ·2",
+   "variant": "slg",
+   "bundle": "aeb007cdbba6c150b5dd8983929d56aa",
+   "parts": {
+    "hair": "c_PerityaSSR0102_slg_hair_lod0",
+    "body": "c_PerityaSSR0102_slg_body_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "aeb007cdbba6c150b5dd8983929d56aa"
+    ],
+    "body": [
+     "aeb007cdbba6c150b5dd8983929d56aa"
+    ]
+   },
+   "portrait": {
+    "bundle": "833cf217cd1f90f835e3b6619355ce0a",
+    "texture": "Avatar_Head_PerityaSSR"
+   }
+  },
+  {
+   "id": "c_PhaetusaDorm",
+   "name": "PhaetusaDorm",
+   "display": "PhaetusaDorm",
+   "variant": "dorm",
+   "bundle": "5eed49ba8996293817052fe2b850240b",
+   "parts": {
+    "cloth": "c_PhaetusaDorm_slg_cloth_lod0",
+    "body": "c_PhaetusaDorm_slg_body_lod0"
+   },
+   "part_bundles": {
+    "cloth": [
+     "5eed49ba8996293817052fe2b850240b"
+    ],
+    "body": [
+     "5eed49ba8996293817052fe2b850240b"
+    ]
+   },
+   "portrait": {
+    "bundle": "44a5a27412bb0c35c135917080bfd5c3",
+    "texture": "Avatar_Head_PhaetusaSSR"
+   }
+  },
+  {
+   "id": "c_PhaetusaSSR0101",
+   "name": "PhaetusaSSR0101",
+   "display": "PhaetusaSSR0101",
+   "variant": "slg",
+   "bundle": "b75ee67a55e979ee00a002c5f649e114",
+   "parts": {
+    "hair": "c_PhaetusaSSR0101_slg_hair_lod0",
+    "body": "c_PhaetusaSSR0101_slg_body_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "b75ee67a55e979ee00a002c5f649e114"
+    ],
+    "body": [
+     "b75ee67a55e979ee00a002c5f649e114"
+    ]
+   },
+   "portrait": {
+    "bundle": "44a5a27412bb0c35c135917080bfd5c3",
+    "texture": "Avatar_Head_PhaetusaSSR"
+   }
+  },
+  {
+   "id": "c_QiongjiuDorm",
+   "name": "QiongjiuDorm",
+   "display": "琼玖 · 宿舍",
+   "variant": "dorm",
+   "bundle": "a9072105840bd2fe6d835e615f50e8f1",
+   "parts": {
+    "hair": "c_QiongjiuDorm_slg_hair_lod0",
+    "body": "c_QiongjiuDorm_slg_body_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "a9072105840bd2fe6d835e615f50e8f1"
+    ],
+    "body": [
+     "a9072105840bd2fe6d835e615f50e8f1"
+    ]
+   },
+   "portrait": {
+    "bundle": "6ea1964eb171f7a0d1fdf30088892ef2",
+    "texture": "Avatar_Head_QiongjiuSSR"
+   }
+  },
+  {
+   "id": "c_QiongjiuSSR01",
+   "name": "QiongjiuSSR01",
+   "display": "琼玖",
+   "variant": "slg",
+   "bundle": "030a3c265c138053ea553ad74341487f",
+   "parts": {
+    "body": "c_QiongjiuSSR01_slg_body_lod0",
+    "hair": "c_QiongjiuSSR01_slg_hair_lod0",
+    "cloth": "c_QiongjiuSSR01_slg_cloth_lod0"
+   },
+   "part_bundles": {
+    "body": [
+     "030a3c265c138053ea553ad74341487f"
+    ],
+    "hair": [
+     "030a3c265c138053ea553ad74341487f"
+    ],
+    "cloth": [
+     "030a3c265c138053ea553ad74341487f"
+    ]
+   },
+   "portrait": {
+    "bundle": "e9d9040dc325fc319ec7deee95f368a6",
+    "texture": "Avatar_Head_QiongjiuSSR01"
+   }
+  },
+  {
+   "id": "c_QiongjiuSSR0101",
+   "name": "QiongjiuSSR0101",
+   "display": "琼玖",
+   "variant": "slg",
+   "bundle": "aa5f975c25410b316bd64f0804cc5e5d",
+   "parts": {
+    "hair": "c_QiongjiuSSR0101_slg_hair_lod0",
+    "body": "c_QiongjiuSSR0101_slg_body_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "aa5f975c25410b316bd64f0804cc5e5d"
+    ],
+    "body": [
+     "aa5f975c25410b316bd64f0804cc5e5d"
+    ]
+   },
+   "portrait": {
+    "bundle": "6ea1964eb171f7a0d1fdf30088892ef2",
+    "texture": "Avatar_Head_QiongjiuSSR"
+   }
+  },
+  {
+   "id": "c_QiuhuaDorm",
+   "name": "QiuhuaDorm",
+   "display": "秋桦 · 宿舍",
+   "variant": "dorm",
+   "bundle": "15662f07bd41fc843a95bf2226b8c853",
+   "parts": {
+    "body": "c_QiuhuaDorm_slg_body_lod0",
+    "hair": "c_QiuhuaDorm_slg_hair_lod0"
+   },
+   "part_bundles": {
+    "body": [
+     "15662f07bd41fc843a95bf2226b8c853"
+    ],
+    "hair": [
+     "15662f07bd41fc843a95bf2226b8c853"
+    ]
+   },
+   "portrait": {
+    "bundle": "790662c5e3407dc1fafd6e393866a27f",
+    "texture": "Avatar_Head_QiuhuaSSR"
+   }
+  },
+  {
+   "id": "c_QiuhuaSSR01",
+   "name": "QiuhuaSSR01",
+   "display": "秋桦",
+   "variant": "slg",
+   "bundle": "dea5d7eaf2ad295be4d74bbc511450c9",
+   "parts": {
+    "hair": "c_QiuhuaSSR01_slg_hair_lod0",
+    "body": "c_QiuhuaSSR01_slg_body_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "dea5d7eaf2ad295be4d74bbc511450c9"
+    ],
+    "body": [
+     "dea5d7eaf2ad295be4d74bbc511450c9"
+    ]
+   },
+   "portrait": {
+    "bundle": "9ca22eacc953fcbac71def699de415dd",
+    "texture": "Avatar_Head_QiuhuaSSR01"
+   }
+  },
+  {
+   "id": "c_QiuhuaSSR0101",
+   "name": "QiuhuaSSR0101",
+   "display": "秋桦",
+   "variant": "slg",
+   "bundle": "a27f98c58ae21e8367cd2aca40c4c610",
+   "parts": {
+    "hair": "c_QiuhuaSSR0101_slg_hair_lod0",
+    "body": "c_QiuhuaSSR0101_slg_body_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "a27f98c58ae21e8367cd2aca40c4c610"
+    ],
+    "body": [
+     "a27f98c58ae21e8367cd2aca40c4c610"
+    ]
+   },
+   "portrait": {
+    "bundle": "790662c5e3407dc1fafd6e393866a27f",
+    "texture": "Avatar_Head_QiuhuaSSR"
+   }
+  },
+  {
+   "id": "c_QiuhuaSSR0102",
+   "name": "QiuhuaSSR0102",
+   "display": "秋桦 ·2",
+   "variant": "slg",
+   "bundle": "ce267fd4cf51648c603d579847308907",
+   "parts": {
+    "hair": "c_QiuhuaSSR0102_slg_hair_lod0",
+    "cloth": "c_QiuhuaSSR0102_slg_cloth_lod0",
+    "body": "c_QiuhuaSSR0102_slg_body_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "ce267fd4cf51648c603d579847308907"
+    ],
+    "cloth": [
+     "ce267fd4cf51648c603d579847308907"
+    ],
+    "body": [
+     "ce267fd4cf51648c603d579847308907"
+    ]
+   },
+   "portrait": {
+    "bundle": "790662c5e3407dc1fafd6e393866a27f",
+    "texture": "Avatar_Head_QiuhuaSSR"
+   }
+  },
+  {
+   "id": "c_QiuhuaSSR0103",
+   "name": "QiuhuaSSR0103",
+   "display": "秋桦 ·3",
+   "variant": "slg",
+   "bundle": "cf6e02be4e0ae31bc58fba3ccb290047",
+   "parts": {
+    "plush": "c_QiuhuaSSR0103_slg_plush_lod0",
+    "body": "c_QiuhuaSSR0103_slg_body_lod0",
+    "hair": "c_QiuhuaSSR0103_slg_hair_lod0"
+   },
+   "part_bundles": {
+    "plush": [
+     "cf6e02be4e0ae31bc58fba3ccb290047"
+    ],
+    "body": [
+     "cf6e02be4e0ae31bc58fba3ccb290047"
+    ],
+    "hair": [
+     "cf6e02be4e0ae31bc58fba3ccb290047"
+    ]
+   },
+   "portrait": {
+    "bundle": "790662c5e3407dc1fafd6e393866a27f",
+    "texture": "Avatar_Head_QiuhuaSSR"
+   }
+  },
+  {
+   "id": "c_RobellaDorm",
+   "name": "RobellaDorm",
+   "display": "罗贝拉 · 宿舍",
+   "variant": "dorm",
+   "bundle": "0df71fe9f5c2578a323caa43893f2c8b",
+   "parts": {
+    "hair": "c_RobellaDorm_slg_hair_lod0",
+    "body": "c_RobellaDorm_slg_body_lod0",
+    "cloth": "c_RobellaDorm_slg_cloth_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "0df71fe9f5c2578a323caa43893f2c8b"
+    ],
+    "body": [
+     "0df71fe9f5c2578a323caa43893f2c8b"
+    ],
+    "cloth": [
+     "0df71fe9f5c2578a323caa43893f2c8b"
+    ]
+   },
+   "portrait": {
+    "bundle": "5bc859eaf5839855d2ae9242622b5bdd",
+    "texture": "Avatar_Head_RobellaSSR"
+   }
+  },
+  {
+   "id": "c_RobellaSSR01",
+   "name": "RobellaSSR01",
+   "display": "罗贝拉",
+   "variant": "slg",
+   "bundle": "901bd7bb26ccbc95f1b5b4cd4f11c17d",
+   "parts": {
+    "body": "c_RobellaSSR01_slg_body_lod0",
+    "hair": "c_RobellaSSR01_slg_hair_lod0"
+   },
+   "part_bundles": {
+    "body": [
+     "901bd7bb26ccbc95f1b5b4cd4f11c17d"
+    ],
+    "hair": [
+     "901bd7bb26ccbc95f1b5b4cd4f11c17d"
+    ]
+   },
+   "portrait": {
+    "bundle": "5bc859eaf5839855d2ae9242622b5bdd",
+    "texture": "Avatar_Head_RobellaSSR01"
+   }
+  },
+  {
+   "id": "c_RobellaSSR0101",
+   "name": "RobellaSSR0101",
+   "display": "罗贝拉",
+   "variant": "slg",
+   "bundle": "9a6aa40d63697bb8c69d280890c28fec",
+   "parts": {
+    "body": "c_RobellaSSR0101_slg_body_lod0",
+    "cloth": "c_RobellaSSR0101_slg_cloth_lod0",
+    "hair": "c_RobellaSSR0101_slg_hair_lod0"
+   },
+   "part_bundles": {
+    "body": [
+     "9a6aa40d63697bb8c69d280890c28fec"
+    ],
+    "cloth": [
+     "9a6aa40d63697bb8c69d280890c28fec"
+    ],
+    "hair": [
+     "9a6aa40d63697bb8c69d280890c28fec"
+    ]
+   },
+   "portrait": {
+    "bundle": "5bc859eaf5839855d2ae9242622b5bdd",
+    "texture": "Avatar_Head_RobellaSSR"
+   }
+  },
+  {
+   "id": "c_RobellaSSR0102",
+   "name": "RobellaSSR0102",
+   "display": "罗贝拉 ·2",
+   "variant": "slg",
+   "bundle": "287f89ef60f403930dc807041471b83e",
+   "parts": {
+    "cloth": "c_RobellaSSR0102_slg_cloth_lod0",
+    "hair": "c_RobellaSSR0102_slg_hair_lod0",
+    "body": "c_RobellaSSR0102_slg_body_lod0"
+   },
+   "part_bundles": {
+    "cloth": [
+     "287f89ef60f403930dc807041471b83e"
+    ],
+    "hair": [
+     "287f89ef60f403930dc807041471b83e"
+    ],
+    "body": [
+     "287f89ef60f403930dc807041471b83e"
+    ]
+   },
+   "portrait": {
+    "bundle": "5bc859eaf5839855d2ae9242622b5bdd",
+    "texture": "Avatar_Head_RobellaSSR"
+   }
+  },
+  {
+   "id": "c_SabrinaDorm",
+   "name": "SabrinaDorm",
+   "display": "萨布丽娜 · 宿舍",
+   "variant": "dorm",
+   "bundle": "9881f8ec6ad8d37688d836ddfb74fc6c",
+   "parts": {
+    "hair": "c_SabrinaDorm_slg_hair_lod0",
+    "body": "c_SabrinaDorm_slg_body_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "9881f8ec6ad8d37688d836ddfb74fc6c"
+    ],
+    "body": [
+     "9881f8ec6ad8d37688d836ddfb74fc6c"
+    ]
+   },
+   "portrait": {
+    "bundle": "14b6812619b7f9be85e6fea148ad1210",
+    "texture": "Avatar_Head_SabrinaSSR"
+   }
+  },
+  {
+   "id": "c_SabrinaSSR01",
+   "name": "SabrinaSSR01",
+   "display": "萨布丽娜",
+   "variant": "slg",
+   "bundle": "13308b08df9dca63be9e301125a2f002",
+   "parts": {
+    "hair": "c_SabrinaSSR01_slg_hair_lod0",
+    "body": "c_SabrinaSSR01_slg_body_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "13308b08df9dca63be9e301125a2f002"
+    ],
+    "body": [
+     "13308b08df9dca63be9e301125a2f002"
+    ]
+   },
+   "portrait": {
+    "bundle": "14b6812619b7f9be85e6fea148ad1210",
+    "texture": "Avatar_Head_SabrinaSSR"
+   }
+  },
+  {
+   "id": "c_SabrinaSSR0101",
+   "name": "SabrinaSSR0101",
+   "display": "萨布丽娜",
+   "variant": "slg",
+   "bundle": "d596e3631c5eb74e07e99131e2a761a2",
+   "parts": {
+    "body": "c_SabrinaSSR0101_slg_body_lod0",
+    "hair": "c_SabrinaSSR0101_slg_hair_lod0",
+    "cloth": "c_SabrinaSSR0101_slg_cloth_lod0"
+   },
+   "part_bundles": {
+    "body": [
+     "d596e3631c5eb74e07e99131e2a761a2"
+    ],
+    "hair": [
+     "d596e3631c5eb74e07e99131e2a761a2"
+    ],
+    "cloth": [
+     "d596e3631c5eb74e07e99131e2a761a2"
+    ]
+   },
+   "portrait": {
+    "bundle": "14b6812619b7f9be85e6fea148ad1210",
+    "texture": "Avatar_Head_SabrinaSSR"
+   }
+  },
+  {
+   "id": "c_SakuraDorm",
+   "name": "SakuraDorm",
+   "display": "樱 · 宿舍",
+   "variant": "dorm",
+   "bundle": "418f9de02cb46ecbc6431c17e0bce033",
+   "parts": {
+    "body": "c_SakuraDorm_slg_body_lod0"
+   },
+   "part_bundles": {
+    "body": [
+     "418f9de02cb46ecbc6431c17e0bce033"
+    ]
+   },
+   "portrait": {
+    "bundle": "4031b8ce339024b124ccc4d76081831e",
+    "texture": "Avatar_Head_SakuraSSR"
+   }
+  },
+  {
+   "id": "c_SakuraSSR01",
+   "name": "SakuraSSR01",
+   "display": "樱",
+   "variant": "slg",
+   "bundle": "418f9de02cb46ecbc6431c17e0bce033",
+   "parts": {
+    "hair": "c_SakuraSSR01_slg_hair_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "418f9de02cb46ecbc6431c17e0bce033",
+     "72b2dd4dc0b7ed673830dac27f7db536"
+    ]
+   },
+   "portrait": {
+    "bundle": "4031b8ce339024b124ccc4d76081831e",
+    "texture": "Avatar_Head_SakuraSSR01"
+   }
+  },
+  {
+   "id": "c_SakuraSSR0101",
+   "name": "SakuraSSR0101",
+   "display": "樱",
+   "variant": "slg",
+   "bundle": "892c750ac22e93c4033c26d81a0fa019",
+   "parts": {
+    "hair": "c_SakuraSSR0101_slg_hair_lod0",
+    "body": "c_SakuraSSR0101_slg_body_lod0",
+    "cloth": "c_SakuraSSR0101_slg_cloth_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "892c750ac22e93c4033c26d81a0fa019"
+    ],
+    "body": [
+     "892c750ac22e93c4033c26d81a0fa019"
+    ],
+    "cloth": [
+     "892c750ac22e93c4033c26d81a0fa019"
+    ]
+   },
+   "portrait": {
+    "bundle": "4031b8ce339024b124ccc4d76081831e",
+    "texture": "Avatar_Head_SakuraSSR"
+   }
+  },
+  {
+   "id": "c_SextansDorm",
+   "name": "SextansDorm",
+   "display": "六分仪 · 宿舍",
+   "variant": "dorm",
+   "bundle": "b8df21e58dc6d5dd2f9c358ac2d348af",
+   "parts": {
+    "hair": "c_SextansDorm_slg_hair_lod0",
+    "body": "c_SextansDorm_slg_body_lod0",
+    "cloth": "c_SextansDorm_slg_cloth_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "b8df21e58dc6d5dd2f9c358ac2d348af"
+    ],
+    "body": [
+     "b8df21e58dc6d5dd2f9c358ac2d348af"
+    ],
+    "cloth": [
+     "b8df21e58dc6d5dd2f9c358ac2d348af"
+    ]
+   },
+   "portrait": {
+    "bundle": "c11550b09a9a334a37ee8019bd5fabe8",
+    "texture": "Avatar_Head_SextansSSR"
+   }
+  },
+  {
+   "id": "c_SextansSSR01",
+   "name": "SextansSSR01",
+   "display": "六分仪",
+   "variant": "slg",
+   "bundle": "014318e44a348ec7dbf3d651ffab3762",
+   "parts": {
+    "hair": "c_SextansSSR01_slg_hair_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "014318e44a348ec7dbf3d651ffab3762",
+     "f772916f22ff03862df97fd3dafa7fef"
+    ]
+   },
+   "portrait": {
+    "bundle": "c11550b09a9a334a37ee8019bd5fabe8",
+    "texture": "Avatar_Head_SextansSSR01"
+   }
+  },
+  {
+   "id": "c_SextansSSR0101",
+   "name": "SextansSSR0101",
+   "display": "六分仪",
+   "variant": "slg",
+   "bundle": "f772916f22ff03862df97fd3dafa7fef",
+   "parts": {
+    "body": "c_SextansSSR0101_slg_body_lod0",
+    "hair": "c_SextansSSR0101_slg_hair_lod0"
+   },
+   "part_bundles": {
+    "body": [
+     "f772916f22ff03862df97fd3dafa7fef"
+    ],
+    "hair": [
+     "f772916f22ff03862df97fd3dafa7fef"
+    ]
+   },
+   "portrait": {
+    "bundle": "c11550b09a9a334a37ee8019bd5fabe8",
+    "texture": "Avatar_Head_SextansSSR"
+   }
+  },
+  {
+   "id": "c_SharkryDorm",
+   "name": "SharkryDorm",
+   "display": "沙克里 · 宿舍",
+   "variant": "dorm",
+   "bundle": "dfcb8b69e6802d0ae78bbea08a60a1c1",
+   "parts": {
+    "hair": "c_SharkryDorm_slg_hair_lod0",
+    "body": "c_SharkryDorm_slg_body_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "dfcb8b69e6802d0ae78bbea08a60a1c1"
+    ],
+    "body": [
+     "dfcb8b69e6802d0ae78bbea08a60a1c1"
+    ]
+   },
+   "portrait": {
+    "bundle": "f7a51d10668d7da666a2525cc7e7c1bd",
+    "texture": "Avatar_Head_SharkrySR"
+   }
+  },
+  {
+   "id": "c_SharkrySR01",
+   "name": "SharkrySR01",
+   "display": "沙克里",
+   "variant": "slg",
+   "bundle": "68925876873883b26fb3bc6cd9525041",
+   "parts": {
+    "body": "c_SharkrySR01_slg_body_lod0",
+    "cloth": "c_SharkrySR01_slg_cloth_lod0",
+    "hair": "c_SharkrySR01_slg_hair_lod0"
+   },
+   "part_bundles": {
+    "body": [
+     "68925876873883b26fb3bc6cd9525041"
+    ],
+    "cloth": [
+     "2b3dae9effddae366942e22faa1beb3a",
+     "68925876873883b26fb3bc6cd9525041"
+    ],
+    "hair": [
+     "68925876873883b26fb3bc6cd9525041"
+    ]
+   },
+   "portrait": {
+    "bundle": "942fb0c4d345d7fe1c4fc85b55b9b2b4",
+    "texture": "Avatar_Head_SharkrySR01"
+   }
+  },
+  {
+   "id": "c_SharkrySR0101",
+   "name": "SharkrySR0101",
+   "display": "沙克里",
+   "variant": "slg",
+   "bundle": "666f06ed13fa5dc52e35b6cf5f9b341f",
+   "parts": {
+    "cloth": "c_SharkrySR0101_slg_cloth_lod0",
+    "hair": "c_SharkrySR0101_slg_hair_lod0",
+    "body": "c_SharkrySR0101_slg_body_lod0"
+   },
+   "part_bundles": {
+    "cloth": [
+     "666f06ed13fa5dc52e35b6cf5f9b341f"
+    ],
+    "hair": [
+     "666f06ed13fa5dc52e35b6cf5f9b341f"
+    ],
+    "body": [
+     "666f06ed13fa5dc52e35b6cf5f9b341f"
+    ]
+   },
+   "portrait": {
+    "bundle": "f7a51d10668d7da666a2525cc7e7c1bd",
+    "texture": "Avatar_Head_SharkrySR"
+   }
+  },
+  {
+   "id": "c_SharkrySR0102",
+   "name": "SharkrySR0102",
+   "display": "沙克里 ·2",
+   "variant": "slg",
+   "bundle": "2b3dae9effddae366942e22faa1beb3a",
+   "parts": {
+    "cloth": "c_SharkrySR0102_slg_cloth_lod0",
+    "body": "c_SharkrySR0102_slg_body_lod0",
+    "hair": "c_SharkrySR0102_slg_hair_lod0"
+   },
+   "part_bundles": {
+    "cloth": [
+     "2b3dae9effddae366942e22faa1beb3a"
+    ],
+    "body": [
+     "2b3dae9effddae366942e22faa1beb3a"
+    ],
+    "hair": [
+     "2b3dae9effddae366942e22faa1beb3a"
+    ]
+   },
+   "portrait": {
+    "bundle": "f7a51d10668d7da666a2525cc7e7c1bd",
+    "texture": "Avatar_Head_SharkrySR"
+   }
+  },
+  {
+   "id": "c_SoppoDorm",
+   "name": "SoppoDorm",
+   "display": "索波 · 宿舍",
+   "variant": "dorm",
+   "bundle": "7820e60e2c68d09653d39a260fb78b91",
+   "parts": {
+    "body": "c_SoppoDorm_slg_body_lod0",
+    "hair": "c_SoppoDorm_slg_hair_lod0"
+   },
+   "part_bundles": {
+    "body": [
+     "7820e60e2c68d09653d39a260fb78b91"
+    ],
+    "hair": [
+     "7820e60e2c68d09653d39a260fb78b91"
+    ]
+   },
+   "portrait": {
+    "bundle": "231898b658b67bc25a04fc1125791bed",
+    "texture": "Avatar_Head_SoppoDorm"
+   }
+  },
+  {
+   "id": "c_SoppoSSR01",
+   "name": "SoppoSSR01",
+   "display": "索波",
+   "variant": "slg",
+   "bundle": "e499405b4539816798bae4823098c330",
+   "parts": {
+    "body": "c_SoppoSSR01_slg_body_lod0",
+    "hair": "c_SoppoSSR01_slg_hair_lod0"
+   },
+   "part_bundles": {
+    "body": [
+     "e499405b4539816798bae4823098c330"
+    ],
+    "hair": [
+     "7820e60e2c68d09653d39a260fb78b91",
+     "e499405b4539816798bae4823098c330"
+    ]
+   },
+   "portrait": {
+    "bundle": "231898b658b67bc25a04fc1125791bed",
+    "texture": "Avatar_Head_SoppoSSR01"
+   }
+  },
+  {
+   "id": "c_SoppoSSR0101",
+   "name": "SoppoSSR0101",
+   "display": "索波",
+   "variant": "slg",
+   "bundle": "cb59430766538d12b70d2ec3777128bd",
+   "parts": {
+    "cloth": "c_SoppoSSR0101_slg_cloth_lod0",
+    "hair": "c_SoppoSSR0101_slg_hair_lod0",
+    "body": "c_SoppoSSR0101_slg_body_lod0"
+   },
+   "part_bundles": {
+    "cloth": [
+     "cb59430766538d12b70d2ec3777128bd"
+    ],
+    "hair": [
+     "cb59430766538d12b70d2ec3777128bd"
+    ],
+    "body": [
+     "cb59430766538d12b70d2ec3777128bd"
+    ]
+   },
+   "portrait": {
+    "bundle": "231898b658b67bc25a04fc1125791bed",
+    "texture": "Avatar_Head_SoppoSSR"
+   }
+  },
+  {
+   "id": "c_SpringfieldDorm",
+   "name": "SpringfieldDorm",
+   "display": "春田 · 宿舍",
+   "variant": "dorm",
+   "bundle": "dda975a3c0c36a261698e8679062878a",
+   "parts": {
+    "cloth": "c_SpringfieldDorm_slg_cloth_lod0",
+    "hair": "c_SpringfieldDorm_slg_hair_lod0",
+    "body": "c_SpringfieldDorm_slg_body_lod0"
+   },
+   "part_bundles": {
+    "cloth": [
+     "dda975a3c0c36a261698e8679062878a"
+    ],
+    "hair": [
+     "dda975a3c0c36a261698e8679062878a"
+    ],
+    "body": [
+     "dda975a3c0c36a261698e8679062878a"
+    ]
+   },
+   "portrait": {
+    "bundle": "6885cf8c514b38b8984fdedde7005c73",
+    "texture": "Avatar_Head_SpringfieldSSR"
+   }
+  },
+  {
+   "id": "c_SpringfieldSSR01",
+   "name": "SpringfieldSSR01",
+   "display": "春田",
+   "variant": "slg",
+   "bundle": "e4c9939c0400978cd238596f9f6ddbe6",
+   "parts": {
+    "hair": "c_SpringfieldSSR01_slg_hair_lod0",
+    "body": "c_SpringfieldSSR01_slg_body_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "e4c9939c0400978cd238596f9f6ddbe6"
+    ],
+    "body": [
+     "e4c9939c0400978cd238596f9f6ddbe6"
+    ]
+   },
+   "portrait": {
+    "bundle": "6885cf8c514b38b8984fdedde7005c73",
+    "texture": "Avatar_Head_SpringfieldSSR01"
+   }
+  },
+  {
+   "id": "c_SpringfieldSSR0101",
+   "name": "SpringfieldSSR0101",
+   "display": "春田",
+   "variant": "slg",
+   "bundle": "de882d5861b27632aa45e6afb9bdfbc9",
+   "parts": {
+    "body": "c_SpringfieldSSR0101_slg_body_lod0",
+    "hair": "c_SpringfieldSSR0101_slg_hair_lod0"
+   },
+   "part_bundles": {
+    "body": [
+     "de882d5861b27632aa45e6afb9bdfbc9"
+    ],
+    "hair": [
+     "de882d5861b27632aa45e6afb9bdfbc9"
+    ]
+   },
+   "portrait": {
+    "bundle": "6885cf8c514b38b8984fdedde7005c73",
+    "texture": "Avatar_Head_SpringfieldSSR"
+   }
+  },
+  {
+   "id": "c_SpringfieldSSR0102",
+   "name": "SpringfieldSSR0102",
+   "display": "春田 ·2",
+   "variant": "slg",
+   "bundle": "de794626e7cce871a46ccd4bbdd41e56",
+   "parts": {
+    "body": "c_SpringfieldSSR0102_slg_body_lod0",
+    "hair": "c_SpringfieldSSR0102_slg_hair_lod0"
+   },
+   "part_bundles": {
+    "body": [
+     "de794626e7cce871a46ccd4bbdd41e56"
+    ],
+    "hair": [
+     "de794626e7cce871a46ccd4bbdd41e56"
+    ]
+   },
+   "portrait": {
+    "bundle": "6885cf8c514b38b8984fdedde7005c73",
+    "texture": "Avatar_Head_SpringfieldSSR"
+   }
+  },
+  {
+   "id": "c_SpringfieldSSR0103",
+   "name": "SpringfieldSSR0103",
+   "display": "春田 ·3",
+   "variant": "slg",
+   "bundle": "342750f0231ef4b55de6e0e3d482f860",
+   "parts": {
+    "hair": "c_SpringfieldSSR0103_slg_hair_lod0",
+    "body": "c_SpringfieldSSR0103_slg_body_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "342750f0231ef4b55de6e0e3d482f860"
+    ],
+    "body": [
+     "342750f0231ef4b55de6e0e3d482f860"
+    ]
+   },
+   "portrait": {
+    "bundle": "6885cf8c514b38b8984fdedde7005c73",
+    "texture": "Avatar_Head_SpringfieldSSR"
+   }
+  },
+  {
+   "id": "c_SuomiDorm",
+   "name": "SuomiDorm",
+   "display": "索米 · 宿舍",
+   "variant": "dorm",
+   "bundle": "5a559eabe61d86950d1b8d4338dd879a",
+   "parts": {
+    "hair": "c_SuomiDorm_slg_hair_lod0",
+    "body": "c_SuomiDorm_slg_body_lod0",
+    "cloth": "c_SuomiDorm_slg_cloth_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "5a559eabe61d86950d1b8d4338dd879a"
+    ],
+    "body": [
+     "5a559eabe61d86950d1b8d4338dd879a"
+    ],
+    "cloth": [
+     "5a559eabe61d86950d1b8d4338dd879a"
+    ]
+   },
+   "portrait": {
+    "bundle": "45af0af8652b41f17ea7bd2ad1e841eb",
+    "texture": "Avatar_Head_SuomiSSR"
+   }
+  },
+  {
+   "id": "c_SuomiSSR01",
+   "name": "SuomiSSR01",
+   "display": "索米",
+   "variant": "slg",
+   "bundle": "2f5bc835f0f6495d09b2fb1d42b0e1d4",
+   "parts": {
+    "hair": "c_SuomiSSR01_slg_hair_lod0",
+    "plush": "c_SuomiSSR01_slg_plush_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "2f5bc835f0f6495d09b2fb1d42b0e1d4"
+    ],
+    "plush": [
+     "2f5bc835f0f6495d09b2fb1d42b0e1d4"
+    ]
+   },
+   "portrait": {
+    "bundle": "45af0af8652b41f17ea7bd2ad1e841eb",
+    "texture": "Avatar_Head_SuomiSSR01"
+   }
+  },
+  {
+   "id": "c_SuomiSSR0101",
+   "name": "SuomiSSR0101",
+   "display": "索米",
+   "variant": "slg",
+   "bundle": "bcec427c28270762aa2cc277dc37373d",
+   "parts": {
+    "body": "c_SuomiSSR0101_slg_body_lod0",
+    "hair": "c_SuomiSSR0101_slg_hair_lod0",
+    "cloth": "c_SuomiSSR0101_slg_cloth_lod0"
+   },
+   "part_bundles": {
+    "body": [
+     "bcec427c28270762aa2cc277dc37373d"
+    ],
+    "hair": [
+     "bcec427c28270762aa2cc277dc37373d"
+    ],
+    "cloth": [
+     "bcec427c28270762aa2cc277dc37373d"
+    ]
+   },
+   "portrait": {
+    "bundle": "45af0af8652b41f17ea7bd2ad1e841eb",
+    "texture": "Avatar_Head_SuomiSSR"
+   }
+  },
+  {
+   "id": "c_SuomiSSR0102",
+   "name": "SuomiSSR0102",
+   "display": "索米 ·2",
+   "variant": "slg",
+   "bundle": "5caf77a8faf8386108786e27bb6d8f6d",
+   "parts": {
+    "hair": "c_SuomiSSR0102_slg_hair_lod0",
+    "body": "c_SuomiSSR0102_slg_body_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "5caf77a8faf8386108786e27bb6d8f6d"
+    ],
+    "body": [
+     "5caf77a8faf8386108786e27bb6d8f6d"
+    ]
+   },
+   "portrait": {
+    "bundle": "45af0af8652b41f17ea7bd2ad1e841eb",
+    "texture": "Avatar_Head_SuomiSSR"
+   }
+  },
+  {
+   "id": "c_TololoDorm",
+   "name": "TololoDorm",
+   "display": "托洛洛 · 宿舍",
+   "variant": "dorm",
+   "bundle": "47db75370b6f86b6ad0e0af11d2bfbf6",
+   "parts": {
+    "body": "c_TololoDorm_slg_body_lod0",
+    "hair": "c_TololoDorm_slg_hair_lod0"
+   },
+   "part_bundles": {
+    "body": [
+     "47db75370b6f86b6ad0e0af11d2bfbf6"
+    ],
+    "hair": [
+     "47db75370b6f86b6ad0e0af11d2bfbf6"
+    ]
+   },
+   "portrait": {
+    "bundle": "bf766e7a7933f8841a93f0d10273f4b7",
+    "texture": "Avatar_Head_TololoSSR"
+   }
+  },
+  {
+   "id": "c_TololoSSR01",
+   "name": "TololoSSR01",
+   "display": "托洛洛",
+   "variant": "slg",
+   "bundle": "b3449c422acc245aedd38cf88931e541",
+   "parts": {
+    "hair": "c_TololoSSR01_slg_hair_lod0",
+    "body": "c_TololoSSR01_slg_body_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "b3449c422acc245aedd38cf88931e541"
+    ],
+    "body": [
+     "b3449c422acc245aedd38cf88931e541"
+    ]
+   },
+   "portrait": {
+    "bundle": "bf0beb44224843066c02781fdf7576e4",
+    "texture": "Avatar_Head_TololoSSR01"
+   }
+  },
+  {
+   "id": "c_TololoSSR0101",
+   "name": "TololoSSR0101",
+   "display": "托洛洛",
+   "variant": "slg",
+   "bundle": "580c4428207e40387ae65a27613b99b0",
+   "parts": {
+    "hair": "c_TololoSSR0101_slg_hair_lod0",
+    "body": "c_TololoSSR0101_slg_body_lod0",
+    "cloth": "c_TololoSSR0101_slg_cloth_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "580c4428207e40387ae65a27613b99b0"
+    ],
+    "body": [
+     "580c4428207e40387ae65a27613b99b0"
+    ],
+    "cloth": [
+     "580c4428207e40387ae65a27613b99b0"
+    ]
+   },
+   "portrait": {
+    "bundle": "bf766e7a7933f8841a93f0d10273f4b7",
+    "texture": "Avatar_Head_TololoSSR"
+   }
+  },
+  {
+   "id": "c_TololoSSR0102",
+   "name": "TololoSSR0102",
+   "display": "托洛洛 ·2",
+   "variant": "slg",
+   "bundle": "f8fe3e6bf7cb7c4f48e1cb5e34f3d7bb",
+   "parts": {
+    "hair": "c_TololoSSR0102_slg_hair_lod0",
+    "body": "c_TololoSSR0102_slg_body_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "f8fe3e6bf7cb7c4f48e1cb5e34f3d7bb"
+    ],
+    "body": [
+     "f8fe3e6bf7cb7c4f48e1cb5e34f3d7bb"
+    ]
+   },
+   "portrait": {
+    "bundle": "bf766e7a7933f8841a93f0d10273f4b7",
+    "texture": "Avatar_Head_TololoSSR"
+   }
+  },
+  {
+   "id": "c_UllridDorm",
+   "name": "UllridDorm",
+   "display": "乌尔丽德 · 宿舍",
+   "variant": "dorm",
+   "bundle": "f4e4bd966208bf81bc874e2d6feb077f",
+   "parts": {
+    "hair": "c_UllridDorm_slg_hair_lod0",
+    "body": "c_UllridDorm_slg_body_lod0",
+    "cloth": "c_UllridDorm_slg_cloth_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "f4e4bd966208bf81bc874e2d6feb077f"
+    ],
+    "body": [
+     "f4e4bd966208bf81bc874e2d6feb077f"
+    ],
+    "cloth": [
+     "f4e4bd966208bf81bc874e2d6feb077f"
+    ]
+   },
+   "portrait": {
+    "bundle": "ac3da243cb6d5d735a43faa46fd5e1e8",
+    "texture": "Avatar_Head_UllridSSR"
+   }
+  },
+  {
+   "id": "c_UllridSSR01",
+   "name": "UllridSSR01",
+   "display": "乌尔丽德",
+   "variant": "slg",
+   "bundle": "14d009a2fbad24c17702f4a73f094d7d",
+   "parts": {
+    "hair": "c_UllridSSR01_slg_hair_lod0",
+    "body": "c_UllridSSR01_slg_body_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "14d009a2fbad24c17702f4a73f094d7d"
+    ],
+    "body": [
+     "14d009a2fbad24c17702f4a73f094d7d"
+    ]
+   },
+   "portrait": {
+    "bundle": "ac3da243cb6d5d735a43faa46fd5e1e8",
+    "texture": "Avatar_Head_UllridSSR"
+   }
+  },
+  {
+   "id": "c_VectorDorm",
+   "name": "VectorDorm",
+   "display": "维克托 · 宿舍",
+   "variant": "dorm",
+   "bundle": "4b8a837978f214795885eee906b058b2",
+   "parts": {
+    "body": "c_VectorDorm_slg_body_lod0",
+    "hair": "c_VectorDorm_slg_hair_lod0"
+   },
+   "part_bundles": {
+    "body": [
+     "4b8a837978f214795885eee906b058b2"
+    ],
+    "hair": [
+     "4b8a837978f214795885eee906b058b2"
+    ]
+   },
+   "portrait": {
+    "bundle": "453291b496fdc20b16eff5287b4f9f7f",
+    "texture": "Avatar_Head_VectorSSR"
+   }
+  },
+  {
+   "id": "c_VectorSSR01",
+   "name": "VectorSSR01",
+   "display": "维克托",
+   "variant": "slg",
+   "bundle": "c54cf72c577547df638ce59282a1c4b5",
+   "parts": {
+    "hair": "c_VectorSSR01_slg_hair_lod0",
+    "body": "c_VectorSSR01_slg_body_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "c54cf72c577547df638ce59282a1c4b5"
+    ],
+    "body": [
+     "c54cf72c577547df638ce59282a1c4b5"
+    ]
+   },
+   "portrait": {
+    "bundle": "81e390219d04cc36574810fff8da1fea",
+    "texture": "Avatar_Head_VectorSSR01"
+   }
+  },
+  {
+   "id": "c_VectorSSR0101",
+   "name": "VectorSSR0101",
+   "display": "维克托",
+   "variant": "slg",
+   "bundle": "48bd4592deec11b94457256e7f027fd6",
+   "parts": {
+    "hair": "c_VectorSSR0101_slg_hair_lod0",
+    "body": "c_VectorSSR0101_slg_body_lod0",
+    "plush": "c_VectorSSR0101_slg_plush_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "48bd4592deec11b94457256e7f027fd6"
+    ],
+    "body": [
+     "48bd4592deec11b94457256e7f027fd6"
+    ],
+    "plush": [
+     "48bd4592deec11b94457256e7f027fd6"
+    ]
+   },
+   "portrait": {
+    "bundle": "453291b496fdc20b16eff5287b4f9f7f",
+    "texture": "Avatar_Head_VectorSSR"
+   }
+  },
+  {
+   "id": "c_VectorSSR0102",
+   "name": "VectorSSR0102",
+   "display": "维克托 ·2",
+   "variant": "slg",
+   "bundle": "c82faa4e32318c915bdb8f368e41e5e1",
+   "parts": {
+    "body": "c_VectorSSR0102_slg_body_lod0",
+    "hair": "c_VectorSSR0102_slg_hair_lod0"
+   },
+   "part_bundles": {
+    "body": [
+     "c82faa4e32318c915bdb8f368e41e5e1"
+    ],
+    "hair": [
+     "c82faa4e32318c915bdb8f368e41e5e1"
+    ]
+   },
+   "portrait": {
+    "bundle": "453291b496fdc20b16eff5287b4f9f7f",
+    "texture": "Avatar_Head_VectorSSR"
+   }
+  },
+  {
+   "id": "c_VepleyDorm",
+   "name": "VepleyDorm",
+   "display": "维普蕾 · 宿舍",
+   "variant": "dorm",
+   "bundle": "23724da44273d5448772a8bac478f48f",
+   "parts": {
+    "cloth": "c_VepleyDorm_slg_cloth_lod0",
+    "hair": "c_VepleyDorm_slg_hair_lod0",
+    "body": "c_VepleyDorm_slg_body_lod0"
+   },
+   "part_bundles": {
+    "cloth": [
+     "23724da44273d5448772a8bac478f48f"
+    ],
+    "hair": [
+     "23724da44273d5448772a8bac478f48f"
+    ],
+    "body": [
+     "23724da44273d5448772a8bac478f48f"
+    ]
+   },
+   "portrait": {
+    "bundle": "07021af81ea4f00399225968de2b5f58",
+    "texture": "Avatar_Head_VepleySSR"
+   }
+  },
+  {
+   "id": "c_VepleySSR01",
+   "name": "VepleySSR01",
+   "display": "维普蕾",
+   "variant": "slg",
+   "bundle": "470d462750320b993ffde3d6e35d69d1",
+   "parts": {
+    "plush": "c_VepleySSR01_slg_plush_lod0",
+    "cloth": "c_VepleySSR01_slg_cloth_lod0",
+    "hair": "c_VepleySSR01_slg_hair_lod0",
+    "body": "c_VepleySSR01_slg_body_lod0"
+   },
+   "part_bundles": {
+    "plush": [
+     "470d462750320b993ffde3d6e35d69d1",
+     "65c50de0cdf656d31a2393357ea38f6d",
+     "872f1c4f93f07d6ba65b103ae5d1a337"
+    ],
+    "cloth": [
+     "470d462750320b993ffde3d6e35d69d1",
+     "65c50de0cdf656d31a2393357ea38f6d",
+     "872f1c4f93f07d6ba65b103ae5d1a337"
+    ],
+    "hair": [
+     "470d462750320b993ffde3d6e35d69d1",
+     "65c50de0cdf656d31a2393357ea38f6d",
+     "7000c57437bbf77a3063953f6cf1e259",
+     "872f1c4f93f07d6ba65b103ae5d1a337",
+     "c1ee82bd756d70306a08a8a38d6ff70d"
+    ],
+    "body": [
+     "470d462750320b993ffde3d6e35d69d1",
+     "65c50de0cdf656d31a2393357ea38f6d",
+     "872f1c4f93f07d6ba65b103ae5d1a337"
+    ]
+   },
+   "portrait": {
+    "bundle": "145570ecc30811827fc0ff5069ad946b",
+    "texture": "Avatar_Head_VepleySSR01"
+   }
+  },
+  {
+   "id": "c_VepleySSR0101",
+   "name": "VepleySSR0101",
+   "display": "维普蕾",
+   "variant": "slg",
+   "bundle": "7000c57437bbf77a3063953f6cf1e259",
+   "parts": {
+    "body": "c_VepleySSR0101_slg_body_lod0"
+   },
+   "part_bundles": {
+    "body": [
+     "7000c57437bbf77a3063953f6cf1e259"
+    ]
+   },
+   "portrait": {
+    "bundle": "07021af81ea4f00399225968de2b5f58",
+    "texture": "Avatar_Head_VepleySSR"
+   }
+  },
+  {
+   "id": "c_VepleySSR0102",
+   "name": "VepleySSR0102",
+   "display": "维普蕾 ·2",
+   "variant": "slg",
+   "bundle": "c1ee82bd756d70306a08a8a38d6ff70d",
+   "parts": {
+    "cloth": "c_VepleySSR0102_slg_cloth_lod0",
+    "body": "c_VepleySSR0102_slg_body_lod0"
+   },
+   "part_bundles": {
+    "cloth": [
+     "c1ee82bd756d70306a08a8a38d6ff70d"
+    ],
+    "body": [
+     "c1ee82bd756d70306a08a8a38d6ff70d"
+    ]
+   },
+   "portrait": {
+    "bundle": "07021af81ea4f00399225968de2b5f58",
+    "texture": "Avatar_Head_VepleySSR"
+   }
+  },
+  {
+   "id": "c_VoymastinaDorm",
+   "name": "VoymastinaDorm",
+   "display": "沃玛斯蒂娜 · 宿舍",
+   "variant": "dorm",
+   "bundle": "8d8a40df859945969522c29a5a9a9f8f",
+   "parts": {
+    "hair": "c_VoymastinaDorm_slg_hair_lod0",
+    "body": "c_VoymastinaDorm_slg_body_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "8d8a40df859945969522c29a5a9a9f8f"
+    ],
+    "body": [
+     "8d8a40df859945969522c29a5a9a9f8f"
+    ]
+   },
+   "portrait": {
+    "bundle": "29d330abdfb7d9bf01738032a46545d1",
+    "texture": "Avatar_Head_VoymastinaSSR"
+   }
+  },
+  {
+   "id": "c_VoymastinaSSR01",
+   "name": "VoymastinaSSR01",
+   "display": "沃玛斯蒂娜",
+   "variant": "slg",
+   "bundle": "4b2cb3f579eba2eea343e26acc35abe4",
+   "parts": {
+    "hair": "c_VoymastinaSSR01_slg_hair_lod0",
+    "body": "c_VoymastinaSSR01_slg_body_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "4b2cb3f579eba2eea343e26acc35abe4",
+     "66b6e23b878adefc03bf8a461194a09d",
+     "8d8a40df859945969522c29a5a9a9f8f"
+    ],
+    "body": [
+     "4b2cb3f579eba2eea343e26acc35abe4",
+     "66b6e23b878adefc03bf8a461194a09d"
+    ]
+   },
+   "portrait": {
+    "bundle": "6f456d4831bd58701fbaf8b8bcf35447",
+    "texture": "Avatar_Head_VoymastinaSSR01"
+   }
+  },
+  {
+   "id": "c_VoymastinaSSR0101",
+   "name": "VoymastinaSSR0101",
+   "display": "沃玛斯蒂娜",
+   "variant": "slg",
+   "bundle": "0c45f450f058c5225a253ab1acbb39c7",
+   "parts": {
+    "body": "c_VoymastinaSSR0101_slg_body_lod0",
+    "hair": "c_VoymastinaSSR0101_slg_hair_lod0"
+   },
+   "part_bundles": {
+    "body": [
+     "0c45f450f058c5225a253ab1acbb39c7",
+     "4b43e47a2f7337a95ea0a0201b6bc0cb"
+    ],
+    "hair": [
+     "0c45f450f058c5225a253ab1acbb39c7",
+     "4b43e47a2f7337a95ea0a0201b6bc0cb"
+    ]
+   },
+   "portrait": {
+    "bundle": "29d330abdfb7d9bf01738032a46545d1",
+    "texture": "Avatar_Head_VoymastinaSSR"
+   }
+  },
+  {
+   "id": "c_VoymastinaSSR0102",
+   "name": "VoymastinaSSR0102",
+   "display": "沃玛斯蒂娜 ·2",
+   "variant": "slg",
+   "bundle": "1f5008d35db1add9099e2dda63ed37b9",
+   "parts": {
+    "hair": "c_VoymastinaSSR0102_slg_hair_lod0",
+    "body": "c_VoymastinaSSR0102_slg_body_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "1f5008d35db1add9099e2dda63ed37b9",
+     "20fa48a2cdb17138d7cbf4637c0e733a"
+    ],
+    "body": [
+     "1f5008d35db1add9099e2dda63ed37b9",
+     "20fa48a2cdb17138d7cbf4637c0e733a"
+    ]
+   },
+   "portrait": {
+    "bundle": "29d330abdfb7d9bf01738032a46545d1",
+    "texture": "Avatar_Head_VoymastinaSSR"
+   }
+  },
+  {
+   "id": "c_WelrodDorm",
+   "name": "WelrodDorm",
+   "display": "韦尔罗德 · 宿舍",
+   "variant": "dorm",
+   "bundle": "ffac7d28864a854109462643ae217cc3",
+   "parts": {
+    "hair": "c_WelrodDorm_slg_hair_lod0",
+    "body": "c_WelrodDorm_slg_body_lod0",
+    "cloth": "c_WelrodDorm_slg_cloth_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "ffac7d28864a854109462643ae217cc3"
+    ],
+    "body": [
+     "ffac7d28864a854109462643ae217cc3"
+    ],
+    "cloth": [
+     "ffac7d28864a854109462643ae217cc3"
+    ]
+   },
+   "portrait": {
+    "bundle": "304dcae26f4cbd8df92de6bf43a5def1",
+    "texture": "Avatar_Head_WelrodDorm"
+   }
+  },
+  {
+   "id": "c_WelrodSSR01",
+   "name": "WelrodSSR01",
+   "display": "韦尔罗德",
+   "variant": "slg",
+   "bundle": "4c0032661217a738e9605759112fbd5c",
+   "parts": {
+    "hair": "c_WelrodSSR01_slg_hair_lod0",
+    "body": "c_WelrodSSR01_slg_body_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "4c0032661217a738e9605759112fbd5c"
+    ],
+    "body": [
+     "4c0032661217a738e9605759112fbd5c"
+    ]
+   },
+   "portrait": {
+    "bundle": "304dcae26f4cbd8df92de6bf43a5def1",
+    "texture": "Avatar_Head_WelrodSSR01"
+   }
+  },
+  {
+   "id": "c_WelrodSSR0101",
+   "name": "WelrodSSR0101",
+   "display": "韦尔罗德",
+   "variant": "slg",
+   "bundle": "e388dcd623df7c2efdfd20c5156888ad",
+   "parts": {
+    "hair": "c_WelrodSSR0101_slg_hair_lod0",
+    "body": "c_WelrodSSR0101_slg_body_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "e388dcd623df7c2efdfd20c5156888ad"
+    ],
+    "body": [
+     "e388dcd623df7c2efdfd20c5156888ad"
+    ]
+   },
+   "portrait": {
+    "bundle": "304dcae26f4cbd8df92de6bf43a5def1",
+    "texture": "Avatar_Head_WelrodSSR"
+   }
+  },
+  {
+   "id": "c_YooHeeDorm",
+   "name": "YooHeeDorm",
+   "display": "悠熙 · 宿舍",
+   "variant": "dorm",
+   "bundle": "56d05f8f27dd14bf33d8280345605f52",
+   "parts": {
+    "hair": "c_YooHeeDorm_slg_hair_lod0",
+    "body": "c_YooHeeDorm_slg_body_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "56d05f8f27dd14bf33d8280345605f52"
+    ],
+    "body": [
+     "56d05f8f27dd14bf33d8280345605f52"
+    ]
+   },
+   "portrait": {
+    "bundle": "fa5ac478478af6cb85748b39ef0bf274",
+    "texture": "Avatar_Head_YooHeeSSR"
+   }
+  },
+  {
+   "id": "c_YooHeeSSR01",
+   "name": "YooHeeSSR01",
+   "display": "悠熙",
+   "variant": "slg",
+   "bundle": "5c5669f1665f11ea3f7b0a91aefe27d7",
+   "parts": {
+    "hair": "c_YooHeeSSR01_slg_hair_lod0",
+    "body": "c_YooHeeSSR01_slg_body_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "5c5669f1665f11ea3f7b0a91aefe27d7"
+    ],
+    "body": [
+     "5c5669f1665f11ea3f7b0a91aefe27d7"
+    ]
+   },
+   "portrait": {
+    "bundle": "fa5ac478478af6cb85748b39ef0bf274",
+    "texture": "Avatar_Head_YooHeeSSR01"
+   }
+  },
+  {
+   "id": "c_YooHeeSSR0101",
+   "name": "YooHeeSSR0101",
+   "display": "悠熙",
+   "variant": "slg",
+   "bundle": "a607d8e1b3b9f5f6a3ac4e05be99f4a3",
+   "parts": {
+    "body": "c_YooHeeSSR0101_slg_body_lod0",
+    "cloth": "c_YooHeeSSR0101_slg_cloth_lod0",
+    "hair": "c_YooHeeSSR0101_slg_hair_lod0"
+   },
+   "part_bundles": {
+    "body": [
+     "a607d8e1b3b9f5f6a3ac4e05be99f4a3"
+    ],
+    "cloth": [
+     "a607d8e1b3b9f5f6a3ac4e05be99f4a3"
+    ],
+    "hair": [
+     "a607d8e1b3b9f5f6a3ac4e05be99f4a3"
+    ]
+   },
+   "portrait": {
+    "bundle": "fa5ac478478af6cb85748b39ef0bf274",
+    "texture": "Avatar_Head_YooHeeSSR"
+   }
+  },
+  {
+   "id": "c_ZhaohuiDorm",
+   "name": "ZhaohuiDorm",
+   "display": "昭晖 · 宿舍",
+   "variant": "dorm",
+   "bundle": "0e2a1c1bc4de761dda3f28612b4549b6",
+   "parts": {
+    "hair": "c_ZhaohuiDorm_slg_hair_lod0",
+    "body": "c_ZhaohuiDorm_slg_body_lod0"
+   },
+   "part_bundles": {
+    "hair": [
+     "0e2a1c1bc4de761dda3f28612b4549b6"
+    ],
+    "body": [
+     "0e2a1c1bc4de761dda3f28612b4549b6"
+    ]
+   },
+   "portrait": {
+    "bundle": "661a8eaee70a142ffb542004b0666e23",
+    "texture": "Avatar_Head_ZhaohuiSSR"
+   }
+  },
+  {
+   "id": "c_ZhaohuiSSR01",
+   "name": "ZhaohuiSSR01",
+   "display": "昭晖",
+   "variant": "slg",
+   "bundle": "9e764708effbc0500e45d28d73a50d71",
+   "parts": {
+    "body": "c_ZhaohuiSSR01_slg_body_lod0",
+    "hair": "c_ZhaohuiSSR01_slg_hair_lod0"
+   },
+   "part_bundles": {
+    "body": [
+     "9e764708effbc0500e45d28d73a50d71"
+    ],
+    "hair": [
+     "9e764708effbc0500e45d28d73a50d71"
+    ]
+   },
+   "portrait": {
+    "bundle": "661a8eaee70a142ffb542004b0666e23",
+    "texture": "Avatar_Head_ZhaohuiSSR01"
+   }
+  },
+  {
+   "id": "c_ZhaohuiSSR0101",
+   "name": "ZhaohuiSSR0101",
+   "display": "昭晖",
+   "variant": "slg",
+   "bundle": "1ddbd471407272ab3efe3a2e1ba1db0b",
+   "parts": {
+    "cloth": "c_ZhaohuiSSR0101_slg_cloth_lod0",
+    "body": "c_ZhaohuiSSR0101_slg_body_lod0",
+    "hair": "c_ZhaohuiSSR0101_slg_hair_lod0"
+   },
+   "part_bundles": {
+    "cloth": [
+     "1ddbd471407272ab3efe3a2e1ba1db0b"
+    ],
+    "body": [
+     "1ddbd471407272ab3efe3a2e1ba1db0b"
+    ],
+    "hair": [
+     "1ddbd471407272ab3efe3a2e1ba1db0b"
+    ]
+   },
+   "portrait": {
+    "bundle": "661a8eaee70a142ffb542004b0666e23",
+    "texture": "Avatar_Head_ZhaohuiSSR"
+   }
+  }
+ ]
+}

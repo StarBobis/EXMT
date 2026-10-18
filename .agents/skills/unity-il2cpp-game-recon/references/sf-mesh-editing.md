@@ -118,3 +118,42 @@ uv[:, 1] = 1.0 - uv[:, 1]     # 导入外部 glTF 网格后必做
 
 min/max 端点编码质量一般但足够；不需要外部编码器依赖。
 
+## 20. 角色全量目录与头像提取
+
+### 20.1 全量扫描的正确姿势
+
+**不要**只 grep 文件头：SerializedFile 的对象名表可能落在 128KB 之外或压缩块里，
+本项目用"读前 128KB + 解密前 32KB"只找到 11 个角色，而用 `Bundle(path).objects()` 全解析找到 **240 个**。
+
+```python
+b = Bundle(path)                      # 自己解密 + 解块
+for o in b.objects():
+    if o.type.name == "Mesh": name = o.read_typetree()["m_Name"]
+```
+
+9613 个 bundle、8 进程、约 5 分钟（~0.12s/包/进程）。
+
+### 20.2 同一个网格可能存在于多个 bundle
+
+本项目 700 多个部位里 51 个有重复（同一角色同一部位出现在 2–3 个包）。
+只改一个包有概率改到"游戏不加载的那一份"，所以**安装时要遍历所有包含该网格的包**。
+目录里存 `part_bundles: {part: [hash…]}`。
+
+### 20.3 头像提取（Unity UI 图）
+
+- 命名：`Avatar_Head_<Name>` / `Avatar_Bust_<Name>` / `Avatar_Whole_<Name>`，128×128，**BC7（format 25）**
+- 解码：`texture_info` 拿 `.resS` 偏移 → `texture_payload` 切片 →
+  `texture2ddecoder.decode_bc7` → BGRA 数组 → **竖直翻转** → PNG
+- **Unity 纹理是 bottom-up 存储，必须翻转**，否则头像全是倒的（这个坑在 DXT 贴图上同样存在）
+
+### 20.4 隐藏 / 素体替换
+
+| 需求 | 做法 |
+| --- | --- |
+| 让某个部位不显示 | 把所有顶点塌缩到 `(0, -10000, 0)`，索引与骨骼不动（比删对象安全） |
+| 换素体 | 外部素体按目标 bbox 等比缩放 + 脚落地 + 居中 + **切掉头部三角形** + 最近顶点 kNN 继承权重 |
+
+注意：很多手游角色的 `body` 网格只含**头/手/脚**，躯干在 `cloth` 里；
+"隐藏衣服"会露出空身体。素体要贴在 `cloth` 槽（全骨架）而不是 `body` 槽（骨头不全）。
+
+

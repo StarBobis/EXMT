@@ -168,6 +168,38 @@ python -m exmt_core pack      <bundle> <mesh> in.exmtmesh out.bundle
 python -m exmt_core set-texture <bundle> <tex> png out.bundle # BC1 + mip 精确填槽
 python -m exmt_core copy-texture <dst.bundle> <dst_tex> <src.bundle> <src_tex> out.bundle
 python -m exmt_core retarget  <src.exmtmesh> <template.exmtmesh> out.exmtmesh
+python -m exmt_core hide-mesh <bundle> <mesh> out.bundle      # 顶点塌缩到 y=-10000（隐藏）
+python -m exmt_core base-body <bundle> <mesh> out.bundle      # 换成内置素体（自动贴合+绑骨）
 ```
+
+## 12. 素体（base body）与隐藏衣服
+
+### 12.1 关键发现：body 网格不是完整身体
+
+维普蕾 `c_VepleySSR01_slg_body_lod0` 只有 **2,283 顶点**，内容只有**头、手、腿脚**；
+躯干和四肢的覆盖全部在 `cloth` 网格（18,194 顶点）里。
+所以"隐藏衣服"后看到的是：一个头 + 两只手 + 一条腿 —— 没有身体。
+
+### 12.2 因此有两条命令
+
+| 命令 | 作用 |
+| --- | --- |
+| `hide-mesh` | 把目标网格所有顶点塌缩到 `(0, -10000, 0)`，索引/骨骼不变 → 该部位不再渲染 |
+| `base-body` | 用内置素体（`core/exmt_core/data/basebody.exmtmesh`，7,682 顶点）替换该部位：按目标 bbox 等比缩放、脚落地、居中、**切掉头部**（角色的头会盖在上面）、再用最近 4 顶点 kNN 从原网格继承权重 |
+
+素材：poly.pizza **MAN.BODY**（CC-BY，Семён Хазам）— 白色素体人偶，SFW。
+
+### 12.3 实测
+
+- `hide-mesh c_VepleySSR01_slg_cloth_lod0` → 大厅只剩头/手/腿（见 12.1）
+- `base-body c_VepleySSR01_slg_cloth_lod0` → 大厅里维普蕾的头 + 白色人偶身体，姿势跟随骨架
+
+### 12.4 局限
+
+1. 素体是低模人偶（7,682 顶点），比例和真人差异大，只适合做"素体底模"起点
+2. 权重来自最近顶点，关节处会有点僵硬
+3. 只切了头（`y > 0.855 * height`），手/脚仍与人偶的手脚重叠
+4. 素体贴在 **cloth 槽**（126 骨全骨架）；直接换 body 槽（59 骨）会因为骨架不全而变形
+
 
 

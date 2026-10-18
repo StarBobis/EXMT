@@ -63,6 +63,51 @@ def cmd_extract_all(args):
     return 0
 
 
+def cmd_hide_mesh(args):
+    """hide-mesh <bundle> <mesh> <out.bundle> — collapse a mesh so nothing renders."""
+    import numpy as np
+
+    bundle_path, mesh_name, out = args
+    b = open_bundle(bundle_path)
+    o = b.mesh(mesh_name)
+    tree = o.read_typetree()
+    md = M.from_tree(tree)
+    md.arrays[0] = np.full_like(md.arrays[0], 0.0, dtype=np.float32)
+    md.arrays[0][:, 1] = -10000.0
+    if 1 in md.arrays:
+        md.arrays[1] = np.zeros_like(md.arrays[1], dtype=np.float32)
+        md.arrays[1][:, 1] = 1.0
+    md.aabb = M.aabb_from_vertices(md.arrays[0].astype("float32"))
+    M.to_tree(tree, md)
+    o.save_typetree(tree)
+    size = len(b.save(out))
+    print(json.dumps({"output": out, "bytes": size, "mesh": mesh_name,
+                      "verts": md.vertex_count, "hidden": True}))
+    return 0
+
+
+def cmd_base_body(args):
+    """base-body <bundle> <mesh> <out.bundle|out.exmtmesh> — swap the slot for the SFW base body."""
+    from . import fitbody
+
+    bundle_path, mesh_name, out = args
+    b = open_bundle(bundle_path)
+    o = b.mesh(mesh_name)
+    tree = o.read_typetree()
+    target = M.from_tree(tree)
+    md = fitbody.fit_base_body(target)
+    if out.lower().endswith(".exmtmesh"):
+        interchange.save(md, out, {"bundle": "", "source": "basebody"})
+        print(json.dumps({"output": out, "verts": md.vertex_count, "mesh": mesh_name}))
+        return 0
+    M.to_tree(tree, md)
+    o.save_typetree(tree)
+    size = len(b.save(out))
+    print(json.dumps({"output": out, "bytes": size, "mesh": mesh_name,
+                      "verts": md.vertex_count, "indices": int(len(md.indices))}))
+    return 0
+
+
 def cmd_pack(args):
     bundle_path, mesh_name, src, out = args
     b = open_bundle(bundle_path)
@@ -189,6 +234,8 @@ def main(argv=None):
         "extract": cmd_extract,
         "extract-all": cmd_extract_all,
         "pack": cmd_pack,
+        "hide-mesh": cmd_hide_mesh,
+        "base-body": cmd_base_body,
         "retarget": cmd_retarget,
         "copy-texture": cmd_copy_texture,
         "set-texture": cmd_set_texture,
