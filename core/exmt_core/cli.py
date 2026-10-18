@@ -108,6 +108,24 @@ def cmd_base_body(args):
     return 0
 
 
+def cmd_subdivide(args):
+    """subdivide <in.exmtmesh> <out.exmtmesh> <target_vertices> — grow a mesh."""
+    import numpy as np
+
+    from . import subdivide as S
+
+    src, out, target = args[0], args[1], int(args[2])
+    md, _ = interchange.load(src)
+    big = S.subdivide(md, target)
+    interchange.rebuild_submeshes(big, np.array([0], dtype=np.uint32),
+                                  np.array([len(big.indices)], dtype=np.uint32))
+    interchange.save(big, out, {"bundle": "", "subdivided_from": md.name})
+    print(json.dumps({"output": out, "verts_in": md.vertex_count,
+                      "verts_out": big.vertex_count, "indices": int(len(big.indices)),
+                      "index_format": big.index_format}))
+    return 0
+
+
 def cmd_pack(args):
     bundle_path, mesh_name, src, out = args
     b = open_bundle(bundle_path)
@@ -236,6 +254,7 @@ def main(argv=None):
         "pack": cmd_pack,
         "hide-mesh": cmd_hide_mesh,
         "base-body": cmd_base_body,
+        "subdivide": cmd_subdivide,
         "retarget": cmd_retarget,
         "copy-texture": cmd_copy_texture,
         "set-texture": cmd_set_texture,
