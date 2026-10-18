@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from "vue";
+import { computed, onMounted, ref, watch } from "vue";
 import TitleBar from "./components/TitleBar.vue";
 import SideBar from "./components/SideBar.vue";
 import HomeView from "./views/HomeView.vue";
@@ -10,7 +10,7 @@ import LogsView from "./views/LogsView.vue";
 import SettingsView from "./views/SettingsView.vue";
 import type { ViewKey } from "./lib/nav";
 import { t } from "./lib/i18n";
-import { gameReady } from "./lib/settings";
+import { checkGamePath, gamePath, gameReady } from "./lib/settings";
 
 const STORAGE_KEY = "exmt.nav.collapsed";
 
@@ -31,6 +31,11 @@ const views = {
 const currentView = computed(() => views[current.value]);
 /** 这三页都要读游戏资源，没设游戏路径前不给进。 */
 const gated = computed(() => ["models", "library", "tools"].includes(current.value));
+
+// 启动时先验证已存的游戏路径，否则直接从导航进模型页会误判成"没设置"。
+onMounted(() => {
+  if (gamePath.value) void checkGamePath(gamePath.value);
+});
 </script>
 
 <template>
