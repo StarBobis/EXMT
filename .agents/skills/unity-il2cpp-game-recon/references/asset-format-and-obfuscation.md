@@ -432,3 +432,70 @@ for N in (0x2000, 0x4000, 0x8000, 0x9000, 0x10000, ...):
 `decrypt(encrypt(x)) == x` 在错误密钥流下也恒成立。
 必须引入**外部消费者**（压缩流解码器、长度字段、独立解析器）作为判据，
 它们的**失败位置**就是"从第几个字节开始不对"的直接证据。
+
+## 17. UnityFS（v7 / 2019.4.15+）标准结构速查 + 两条硬校验
+
+本项目实测（`UnityFS` v7，`revision=2019.4.29f1`，`flags=0x43`，全大端字段）：
+
+```
+0    "UnityFS\0"
++8   u32 BE version (7)
++12  cstring unityVersionNote ("5.x.x")
+     cstring revision ("2019.4.29f1")
+     i64 BE size            ← 等于文件字节数（自校验锚点）
+     u32 BE cbis / u32 BE ubis / u32 BE flags
+     → reader 对齐到 16 字节（本作 header 50 字节 → 补 14 个 0 → blocksInfo 从 +64 开始）
++64  blocksInfo（若 flags&0x3F != 0 则是 LZ4 压缩流，长度 cbis，解压后 ubis）
+       hash[16]（本作全 0）
+       u32 BE blockCount
+       blockCount × (u32 BE uncompressedSize, u32 BE compressedSize, u16 BE flags)
+       u32 BE nodeCount
+       nodeCount × (i64 BE offset, i64 BE size, u32 BE flags, path cstring)
++64+cbis  数据区：按块表顺序连续存放；每块占 compressedSize 字节
+       flags=0 原始存放 / 2 LZ4 / 3 LZ4HC（解压都用 LZ4）
+       node.flags: 4 = SerializedFile，0 = .resS
+```
+
+### 关键：header 之后要按 16 字节对齐
+
+Unity 2019.4.15+ 的 UnityFS 在 header 之后 `align_stream(16)`。
+判据：header 结束后出现一小段**全 0 填充**，长度 = 16 − (header 长度 mod 16)。
+按"+50 就是 blocksInfo"硬解会让后续 5 轮格式猜测全部落空。
+
+### 两条独立求和 = 块表解析正确的硬证据
+
+```
+Σ block.uncompressedSize  ==  Σ node.size
+Σ block.compressedSize    ==  文件长度 − data_off
+```
+
+两条**同时**成立才算解析正确（只对上一条可能是巧合）。
+本项目 222 块：Σu = 77,656 + 29,010,816；Σc = 21,193,548 = 21,194,674 − 1,126。
+
+### 只改局部的安全做法：只重建"覆盖目标"的块
+
+1. 目标资源在解压流中的区间 = `node[0].size + resS 内偏移`
+2. 块 k 覆盖 `[k*BLOCK, (k+1)*BLOCK)`；**只重建与目标区间相交的块**，
+   其余块按原 `compressedSize` 原样搬运（不必解压，也不必重压）
+3. 重建块的 `uncompressedSize` 必须保持原值（node 偏移才不变）；
+   `compressedSize` 用新压缩结果，或直接 `flags=0` + `compressedSize=uncompressedSize` 原始存放
+4. 重建 blocksInfo，重算 header 的 `size`/`cbis`/`ubis`
+5. 校验：重打包后**再解析一遍**，确认 Σ 两条求和仍成立、目标块内容符合预期
+
+**这是"解压流格式还没完全吃透"时也能交付的手段**：
+只要目标数据落在少数块里，就不需要理解整条流。
+
+### 附带：SerializedFile 可以单独喂给 UnityPy
+
+从 `data_off` 取前 `node[0].size` 字节（即第一个 node），直接 `UnityPy.load(bytes)`
+即可得到完整对象表（Texture2D 的 `m_StreamData.offset/size`、名字、格式、mip 数）。
+比"让 UnityPy 打开整个 bundle"稳定得多——后者常被非标准块流卡住。
+
+### 判据速查
+
+| 现象 | 结论 |
+|---|---|
+| header 后有 14 个 0 | blocksInfo 在 +64，不是 +50 |
+| Σu 与 Σnode.size 不等 | 块表字段顺序/宽度读错 |
+| 第一块能解、后面全崩 | 块是链接的，或加密只覆盖前缀（见 §16） |
+| UnityPy 打不开 bundle 但能解开 SF | 块流非标准/未解密，只取 SF 即可 |
