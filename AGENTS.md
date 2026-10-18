@@ -130,6 +130,9 @@ bun run check     # 见 §6
 | 2026-10-19 | 3D 视图滚轮不能缩放 | three 的 `enableDamping` 必须**逐帧 `controls.update()`**（rAF），否则阻尼/缩放不结算；WebView2 的 `deltaY` 单位不统一，滚轮**自己处理**（`exp(-delta/400)` 指数步进）并关掉 `enableZoom` 防止双重缩放；另外补 `＋/－`、重置视角、双击复位、百分比提示 |
 | 2026-10-19 | 线框模式试过但没生效 | `material.wireframe = true` + `needsUpdate` 后画面不变（three 版本相关），**已删除不留半套**；要再试就换 `WireframeGeometry` / `LineSegments` |
 | 2026-10-19 | 3D 预览是灰模，而且灯光平 | `_d` / `_da` 是 diffuse：网格名去掉 `_lodN` 再加 `_d`/`_da` 就是它的贴图（`cloth4` 只有 `_da`，`cloth3` 没有就保持灰）；核心新增 `maps` 命令解 1024px 贴图并缓存 `diffuse.json`。灯光用 ACES + RoomEnvironment + 三点布光（暖主光 / 冷补光 / 强轮廓光）+ 软接触阴影，别再用一盏平行光打天下 |
+| 2026-10-19 | 预览里“头发”变成一个人偶 | 不是渲染 bug：游戏包 `cddc7a5b…` 被 `c_AlvaSSR01-hair-basebody` 这个替换 Mod 覆盖过（mtime 20:55，其他包都是 15:04）。恢复 `%APPDATA%\com.exmt.modbox\backups\cddc….bundle` 后头发正常。**先查 bundle 是否被 Mod 覆盖，再怀疑代码** |
+| 2026-10-19 | 没有游戏路径也能进模型页，读的可能是 Mod 后的包 | 设置页加游戏路径（手填/浏览/自动查找/打开文件夹）；**没设置或无效时模型/资源库/工具只显示“先设置游戏路径”占位**；设置成功后自动把目录里用到的原始资源包（643 个 / 6.48 GB）备份到 `<cache>\game\bundles`，之后预览、索引只读这份备份；设置页可随时重新备份或恢复原始模型 |
+| 2026-10-19 | KeepAlive 里套 `v-if` 导致切页面内容不更新 | `<KeepAlive v-if="…"><component :is="currentView" :key="current" /></KeepAlive>` —— `v-if` 放 KeepAlive 外层，动态组件保留 `:key`；把 `v-if` 写在 KeepAlive 内部会让内容停在第一页 |
 | 2026-10-18 | 为什么没有 docs/skill 更新 | 本文件 §1 RSI 循环 |
 
 ---

@@ -263,6 +263,25 @@ async fn run_core(...) -> Result<CoreOutput, String> {
 - 角色脚下加一张径向渐变的透明平面当接触阴影（`CanvasTexture` + `MeshBasicMaterial{depthWrite:false}`），比开 shadow map 便宜且不会锯齿。
 - `TextureLoader` 默认 `flipY=true`，正好对上 Unity 的 v 轴；如果贴图上下颠倒才改 `flipY`，别先动 UV。
 
+### 10.3.7 游戏路径门禁 + 原始资源备份
+
+- 桌面工具一旦要读游戏资源，就**必须有游戏路径设置**：手填、文件选择器、自动查找（在常见安装目录/盘符浅层找 `*.exe`）、打开文件夹。
+- 没设置时不要“读不到就空着”，直接给其它页面一个占位页（“先设置游戏路径” + 去设置），避免用户对着空列表猜。
+- 设置成功后**自动备份一份原始资源**到自己的缓存目录：只备份用到的包（本例 643 个 / 6.48 GB / 6.6 s），备份完成写 `done.json`；没完成前预览不要读半套备份。
+- 之后所有预览/索引只读备份；设置页提供“重新备份 / 恢复原始模型 / 打开备份”，恢复 = 把备份覆盖回游戏目录。
+- 旧版本留下的 `%APPDATA%\<app>\backups\<hash>.bundle` 比游戏目录更可信（可能是 Mod 之前存的），备份时作为 `prefer` 源优先使用——能救回已被替换成 Mod 的包。
+- **排查“模型不对劲”先看 bundle 是否被替换**：比较目录内 mtime/size，或看 `%APPDATA%\<app>\mods\*.json`；本例“头发变成人偶”就是 `hair-basebody` 替换包导致的，不是渲染 bug。
+
+### 10.3.8 Vue KeepAlive 与动态页面切换
+
+`<KeepAlive>` 内部再写 `v-if` 会让内容卡在第一页；正确写法是 `v-if` 放在 KeepAlive 外层，动态组件保留 `:key`：
+
+```html
+<KeepAlive v-if="ready">
+  <component :is="currentView" :key="current" />
+</KeepAlive>
+```
+
 ### 10.4 导出成"工作空间"而不是一堆文件
 
 ```

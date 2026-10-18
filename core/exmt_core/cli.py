@@ -313,6 +313,40 @@ def cmd_maps(args):
     return 0
 
 
+def cmd_backup(args):
+    """backup <src_bundle_dir> <backup_dir> <hashlist.json> [prefer.json]."""
+    from . import store
+
+    src, dst, list_path = args[:3]
+    with open(list_path, encoding="utf-8-sig") as fh:
+        hashes = json.load(fh)["hashes"]
+    prefer = None
+    if len(args) > 3:
+        with open(args[3], encoding="utf-8-sig") as fh:
+            prefer = json.load(fh)
+    print(json.dumps(store.backup_bundles(src, dst, hashes, prefer)))
+    return 0
+
+
+def cmd_restore(args):
+    """restore <backup_dir> <game_bundle_dir> <hashlist.json>."""
+    from . import store
+
+    backup, game, list_path = args
+    with open(list_path, encoding="utf-8-sig") as fh:
+        hashes = json.load(fh)["hashes"]
+    print(json.dumps(store.restore_bundles(backup, game, hashes)))
+    return 0
+
+
+def cmd_backup_size(args):
+    """backup-size <backup_dir>."""
+    from . import store
+
+    print(json.dumps(store.backup_size(args[0])))
+    return 0
+
+
 def cmd_workspace(args):
     """workspace <outdir> <spec.json> - export meshes + textures for Blender."""
     from . import preview
@@ -348,6 +382,9 @@ def main(argv=None):
         "geoset": cmd_geoset,
         "thumbs": cmd_thumbs,
         "maps": cmd_maps,
+        "backup": cmd_backup,
+        "restore": cmd_restore,
+        "backup-size": cmd_backup_size,
         "workspace": cmd_workspace,
     }
     if cmd not in table:

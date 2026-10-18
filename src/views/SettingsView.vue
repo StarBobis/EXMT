@@ -1,15 +1,28 @@
 <script setup lang="ts">
 import { onMounted, ref } from "vue";
 import { openUrl } from "@tauri-apps/plugin-opener";
+import { openPath } from "@tauri-apps/plugin-opener";
 import { useTheme, type ThemeMode } from "../lib/theme";
 import { appVersions, isTauri } from "../lib/tauri";
 import { locale, setLocale, t } from "../lib/i18n";
 import {
+  backup,
   cacheFolder,
+  checkGamePath,
   chooseCacheFolder,
+  chooseGameExe,
+  detectGamePath,
+  gameBundleDir,
+  gameMessage,
+  gamePath,
+  gameStatus,
+  openBackupFolder,
   openCacheFolder as openCacheFolderInExplorer,
+  refreshBackup,
   useCacheFolder,
+  useGamePath,
 } from "../lib/settings";
+import { backupOriginals, restoreOriginals } from "../lib/preview";
 import AppLogo from "../components/AppLogo.vue";
 
 const { mode, setMode } = useTheme();
@@ -23,11 +36,121 @@ const version = ref("0.1.0");
 const tauri = ref("—");
 const cacheError = ref("");
 
+const gameInput = ref(gamePath.value);
+const gameBusy = ref(false);
+const gameError = ref("");
+const detectBusy = ref(false);
+const backupBusy = ref(false);
+const backupMsg = ref("");
+
+const backupGb = () => (backup.value.bytes / 1024 / 1024 / 1024).toFixed(2);
+
 onMounted(async () => {
   const v = await appVersions();
   version.value = v.app;
   tauri.value = v.tauri;
+  await refreshBackup();
+  if (!isTauri) return;
+  if (gamePath.value) {
+    await checkGamePath(gamePath.value);
+    gameInput.value = gamePath.value;
+    // 已有路径但没有备份 → 自动补一份
+    if (gameStatus.value === "ok" && !backup.value.ready) void doBackup(true);
+    return;
+  }
+  detectBusy.value = true;
+  try {
+    const found = await detectGamePath();
+    if (found) {
+      await applyGamePath(found);
+      if (!backup.value.ready) void doBackup(true);
+    }
+  } finally {
+    detectBusy.value = false;
+  }
 });
+
+async function applyGamePath(path?: string) {
+  const target = (path ?? gameInput.value).trim();
+  if (!target) return;
+  gameBusy.value = true;
+  gameError.value = "";
+  try {
+    if (!(await useGamePath(target))) {
+      gameError.value = gameMessage.value || t("settings.gameBad");
+      return;
+    }
+    gameInput.value = gamePath.value;
+    backupMsg.value = "";
+  } finally {
+    gameBusy.value = false;
+  }
+}
+
+async function pickGame() {
+  const picked = await chooseGameExe(t("settings.gamePick"));
+  if (picked) {
+    gameInput.value = picked;
+    await applyGamePath(picked);
+    if (gameStatus.value === "ok" && !backup.value.ready) void doBackup(true);
+  }
+}
+
+async function autoDetect() {
+  detectBusy.value = true;
+  gameError.value = "";
+  try {
+    const found = await detectGamePath();
+    if (!found) {
+      gameError.value = t("settings.gameNone");
+      return;
+    }
+    gameInput.value = found;
+    await applyGamePath(found);
+    if (gameStatus.value === "ok" && !backup.value.ready) void doBackup(true);
+  } finally {
+    detectBusy.value = false;
+  }
+}
+
+async function openGameFolder() {
+  if (gameBundleDir.value) await openPath(gameBundleDir.value).catch(() => undefined);
+}
+
+/** 备份/恢复都要跑好几分钟，这里只做状态提示，不挡其他页面。 */
+async function doBackup(auto = false) {
+  if (backupBusy.value || !isTauri) return;
+  backupBusy.value = true;
+  backupMsg.value = t("settings.backupRunning");
+  try {
+    const stats = await backupOriginals();
+    backupMsg.value = t("settings.backupDone", { n: stats.copied + stats.skipped, s: stats.seconds });
+    await refreshBackup();
+  } catch (e) {
+    backupMsg.value = String(e);
+  } finally {
+    backupBusy.value = false;
+    void auto;
+  }
+}
+
+async function doRestore() {
+  if (backupBusy.value || !isTauri) return;
+  backupBusy.value = true;
+  backupMsg.value = t("settings.restoreRunning");
+  try {
+    const stats = await restoreOriginals();
+    backupMsg.value = t("settings.restoreDone", { n: stats.files ?? stats.copied, s: stats.seconds });
+  } catch (e) {
+    backupMsg.value = String(e);
+  } finally {
+    backupBusy.value = false;
+  }
+}
+
+async function openBackupDir() {
+  await openBackupFolder().catch(() => undefined);
+}
 
 async function changeCacheFolder() {
   try {
@@ -181,11 +304,67 @@ async function openLink(url: string) {
             <div class="setting-row__text">
               <div class="setting-row__title">{{ t("settings.game") }}</div>
               <div class="setting-row__desc">{{ t("settings.gameDesc") }}</div>
+              <input
+                v-model="gameInput"
+                class="input"
+                spellcheck="false"
+                :placeholder="t('settings.gamePlaceholder')"
+                :aria-label="t('settings.game')"
+                @keyup.enter="applyGamePath()"
+              />
+              <div class="pathline mono" :title="gameBundleDir">
+                {{ gameBundleDir || t("settings.gameNone") }}
+              </div>
+              <div v-if="gameError" class="pathline pathline--error">{{ gameError }}</div>
+              <div v-else-if="gameStatus === 'ok'" class="pathline">
+                {{ t("settings.gameReady") }}
+              </div>
             </div>
-            <div class="setting-row__control">
-              <span class="status">
-                <span class="status__dot status__dot--warn" />{{ t("settings.notSet") }}
-              </span>
+            <div class="setting-row__control setting-row__control--col">
+              <button class="btn btn--accent" type="button" :disabled="!isTauri || gameBusy" @click="applyGamePath()">
+                {{ t("settings.gameApply") }}
+              </button>
+              <button class="btn" type="button" :disabled="!isTauri || detectBusy" @click="autoDetect">
+                {{ detectBusy ? t("settings.gameDetecting") : t("settings.gameDetect") }}
+              </button>
+              <button class="btn" type="button" :disabled="!isTauri" @click="pickGame">
+                {{ t("settings.gameBrowse") }}
+              </button>
+              <button class="btn" type="button" :disabled="!gameBundleDir" @click="openGameFolder">
+                <span class="glyph">&#xE8E5;</span>
+                {{ t("settings.gameOpenFolder") }}
+              </button>
+            </div>
+          </div>
+          <div class="setting-row">
+            <div class="setting-row__text">
+              <div class="setting-row__title">{{ t("settings.backupTitle") }}</div>
+              <div class="setting-row__desc">{{ t("settings.backupDesc") }}</div>
+              <div class="pathline mono" :title="backup.dir">
+                {{
+                  backup.ready
+                    ? t("settings.backupState", { n: backup.files, gb: backupGb() })
+                    : t("settings.backupEmpty")
+                }}
+              </div>
+              <div v-if="backupMsg" class="pathline">{{ backupMsg }}</div>
+            </div>
+            <div class="setting-row__control setting-row__control--col">
+              <button
+                class="btn btn--accent"
+                type="button"
+                :disabled="!isTauri || !gameStatus || gameStatus !== 'ok' || backupBusy"
+                @click="doBackup()"
+              >
+                {{ backupBusy ? t("settings.backupRunning") : t("settings.backupStart") }}
+              </button>
+              <button class="btn" type="button" :disabled="!backup.ready || backupBusy" @click="doRestore">
+                {{ t("settings.backupRestore") }}
+              </button>
+              <button class="btn" type="button" :disabled="!backup.ready" @click="openBackupDir">
+                <span class="glyph">&#xE8E5;</span>
+                {{ t("settings.backupOpen") }}
+              </button>
             </div>
           </div>
         </div>

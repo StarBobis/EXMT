@@ -2,12 +2,10 @@
 import { copyFile, exists, mkdir, readDir, readTextFile, remove, stat, writeTextFile } from "@tauri-apps/plugin-fs";
 import { appDataDir, join } from "@tauri-apps/api/path";
 import { ensureCacheFolder } from "./settings";
-
-export const GAME_BUNDLES =
-  "C:\\GF2Exilium\\GF2 Game\\GF2_Exilium_Data\\LocalCache\\Data\\AssetBundles_Windows";
+import { gameBundles } from "./core";
 
 export function bundlePath(hash: string): string {
-  return `${GAME_BUNDLES}\\${hash}.bundle`;
+  return `${gameBundles()}\\${hash}.bundle`;
 }
 
 async function ensureDir(dir: string) {

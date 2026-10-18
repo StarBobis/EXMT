@@ -6,10 +6,11 @@
  * the texture index, which is cached in the cache folder because building it
  * walks every bundle once (~10 s).
  */
-import { exists, mkdir, readTextFile, stat, writeTextFile } from "@tauri-apps/plugin-fs";
-import { join } from "@tauri-apps/api/path";
-import { GAME_BUNDLES, runCore } from "./core";
-import { cacheFolder } from "./settings";
+import { exists, mkdir, readDir, readTextFile, remove, stat, writeTextFile } from "@tauri-apps/plugin-fs";
+import { appDataDir, join } from "@tauri-apps/api/path";
+import catalogData from "../data/catalog.json";
+import { gameBundles, runCore } from "./core";
+import { backup, cacheFolder, refreshBackup } from "./settings";
 import { isTauri } from "./tauri";
 
 const INDEX_MAX_AGE_MS = 12 * 60 * 60 * 1000;
@@ -59,7 +60,9 @@ export interface WorkspaceResult {
 
 export function bundlePathOf(hash: string): string {
   const clean = hash.replace(/\.bundle$/i, "");
-  return `${GAME_BUNDLES}\\${clean}.bundle`;
+  // 预览一律读我们自己的原始备份；备份里没有时才回落到游戏目录
+  if (backup.value.ready) return `${backup.value.dir}\\${clean}.bundle`;
+  return `${gameBundles()}\\${clean}.bundle`;
 }
 
 /** Every bundle hash a catalog entry mentions, de-duplicated. */
@@ -96,17 +99,22 @@ async function readIndex(): Promise<TexIndex | null> {
     const age = Date.now() - new Date(info.mtime ?? 0).getTime();
     if (age > INDEX_MAX_AGE_MS) return null;
     const data = JSON.parse(await readTextFile(path)) as TexIndex;
-    if (data.bundle_dir !== GAME_BUNDLES) return null;
+    if (data.bundle_dir !== indexSourceDir()) return null;
     return data;
   } catch {
     return null;
   }
 }
 
+/** 贴图索引要从“原始资源”里建：有备份就用备份，否则用游戏目录。 */
+function indexSourceDir(): string {
+  return backup.value.ready ? backup.value.dir : gameBundles();
+}
+
 let indexCache: TexIndex | null = null;
 let indexPromise: Promise<TexIndex> | null = null;
 
-/** Load the texture index, rebuilding it when missing, stale or from another game folder. */
+/** Load the texture index, rebuilding it when missing, stale or from another folder. */
 export async function ensureTexIndex(): Promise<TexIndex> {
   if (indexCache) return indexCache;
   if (indexPromise) return indexPromise;
@@ -114,7 +122,7 @@ export async function ensureTexIndex(): Promise<TexIndex> {
     const cached = await readIndex();
     if (cached) return cached;
     const path = await indexPath();
-    const res = await runCore(["texindex", GAME_BUNDLES, path]);
+    const res = await runCore(["texindex", indexSourceDir(), path]);
     if (res.code !== 0) throw new Error((res.stderr || res.stdout).trim().slice(-500));
     return JSON.parse(await readTextFile(path)) as TexIndex;
   })();
@@ -462,6 +470,114 @@ export async function loadThumbs(hash: string, names: string[], size = 160): Pro
 }
 
 // --------------------------------------------------------------------------- //
+// original-asset backup (<cache>/game/bundles)
+// --------------------------------------------------------------------------- //
+interface CatalogSkin {
+  name: string;
+  bundle: string;
+  part_bundles?: Record<string, string[]>;
+}
+
+/**
+ * Every bundle whose original bytes we keep: all catalog mesh bundles plus the
+ * texture bundles of those skins. Around 6.5 GB for the whole roster.
+ */
+export async function backupHashes(): Promise<string[]> {
+  const skins = (catalogData as { characters: CatalogSkin[] }).characters;
+  const hashes = new Set<string>();
+  for (const skin of skins) {
+    hashes.add(skin.bundle);
+    for (const list of Object.values(skin.part_bundles ?? {})) for (const hash of list) hashes.add(hash);
+  }
+  const index = await ensureTexIndex();
+  for (const skin of skins) {
+    const prefix = `c_${skin.name}_`;
+    for (const [name, bundles] of Object.entries(index.textures)) {
+      if (name.startsWith(prefix) && bundles.length) hashes.add(bundles[0].replace(/\.bundle$/i, ""));
+    }
+  }
+  return [...hashes].sort();
+}
+
+export interface BackupResult {
+  copied: number;
+  skipped: number;
+  missing: number;
+  bytes: number;
+  seconds: number;
+  files: number;
+}
+
+/**
+ * Original bundles kept by the old replace flow in `%APPDATA%\com.exmt.modbox\backups`.
+ * They predate any mod, so they win over the live game file when present.
+ */
+async function legacyBackupMap(hashes: string[]): Promise<Record<string, string>> {
+  const root = `${await appDataDir()}\\com.exmt.modbox\\backups`;
+  const entries = await readDir(root).catch(() => []);
+  const present = new Set(
+    entries
+      .filter((entry) => entry.isFile && entry.name.toLowerCase().endsWith(".bundle"))
+      .map((entry) => entry.name.replace(/\.bundle$/i, "")),
+  );
+  const map: Record<string, string> = {};
+  for (const hash of hashes) {
+    if (present.has(hash)) map[hash] = `${root}\\${hash}.bundle`;
+  }
+  return map;
+}
+
+/** Copy the original bundles out of the game before anything can modify them. */
+export async function backupOriginals(): Promise<BackupResult> {
+  if (!isTauri) throw new Error("backup needs the desktop shell");
+  const root = await join(cacheFolder.value, "game");
+  const dir = await join(root, "bundles");
+  await mkdir(dir, { recursive: true }).catch(() => undefined);
+  const hashes = await backupHashes();
+  const listPath = await join(root, "hashes.json");
+  await writeTextFile(listPath, JSON.stringify({ hashes }));
+  // 旧版本替换流程留下的原始包（%APPDATA%\com.exmt.modbox\backups）优先于游戏目录，
+  // 这样即使游戏包已经被 Mod 覆盖，也能拿到真正的原始文件。
+  const prefer = await legacyBackupMap(hashes);
+  const preferPath = await join(root, "prefer.json");
+  await writeTextFile(preferPath, JSON.stringify(prefer));
+  const marker = await join(root, "done.json");
+  // 备份没做完之前不要让预览读半套文件
+  await remove(marker).catch(() => undefined);
+  const stats = (await runJson(["backup", gameBundles(), dir, listPath, preferPath])) as BackupResult;
+  await writeTextFile(
+    marker,
+    JSON.stringify({ at: new Date().toISOString(), count: hashes.length, ...stats }),
+  );
+  await refreshBackup();
+  // 备份完成后，索引/皮肤缓存的数据源要从游戏目录换成备份
+  await resetDerivedCaches();
+  return { ...stats, files: hashes.length };
+}
+
+/** Copy the backed-up originals back over the game folder. */
+export async function restoreOriginals(): Promise<BackupResult> {
+  if (!isTauri) throw new Error("restore needs the desktop shell");
+  const root = await join(cacheFolder.value, "game");
+  const dir = await join(root, "bundles");
+  const listPath = await join(root, "hashes.json");
+  if (!(await exists(listPath))) throw new Error("还没有备份，先备份一次");
+  const stats = (await runJson(["restore", dir, gameBundles(), listPath])) as BackupResult;
+  await resetDerivedCaches();
+  return stats;
+}
+
+/** Drop everything derived from the live game folder (index, per-skin cache). */
+async function resetDerivedCaches(): Promise<void> {
+  indexCache = null;
+  indexPromise = null;
+  skinMemory.clear();
+  meshCache.clear();
+  await remove(await indexPath()).catch(() => undefined);
+  await remove(await join(cacheFolder.value, "skins"), { recursive: true }).catch(() => undefined);
+}
+
+// --------------------------------------------------------------------------- //
 // workspace
 // --------------------------------------------------------------------------- //
 export async function workspaceRoot(): Promise<string> {
@@ -491,7 +607,7 @@ export async function makeWorkspace(
     id: entry.id,
     name: entry.name,
     display,
-    game_bundles: GAME_BUNDLES,
+    game_bundles: gameBundles(),
     bundles,
     meshes: meshes.map((mesh) => ({ bundle: mesh.bundle, mesh: mesh.name })),
     textures: textures.map((tex) => ({ bundle: tex.bundle, name: tex.name })),

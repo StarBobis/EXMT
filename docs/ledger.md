@@ -107,6 +107,12 @@
 | `maps` 命令一次解整个皮肤的 diffuse（上限 1024px，PNG base64），按 bundle 只解析一次；Alva 7 张 → `diffuse.json` 5.39 MB，缓存进皮肤目录 | `C:\EXMTCacheFolder\skins\c_AlvaSSR01\diffuse.json`（5389692 B） |
 | 预览光照：ACES Filmic（曝光 1.2）+ `RoomEnvironment` 环境反射（0.75）+ 三点布光（暖主光 4.2 / 冷补光 1.8 / 轮廓光 4.5 / 顶光 1.1 / 半球 0.7）+ 径向渐变软接触阴影 | `MeshViewer.vue`；截图 `light1.png` |
 | 贴图朝向无需翻转：`TextureLoader` 默认 `flipY=true`，Unity 的 v 轴向上，实测外套/腰带/靴子图案位置正确 | 截图 `tex-zoom.png` |
+| 预览里“头发像人偶”根因：`cddc7a5b…` 被 `c_AlvaSSR01-hair-basebody` 替换过（该包 mtime 20:55，目录里其他包都是 15:04）；旧版替换流程在 `%APPDATA%\com.exmt.modbox\backups\cddc….bundle` 留了原包（3 055 685 B，现包 2 819 348 B） | 目录 mtime 对比 + `%APPDATA%\com.exmt.modbox\mods\c_AlvaSSR01-hair-basebody.json` |
+| 用旧备份恢复 `cddc…` 后头发恢复正常（白长发、大衣、靴子都对），说明不是渲染/贴图映射 bug | 截图 `hair-fixed2.png`（恢复前后对比） |
+| 新增游戏路径设置：手填/浏览/自动查找（`GF2_Exilium.exe` → `…\AssetBundles_Windows`）/打开文件夹；未设置时模型、资源库、工具只显示「先设置游戏路径」占位 | 截图 `gate2.png`、`settings7.png` |
+| 首次设置后自动备份 643 个资源包 / 6.48 GB，用时 6.62 s（NVMe）；写 `done.json` 标记完成，未完成前预览不读半套备份 | `C:\EXMTCacheFolder\game\done.json`：`copied 642, skipped 1, seconds 6.62` |
+| 模型页、贴图索引只读 `<cache>\game\bundles`；恢复功能把备份覆盖回游戏目录；旧版 `%APPDATA%` 备份作为 `prefer` 优先于游戏目录（能救回已被 Mod 覆盖的包） | `bundlePathOf()` / `indexSourceDir()`；`store.py backup --prefer` |
+| KeepAlive 的坑：`v-if` 必须放在 `<KeepAlive>` 外层，且动态组件保留 `:key`；写在内部会导致切导航内容不更新（表现为一直停在首页） | `App.vue`；修好后 `settings7.png` 能正常切页 |
 
 
 ---

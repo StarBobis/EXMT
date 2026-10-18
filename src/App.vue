@@ -10,6 +10,7 @@ import LogsView from "./views/LogsView.vue";
 import SettingsView from "./views/SettingsView.vue";
 import type { ViewKey } from "./lib/nav";
 import { t } from "./lib/i18n";
+import { gameReady } from "./lib/settings";
 
 const STORAGE_KEY = "exmt.nav.collapsed";
 
@@ -28,6 +29,8 @@ const views = {
 } as const;
 
 const currentView = computed(() => views[current.value]);
+/** 这三页都要读游戏资源，没设游戏路径前不给进。 */
+const gated = computed(() => ["models", "library", "tools"].includes(current.value));
 </script>
 
 <template>
@@ -41,9 +44,17 @@ const currentView = computed(() => views[current.value]);
         @toggle="collapsed = !collapsed"
       />
       <main class="app__content">
-        <KeepAlive>
-          <component :is="currentView" />
+        <KeepAlive v-if="!gated || gameReady">
+          <component :is="currentView" :key="current" />
         </KeepAlive>
+        <section v-else class="gate">
+          <div class="gate__icon glyph">&#xE7BA;</div>
+          <h2 class="gate__title">{{ t("gate.title") }}</h2>
+          <p class="gate__body">{{ t("gate.body") }}</p>
+          <button class="btn btn--accent" type="button" @click="current = 'settings'">
+            {{ t("gate.action") }}
+          </button>
+        </section>
       </main>
     </div>
   </div>

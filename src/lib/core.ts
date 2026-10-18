@@ -1,11 +1,15 @@
 /** Bridge to the Python core (`core/exmt_core`) and the game's bundle folder. */
 import { invoke } from "@tauri-apps/api/core";
+import { gameBundleDir } from "./settings";
 
 export const DEFAULT_PYTHON =
   "C:\\Users\\Administrator\\.dsh\\dsh-runtimes\\dsh-primary-runtime\\dependencies\\python\\python.exe";
 export const DEFAULT_CORE = "C:\\Dev\\EXMT\\core";
-export const GAME_BUNDLES =
-  "C:\\GF2Exilium\\GF2 Game\\GF2_Exilium_Data\\LocalCache\\Data\\AssetBundles_Windows";
+
+/** Bundle folder of the game install chosen in Settings (empty until then). */
+export function gameBundles(): string {
+  return gameBundleDir.value;
+}
 
 export interface CoreOutput {
   code: number;
@@ -22,7 +26,7 @@ export async function runCore(
 }
 
 export function bundlePath(hash: string): string {
-  return `${GAME_BUNDLES}\\${hash}.bundle`;
+  return `${gameBundles()}\\${hash}.bundle`;
 }
 
 export interface CharacterPreset {

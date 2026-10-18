@@ -888,6 +888,60 @@ button {
   font-size: 12px;
 }
 
+/* 竖向排一列按钮（游戏路径/备份这类多操作） */
+.setting-row__control--col {
+  flex-direction: column;
+  align-items: stretch;
+  min-width: 132px;
+}
+
+/* 文本输入框（设置页路径、模型搜索） */
+.input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 7px 10px;
+  border: 1px solid var(--stroke);
+  border-radius: var(--radius-md);
+  background: var(--fill-subtle);
+  color: var(--text-1);
+  font: inherit;
+  font-size: 12px;
+  outline: none;
+}
+
+.input:focus {
+  border-color: var(--accent, #4cc2ff);
+}
+
+/* 未设置游戏路径时的整页占位 */
+.gate {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  max-width: 560px;
+  padding: 56px 8px;
+}
+
+.gate__icon {
+  font-size: 26px;
+  color: var(--text-3);
+}
+
+.gate__title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: var(--text-1);
+}
+
+.gate__body {
+  margin: 0;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--text-2);
+}
+
 /* Segmented control */
 .segmented {
   display: inline-flex;
