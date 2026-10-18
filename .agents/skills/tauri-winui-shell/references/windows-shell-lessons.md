@@ -248,6 +248,13 @@ async fn run_core(...) -> Result<CoreOutput, String> {
 
 长任务结束想给用户"结果"时，顺手 `openPath(result.dir)` 打开目录，别让用户自己去找路径。
 
+### 10.3.5 three.js 预览的交互（滚轮/重置）
+
+- `OrbitControls` 开了 `enableDamping` 就必须每帧 `controls.update()`（`requestAnimationFrame` 循环里），否则阻尼不收敛，看起来像“拖不动/缩放没反应”。
+- WebView2 的 `wheel.deltaY` 不一定是 100 的倍数（可能是 ±3 的“行”）；把 `enableZoom` 关掉，自己监听 wheel（`{passive:false}` + `preventDefault`），用 `Math.exp(-delta / 400)` 换算成指数步进，再 `dollyIn(1/f)` / `dollyOut(f)`。
+- 除了滚轮，给一组 `＋/－` 和「重置视角」按钮（`resetView()` 用保存的 `center/maxDim` 重新算距离），双击画布也复位；左下角写一行操作提示 + 当前缩放百分比，用户一眼知道怎么用。
+- 线框切换别用 `material.wireframe`（换 three 版本后实测无效），要线框就建 `WireframeGeometry` + `LineSegments`，或者干脆不做。
+
 ### 10.4 导出成"工作空间"而不是一堆文件
 
 ```

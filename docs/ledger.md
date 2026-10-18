@@ -100,6 +100,9 @@
 | 勾选 = 最小改动：模型/贴图默认**全不勾**；只勾 `slg_cloth1_lod0` + `slg_cloth1_d` 时，工作空间里就只有 1 个 `.exmtmesh` + 1 张 PNG | 实测导出后 `meshes/` 1 个文件、`textures/` 1 个文件；状态行「已导出 1 个网格、1 张贴图」 |
 | 工作空间每次写入前先删 `meshes/` `textures/`，否则上一轮的旧文件会混进来，"最小改动"就不成立 | `make_workspace` 里 `shutil.rmtree` 两个子目录 |
 | 选择状态与 3D 一致：勾选的网格在场景里是亮蓝、没勾的是灰色；眼睛按钮只切显示/隐藏，不影响导出 | 截图 `pick-v5.png`（只勾 cloth1 时只有外套/袜子是蓝的） |
+| 3D 滚轮缩放原来不生效：`enableDamping` 的相机必须在 `requestAnimationFrame` 里逐帧 `controls.update()`；另外 WebView2 的 `wheel.deltaY` 单位/步长不统一，交给 OrbitControls 会“滚了没反应” → 关掉 `enableZoom`，自己按 `exp(-delta/400)` 指数步进 dolly | `MeshViewer.vue` 的 `tick()` / `onWheel()`；UIA 点 `＋`×2 → 144%、`－` → 120%、重置 → 100% |
+| 视图工具：右上角重置、右侧 `＋/－`、双击复位、左下角「滚轮缩放 · 拖拽旋转 · 双击复位 · 百分比」 | 截图 `viewer-final.png` |
+| 线框模式（`material.wireframe` + `needsUpdate`）实测画面不变，已删除；要再做需换 `WireframeGeometry`/`LineSegments` | 对比图 `wire-compare.png` 平均差 0.67/255（等于没变） |
 
 
 ---

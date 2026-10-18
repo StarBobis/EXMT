@@ -9,6 +9,7 @@
 import { onBeforeUnmount, onMounted, ref, watch } from "vue";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+import { t } from "../lib/i18n";
 import type { PreviewGeometry } from "../lib/preview";
 
 const props = defineProps<{
@@ -19,6 +20,7 @@ const props = defineProps<{
 }>();
 
 const host = ref<HTMLDivElement | null>(null);
+const zoomPct = ref(100);
 
 let renderer: THREE.WebGLRenderer | null = null;
 let scene: THREE.Scene | null = null;
@@ -27,7 +29,10 @@ let controls: OrbitControls | null = null;
 let observer: ResizeObserver | null = null;
 let group: THREE.Group | null = null;
 let grid: THREE.GridHelper | null = null;
+let raf = 0;
 const built = new Map<string, THREE.Mesh>();
+/** 相机取景参数，供「重置视角」和缩放百分比复用。 */
+let framing: { center: THREE.Vector3; maxDim: number } | null = null;
 
 const COLOR_PICKED = 0x8fc9ff;
 const COLOR_IDLE = 0x5f6a78;
@@ -75,17 +80,7 @@ function fit(all: PreviewGeometry[]) {
   const size = max.clone().sub(min);
   const center = min.clone().add(max).multiplyScalar(0.5);
   const maxDim = Math.max(size.x, size.y, size.z, 0.001);
-  const fov = (camera.fov * Math.PI) / 180;
-  // fit the largest dimension into the vertical field of view, with margin
-  const distance = (maxDim / 2 / Math.tan(fov / 2)) * 1.35;
-  const direction = new THREE.Vector3(0.45, 0.28, 1).normalize();
-
-  controls.target.copy(center);
-  camera.position.copy(center).addScaledVector(direction, distance);
-  camera.near = Math.max(distance / 200, 0.001);
-  camera.far = distance * 6 + maxDim * 4;
-  camera.updateProjectionMatrix();
-  controls.update();
+  framing = { center, maxDim };
 
   if (grid) {
     scene?.remove(grid);
@@ -95,6 +90,64 @@ function fit(all: PreviewGeometry[]) {
   grid = new THREE.GridHelper(Math.max(maxDim * 4, 4), 20, 0x2c3a4a, 0x1b242e);
   grid.position.set(center.x, min.y, center.z);
   scene?.add(grid);
+
+  resetView();
+}
+
+/** 把相机放回初始取景（双击 / 重置按钮）。 */
+function resetView() {
+  if (!camera || !controls || !framing) return;
+  const { center, maxDim } = framing;
+  const fov = (camera.fov * Math.PI) / 180;
+  const distance = (maxDim / 2 / Math.tan(fov / 2)) * 1.35;
+  const direction = new THREE.Vector3(0.45, 0.28, 1).normalize();
+
+  controls.target.copy(center);
+  camera.position.copy(center).addScaledVector(direction, distance);
+  camera.near = Math.max(distance / 200, 0.001);
+  camera.far = distance * 6 + maxDim * 4;
+  camera.updateProjectionMatrix();
+  controls.minDistance = maxDim * 0.25;
+  controls.maxDistance = maxDim * 10;
+  controls.update();
+  updateZoom();
+  render();
+}
+
+/** 当前缩放百分比（100 = 刚导入时的取景），只用于界面提示。 */
+function updateZoom() {
+  if (!camera || !controls || !framing) return;
+  const fov = (camera.fov * Math.PI) / 180;
+  const base = (framing.maxDim / 2 / Math.tan(fov / 2)) * 1.35;
+  const distance = Math.max(camera.position.distanceTo(controls.target), 1e-6);
+  const pct = Math.round((base / distance) * 100);
+  if (pct !== zoomPct.value) zoomPct.value = pct;
+}
+
+/** 给没有滚轮的场景准备的放大/缩小。 */
+function zoomBy(factor: number) {
+  if (!controls) return;
+  if (factor > 1) controls.dollyIn(1 / factor);
+  else controls.dollyOut(factor);
+  updateZoom();
+  render();
+}
+
+/**
+ * 自己处理滚轮：WebView2 下 deltaY 的单位/步长不统一（有时是小整数“行”），
+ * 交给 OrbitControls 会出现“滚了没反应”。这里换算成指数步进。
+ */
+function onWheel(event: WheelEvent) {
+  if (!controls) return;
+  event.preventDefault();
+  const unit = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? 100 : 1;
+  const delta = event.deltaY * unit;
+  if (!delta) return;
+  const factor = Math.exp(-delta / 400); // 滚轮向上(负) = 拉近
+  if (factor < 1) controls.dollyOut(factor);
+  else controls.dollyIn(1 / factor);
+  updateZoom();
+  render();
 }
 
 function build(all: PreviewGeometry[]) {
@@ -174,7 +227,23 @@ onMounted(() => {
   controls = new OrbitControls(camera, renderer.domElement);
   controls.enableDamping = true;
   controls.dampingFactor = 0.08;
-  controls.addEventListener("change", render);
+  // 滚轮由 onWheel 统一处理，避免同一个事件被缩放两次
+  controls.enableZoom = false;
+  controls.screenSpacePanning = true;
+
+  // 阻尼是在 update() 里结算的：没有逐帧 update，拖拽松手后不会收敛
+  const tick = () => {
+    raf = requestAnimationFrame(tick);
+    if (!controls || !camera) return;
+    if (controls.update()) {
+      updateZoom();
+      render();
+    }
+  };
+  tick();
+
+  renderer.domElement.addEventListener("wheel", onWheel, { passive: false });
+  renderer.domElement.addEventListener("dblclick", resetView);
 
   observer = new ResizeObserver(resize);
   observer.observe(el);
@@ -191,6 +260,9 @@ watch(() => props.hidden, syncVisibility, { deep: true });
 watch(() => props.selected, syncColors, { deep: true });
 
 onBeforeUnmount(() => {
+  cancelAnimationFrame(raf);
+  renderer?.domElement.removeEventListener("wheel", onWheel);
+  renderer?.domElement.removeEventListener("dblclick", resetView);
   observer?.disconnect();
   controls?.dispose();
   clearGroup();
@@ -207,6 +279,37 @@ onBeforeUnmount(() => {
   <div ref="host" class="meshviewer">
     <div v-if="!meshes.length && !loading" class="meshviewer__empty">3D</div>
     <div v-if="loading" class="meshviewer__loading"><span class="spinner" /></div>
+    <div v-if="meshes.length" class="meshviewer__zoom">
+      <button
+        type="button"
+        :title="t('viewer.zoomIn')"
+        :aria-label="t('viewer.zoomIn')"
+        @click="zoomBy(1.2)"
+      >
+        &#xFF0B;
+      </button>
+      <button
+        type="button"
+        :title="t('viewer.zoomOut')"
+        :aria-label="t('viewer.zoomOut')"
+        @click="zoomBy(1 / 1.2)"
+      >
+        &#xFF0D;
+      </button>
+    </div>
+    <button
+      v-if="meshes.length"
+      class="meshviewer__reset"
+      type="button"
+      :title="t('viewer.reset')"
+      :aria-label="t('viewer.reset')"
+      @click="resetView"
+    >
+      <span class="glyph">&#xE72C;</span>
+    </button>
+    <p v-if="meshes.length" class="meshviewer__hint">
+      {{ t("viewer.hint") }} · {{ zoomPct }}%
+    </p>
   </div>
 </template>
 
@@ -247,6 +350,73 @@ onBeforeUnmount(() => {
   display: grid;
   place-items: center;
   background: rgba(8, 12, 18, 0.35);
+}
+
+.meshviewer__reset {
+  position: absolute;
+  right: 8px;
+  top: 8px;
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 7px;
+  background: rgba(12, 18, 26, 0.72);
+  color: var(--text-2, #9fb0c7);
+  cursor: pointer;
+}
+
+.meshviewer__reset:hover {
+  color: var(--text-1);
+  border-color: var(--accent, #4cc2ff);
+}
+
+.meshviewer__reset .glyph {
+  font-size: 13px;
+}
+
+.meshviewer__zoom {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.meshviewer__zoom button {
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 6px;
+  background: rgba(12, 18, 26, 0.72);
+  color: var(--text-2, #9fb0c7);
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.meshviewer__zoom button:hover {
+  color: var(--text-1);
+  border-color: var(--accent, #4cc2ff);
+}
+
+.meshviewer__hint {
+  position: absolute;
+  left: 10px;
+  bottom: 6px;
+  margin: 0;
+  font-size: 10px;
+  color: var(--text-3);
+  opacity: 0.55;
+  pointer-events: none;
+  user-select: none;
 }
 
 .spinner {

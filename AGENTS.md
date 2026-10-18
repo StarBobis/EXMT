@@ -127,6 +127,8 @@ bun run check     # 见 §6
 | 2026-10-18 | 切个立绘就重新解析/解码，缓存目录形同虚设 | 皮肤级**持久缓存**：`<cache>/skins/<skinKey>/{meshes,geometry,thumbs,meta}.json`，签名 = 相关 bundle 的 size+mtime（游戏更新才失效）；内存 LRU 保留最近 4 个皮肤；页面用 `<KeepAlive>` 保状态，别一切页就重建 |
 | 2026-10-19 | 点「开始制作」窗口卡死 | Tauri 的**同步** `#[tauri::command]` 跑在主线程，长任务会把窗口冻住；一律写成 `async fn` + `tauri::async_runtime::spawn_blocking`。导出成功后 `openPath(result.dir)` 直接把工作空间打开 |
 | 2026-10-19 | 默认全选会导出用户没改的东西 | 模型/贴图**默认全不勾**；勾选 = 只导出这一批。模型行：复选框（导出）+ 眼睛（只切显示）；贴图卡：选中加边框+勾，未选压暗。工作空间写之前先清空 `meshes/` `textures/`，保证目录内容严格等于这次勾选 |
+| 2026-10-19 | 3D 视图滚轮不能缩放 | three 的 `enableDamping` 必须**逐帧 `controls.update()`**（rAF），否则阻尼/缩放不结算；WebView2 的 `deltaY` 单位不统一，滚轮**自己处理**（`exp(-delta/400)` 指数步进）并关掉 `enableZoom` 防止双重缩放；另外补 `＋/－`、重置视角、双击复位、百分比提示 |
+| 2026-10-19 | 线框模式试过但没生效 | `material.wireframe = true` + `needsUpdate` 后画面不变（three 版本相关），**已删除不留半套**；要再试就换 `WireframeGeometry` / `LineSegments` |
 | 2026-10-18 | 为什么没有 docs/skill 更新 | 本文件 §1 RSI 循环 |
 
 ---
