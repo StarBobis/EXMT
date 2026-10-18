@@ -62,8 +62,6 @@ const zh = {
 
   "models.search": "搜索角色…",
   "models.chars": "{n} 个角色",
-  "models.roster": "{art} 立绘 · {skins} 皮肤",
-  "models.rosterNoArt": "无立绘 · {skins} 皮肤",
   "models.titleNoArt": "{name}（无立绘）",
   "models.artboard": "{art} 张立绘 · {skins} 个皮肤",
   "models.noArt": "无立绘",
@@ -238,8 +236,6 @@ const en: Record<MessageKey, string> = {
 
   "models.search": "Search characters…",
   "models.chars": "{n} characters",
-  "models.roster": "{art} art · {skins} skins",
-  "models.rosterNoArt": "No art · {skins} skins",
   "models.titleNoArt": "{name} (no art)",
   "models.artboard": "{art} illustrations · {skins} skins",
   "models.noArt": "No art",

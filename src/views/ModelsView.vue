@@ -312,16 +312,6 @@ watch(
               <span v-else class="roster__ph">{{ c.display.slice(0, 1) }}</span>
             </div>
             <div class="roster__name">{{ c.display }}</div>
-            <div class="roster__skin mono">
-              {{
-                c.art
-                  ? t("models.roster", {
-                      art: (c.art.default ? 1 : 0) + c.art.skins.length,
-                      skins: c.entries.length,
-                    })
-                  : t("models.rosterNoArt", { skins: c.entries.length })
-              }}
-            </div>
           </button>
         </div>
       </aside>
@@ -503,7 +493,7 @@ watch(
 /* ---------- 卡牌视图 + 详情 双栏 ---------- */
 .models {
   display: grid;
-  grid-template-columns: 260px minmax(0, 1fr);
+  grid-template-columns: 200px minmax(0, 1fr);
   gap: 14px;
   align-items: start;
   min-width: 0;
@@ -538,21 +528,22 @@ watch(
   overflow-x: hidden;
 }
 
+/* 头像只留两列：一屏能扫到更多角色 */
 .roster {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(78px, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   align-items: start;
-  gap: 8px;
+  gap: 6px;
 }
 
 .roster__item {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 5px;
-  padding: 6px 4px 8px;
+  gap: 3px;
+  padding: 5px 2px 6px;
   border: 1px solid transparent;
-  border-radius: 10px;
+  border-radius: 9px;
   background: transparent;
   cursor: pointer;
   transition: 120ms ease;
@@ -568,9 +559,9 @@ watch(
 }
 
 .roster__avatar {
-  width: 52px;
-  height: 52px;
-  border-radius: 14px;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
   overflow: hidden;
   background: linear-gradient(160deg, #24334a, #101724);
   display: flex;
@@ -592,16 +583,12 @@ watch(
 }
 
 .roster__name {
-  font-size: 11px;
+  font-size: 10.5px;
+  line-height: 14px;
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.roster__skin {
-  font-size: 9px;
-  opacity: 0.5;
 }
 
 /* ---------- 立绘卡片 ---------- */
@@ -628,18 +615,22 @@ watch(
   opacity: 0.6;
 }
 
+/* 立绘卡片：宽高比锁死成立绘本身的 380:752，卡片有多宽、立绘就有多大，
+   一排平分面板（最多 240px 一张），不靠拉伸或留白凑高度 */
 .artrow {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(74px, 1fr));
-  justify-content: start;
-  gap: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
   max-width: 100%;
 }
 
 .artrow__item {
   position: relative;
-  aspect-ratio: 505 / 1000;
-  max-height: 160px;
+  flex: 1 1 0;
+  min-width: 118px;
+  max-width: 240px;
+  aspect-ratio: 380 / 752;
   padding: 0;
   border: 1px solid var(--stroke, rgba(255, 255, 255, 0.08));
   border-radius: 12px;
@@ -722,7 +713,7 @@ watch(
 }
 
 .artrow__name {
-  font-size: 10.5px;
+  font-size: 12px;
   font-weight: 600;
   color: #eef4ff;
   overflow: hidden;
@@ -731,7 +722,7 @@ watch(
 }
 
 .artrow__code {
-  font-size: 8px;
+  font-size: 9px;
   color: rgba(214, 230, 255, 0.6);
   overflow: hidden;
   text-overflow: ellipsis;
