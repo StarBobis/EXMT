@@ -147,6 +147,8 @@ function portraitUrl(entry: CatalogEntry) {
 const meshes = ref<SkinMesh[]>([]);
 const geometries = ref<PreviewGeometry[]>([]);
 const hidden = ref<string[]>([]);
+const pickedMeshes = ref<string[]>([]);
+const pickedTextures = ref<string[]>([]);
 const textures = ref<TextureEntry[]>([]);
 const busy = ref("");
 const note = ref("");
@@ -173,6 +175,19 @@ function toggleMesh(name: string) {
     : [...hidden.value, name];
 }
 
+/** 勾选 = 会导出；默认全选，用户只改想改的那几个。 */
+function togglePickMesh(name: string) {
+  pickedMeshes.value = pickedMeshes.value.includes(name)
+    ? pickedMeshes.value.filter((item) => item !== name)
+    : [...pickedMeshes.value, name];
+}
+
+function togglePickTexture(name: string) {
+  pickedTextures.value = pickedTextures.value.includes(name)
+    ? pickedTextures.value.filter((item) => item !== name)
+    : [...pickedTextures.value, name];
+}
+
 function stamp(iso: string | null) {
   if (!iso) return "";
   const d = new Date(iso);
@@ -187,6 +202,8 @@ async function openStudio(entry: CatalogEntry) {
   meshes.value = [];
   geometries.value = [];
   hidden.value = [];
+  pickedMeshes.value = [];
+  pickedTextures.value = [];
   textures.value = [];
   note.value = "";
   cacheHint.value = "";
@@ -208,6 +225,9 @@ async function openStudio(entry: CatalogEntry) {
     meshes.value = data.meshes;
     geometries.value = data.geometry;
     textures.value = data.textures;
+    // 默认全不选：用户只勾自己要改的那几个，导出和回包都只动它们
+    pickedMeshes.value = [];
+    pickedTextures.value = [];
     if (data.cached) cacheHint.value = t("models.studio.cached", { time: stamp(data.builtAt) });
     if (!data.meshes.length) note.value = t("models.studio.noMesh");
     else if (!data.textures.length) note.value = t("models.studio.noTex");
@@ -221,11 +241,18 @@ async function openStudio(entry: CatalogEntry) {
 async function startMaking() {
   const entry = selected.value;
   if (!entry || !meshes.value.length) return;
+  const exportMeshes = meshes.value.filter((mesh) => pickedMeshes.value.includes(mesh.name));
+  const exportTextures = textures.value.filter(
+    (tex) => tex.png && pickedTextures.value.includes(tex.name),
+  );
+  if (!exportMeshes.length) {
+    status.value = { kind: "err", text: t("models.studio.pickOne") };
+    return;
+  }
   busy.value = t("models.making");
   status.value = null;
   try {
-    const ready = textures.value.filter((tex) => tex.png);
-    const result = await makeWorkspace(entry, label(entry), meshes.value, ready);
+    const result = await makeWorkspace(entry, label(entry), exportMeshes, exportTextures);
     status.value = {
       kind: "ok",
       text: t("models.made", { meshes: result.meshes, textures: result.textures, dir: result.dir }),
@@ -354,13 +381,15 @@ watch(
           <button
             class="btn btn--accent"
             type="button"
-            :disabled="!!busy || !meshes.length"
+            :disabled="!!busy || !pickedMeshes.length"
             @click="startMaking"
           >
             <span class="glyph">&#xE768;</span>
             {{ t("models.make") }}
           </button>
-          <span class="studio__hint">{{ busy || note || cacheHint }}</span>
+          <span class="studio__hint">
+            {{ busy || note || (pickedMeshes.length ? cacheHint : t("models.studio.nothingPicked")) }}
+          </span>
         </div>
         <p v-if="status" class="status-line" :class="'status-line--' + status.kind">
           {{ status.kind === "ok" ? "✓" : status.kind === "err" ? "✗" : "·" }} {{ status.text }}
@@ -373,23 +402,39 @@ watch(
               <span class="chip">{{ meshes.length }}</span>
             </div>
             <div class="meshline-list">
-              <button
+              <div
                 v-for="mesh in meshes"
                 :key="mesh.name"
-                type="button"
                 class="meshline"
-                :class="{ 'meshline--off': hidden.includes(mesh.name) }"
-                :title="t('models.studio.toggle')"
-                @click="toggleMesh(mesh.name)"
+                :class="{
+                  'meshline--off': hidden.includes(mesh.name),
+                  'meshline--picked': pickedMeshes.includes(mesh.name),
+                }"
               >
-                <span class="meshline__eye" aria-hidden="true" />
-                <span class="meshline__body">
+                <input
+                  class="meshline__check"
+                  type="checkbox"
+                  :checked="pickedMeshes.includes(mesh.name)"
+                  :aria-label="shortName(mesh.name)"
+                  :title="t('models.studio.pick')"
+                  @change="togglePickMesh(mesh.name)"
+                />
+                <button
+                  class="meshline__eye"
+                  type="button"
+                  :title="t('models.studio.toggle')"
+                  :aria-label="t('models.studio.toggle')"
+                  @click="toggleMesh(mesh.name)"
+                >
+                  <span class="glyph">{{ hidden.includes(mesh.name) ? "\uED1A" : "\uE890" }}</span>
+                </button>
+                <button class="meshline__body" type="button" @click="togglePickMesh(mesh.name)">
                   <span class="meshline__name mono">{{ shortName(mesh.name) }}</span>
                   <span class="meshline__meta">
                     {{ t("models.studio.verts", { n: compact(mesh.verts), m: compact(mesh.tris) }) }}
                   </span>
-                </span>
-              </button>
+                </button>
+              </div>
               <p v-if="!meshes.length && !busy" class="studio__empty">
                 {{ t("models.studio.noMesh") }}
               </p>
@@ -397,7 +442,12 @@ watch(
           </div>
 
           <div class="studio__viewer">
-            <MeshViewer :meshes="geometries" :hidden="hidden" :loading="!!busy" />
+            <MeshViewer
+              :meshes="geometries"
+              :hidden="hidden"
+              :selected="pickedMeshes"
+              :loading="!!busy"
+            />
           </div>
 
           <div class="studio__textures">
@@ -406,18 +456,34 @@ watch(
               <span class="chip">{{ textures.length }}</span>
             </div>
             <div class="texgrid">
-              <figure v-for="tex in textures" :key="tex.name" class="texcard" :title="tex.name">
-                <div class="texcard__frame">
+              <button
+                v-for="tex in textures"
+                :key="tex.name"
+                type="button"
+                class="texcard"
+                :class="{ 'texcard--picked': pickedTextures.includes(tex.name) }"
+                :title="tex.name"
+                :aria-label="tex.name"
+                :aria-pressed="pickedTextures.includes(tex.name)"
+                @click="togglePickTexture(tex.name)"
+              >
+                <span class="texcard__frame">
                   <img
                     v-if="tex.png"
                     class="texcard__img"
                     :src="`data:image/png;base64,${tex.png}`"
                     :alt="tex.name"
                   />
-                  <div v-else class="texcard__ph">?</div>
-                </div>
-                <figcaption class="texcard__caption mono">{{ shortName(tex.name) }}</figcaption>
-              </figure>
+                  <span v-else class="texcard__ph">?</span>
+                  <span
+                    v-if="pickedTextures.includes(tex.name)"
+                    class="texcard__tick"
+                    aria-hidden="true"
+                    >✓</span
+                  >
+                </span>
+                <span class="texcard__caption mono">{{ shortName(tex.name) }}</span>
+              </button>
               <p v-if="!textures.length && !busy" class="studio__empty">
                 {{ t("models.studio.noTex") }}
               </p>
@@ -716,13 +782,11 @@ watch(
 .meshline {
   display: flex;
   align-items: center;
-  gap: 7px;
-  padding: 6px 8px;
+  gap: 6px;
+  padding: 5px 6px;
   border: 1px solid transparent;
   border-radius: 7px;
   background: rgba(255, 255, 255, 0.03);
-  text-align: left;
-  cursor: pointer;
   transition: 120ms ease;
 }
 
@@ -730,31 +794,59 @@ watch(
   background: rgba(255, 255, 255, 0.07);
 }
 
-.meshline__body {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  min-width: 0;
-}
-
-/* 显示/隐藏指示：实心点 = 显示中 */
-.meshline__eye {
-  flex: none;
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: var(--accent, #4cc2ff);
-  box-shadow: 0 0 6px rgba(76, 194, 255, 0.45);
+/* 勾选 = 会导出；没勾的保持灰色，导出的那批在 3D 里也是这个蓝色 */
+.meshline--picked {
+  border-color: rgba(76, 194, 255, 0.55);
+  background: rgba(76, 194, 255, 0.08);
 }
 
 .meshline--off {
   opacity: 0.45;
 }
 
-.meshline--off .meshline__eye {
+.meshline__check {
+  flex: none;
+  width: 13px;
+  height: 13px;
+  margin: 0;
+  accent-color: var(--accent, #4cc2ff);
+  cursor: pointer;
+}
+
+.meshline__eye {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: none;
+  border-radius: 5px;
   background: transparent;
-  border: 1px solid var(--text-3, #7d8fa6);
-  box-shadow: none;
+  color: var(--text-2, #9fb0c7);
+  cursor: pointer;
+}
+
+.meshline__eye:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.meshline__eye .glyph {
+  font-size: 13px;
+}
+
+.meshline__body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
 }
 
 .meshline__name {
@@ -788,17 +880,30 @@ watch(
 .texcard {
   flex: 0 0 88px;
   margin: 0;
+  padding: 0;
   border: 1px solid var(--stroke, rgba(255, 255, 255, 0.08));
   border-radius: 8px;
   overflow: hidden;
   background:
     repeating-conic-gradient(rgba(255, 255, 255, 0.05) 0% 25%, transparent 0% 50%) 0 0 / 12px 12px,
     rgba(255, 255, 255, 0.02);
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  opacity: 0.72;
+}
+
+/* 选中的贴图加边框，未选中的压暗 */
+.texcard--picked {
+  opacity: 1;
+  border-color: var(--accent, #4cc2ff);
+  box-shadow: 0 0 0 1px var(--accent, #4cc2ff) inset;
 }
 
 /* 游戏贴图都是正方形：用 padding-top 撑成 1:1，不依赖 aspect-ratio */
 .texcard__frame {
   position: relative;
+  display: block;
   width: 100%;
   padding-top: 100%;
 }
@@ -822,7 +927,23 @@ watch(
   opacity: 0.35;
 }
 
+.texcard__tick {
+  position: absolute;
+  right: 4px;
+  top: 4px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--accent, #4cc2ff);
+  color: #04121f;
+  font-size: 11px;
+  line-height: 16px;
+  font-weight: 700;
+  text-align: center;
+}
+
 .texcard__caption {
+  display: block;
   font-size: 8.5px;
   padding: 3px 5px;
   opacity: 0.65;

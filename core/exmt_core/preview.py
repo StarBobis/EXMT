@@ -19,6 +19,7 @@ import base64
 import io
 import json
 import os
+import shutil
 import time
 from concurrent.futures import ProcessPoolExecutor
 
@@ -276,6 +277,10 @@ def make_workspace(outdir: str, spec: dict) -> dict:
     os.makedirs(outdir, exist_ok=True)
     mesh_dir = os.path.join(outdir, "meshes")
     tex_dir = os.path.join(outdir, "textures")
+    # 工作空间只放这一次勾选的内容：先清掉旧文件，避免上一次的残留混进来
+    for stale in (mesh_dir, tex_dir):
+        if os.path.isdir(stale):
+            shutil.rmtree(stale)
     os.makedirs(mesh_dir, exist_ok=True)
     os.makedirs(tex_dir, exist_ok=True)
 

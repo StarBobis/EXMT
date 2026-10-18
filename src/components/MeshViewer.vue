@@ -14,6 +14,7 @@ import type { PreviewGeometry } from "../lib/preview";
 const props = defineProps<{
   meshes: PreviewGeometry[];
   hidden: string[];
+  selected: string[];
   loading?: boolean;
 }>();
 
@@ -28,8 +29,8 @@ let group: THREE.Group | null = null;
 let grid: THREE.GridHelper | null = null;
 const built = new Map<string, THREE.Mesh>();
 
-const COLOR = 0x9fb6cc;
-const COLOR_ACTIVE = 0x4cc2ff;
+const COLOR_PICKED = 0x8fc9ff;
+const COLOR_IDLE = 0x5f6a78;
 
 function render() {
   if (!renderer || !scene || !camera) return;
@@ -116,7 +117,7 @@ function build(all: PreviewGeometry[]) {
     buffer.computeBoundingSphere();
 
     const material = new THREE.MeshStandardMaterial({
-      color: COLOR,
+      color: props.selected.includes(geo.name) ? COLOR_PICKED : COLOR_IDLE,
       metalness: 0.12,
       roughness: 0.7,
       side: THREE.DoubleSide,
@@ -134,6 +135,17 @@ function build(all: PreviewGeometry[]) {
 
 function syncVisibility() {
   for (const [name, mesh] of built) mesh.visible = !props.hidden.includes(name);
+  render();
+}
+
+/** 勾选的网格亮蓝，没勾的压成灰色——和列表里的勾选状态一致。 */
+function syncColors() {
+  for (const [name, mesh] of built) {
+    const material = mesh.material as THREE.MeshStandardMaterial;
+    const picked = props.selected.includes(name);
+    material.color.setHex(picked ? COLOR_PICKED : COLOR_IDLE);
+    material.emissive.setHex(picked ? 0x0d2436 : 0x000000);
+  }
   render();
 }
 
@@ -176,6 +188,7 @@ watch(
   (all) => build(all),
 );
 watch(() => props.hidden, syncVisibility, { deep: true });
+watch(() => props.selected, syncColors, { deep: true });
 
 onBeforeUnmount(() => {
   observer?.disconnect();
@@ -188,17 +201,6 @@ onBeforeUnmount(() => {
   camera = null;
   controls = null;
 });
-
-function setColor(name: string | null) {
-  for (const [meshName, mesh] of built) {
-    const material = mesh.material as THREE.MeshStandardMaterial;
-    material.color.setHex(meshName === name ? COLOR_ACTIVE : COLOR);
-    material.emissive.setHex(meshName === name ? 0x123044 : 0x000000);
-  }
-  render();
-}
-
-defineExpose({ setColor });
 </script>
 
 <template>

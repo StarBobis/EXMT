@@ -97,6 +97,9 @@
 | 页面状态用 `<KeepAlive>` 保留：首页→模型来回切，选中皮肤/网格可见性/贴图都不丢 | 截图 `keepalive.png` 与切走前逐像素一致 |
 | Tauri 的**同步**命令跑在主线程：`run_core` 原来是 `fn`，导出 8 秒里窗口会假死；改成 `async fn` + `tauri::async_runtime::spawn_blocking` 后，同一次导出期间 24 次 `Get-Process exmt-modbox).Responding` 采样**全部 True** | `src-tauri/src/lib.rs` 的 `run_core` / `run_core_blocking`；导出 00:12:35 完成、采样间隔 300 ms |
 | 导出完成后自动打开工作空间：`openPath(result.dir)`，实测资源管理器停在 `file:///C:/EXMTCacheFolder/workspace/c_AlvaSSR01` | `Shell.Application.Windows().LocationURL` |
+| 勾选 = 最小改动：模型/贴图默认**全不勾**；只勾 `slg_cloth1_lod0` + `slg_cloth1_d` 时，工作空间里就只有 1 个 `.exmtmesh` + 1 张 PNG | 实测导出后 `meshes/` 1 个文件、`textures/` 1 个文件；状态行「已导出 1 个网格、1 张贴图」 |
+| 工作空间每次写入前先删 `meshes/` `textures/`，否则上一轮的旧文件会混进来，"最小改动"就不成立 | `make_workspace` 里 `shutil.rmtree` 两个子目录 |
+| 选择状态与 3D 一致：勾选的网格在场景里是亮蓝、没勾的是灰色；眼睛按钮只切显示/隐藏，不影响导出 | 截图 `pick-v5.png`（只勾 cloth1 时只有外套/袜子是蓝的） |
 
 
 ---
