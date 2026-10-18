@@ -21,6 +21,16 @@ Click(h, cx, cy): ClientToScreen(o) → SetCursorPos(o+c) → mouse_event down/u
 **坐标**：这是**客户区物理像素**。窗口 1120 CSS × DPI 150% = 1680 px，所以 `click 30 145` 命中的是 CSS (20, 97)。
 先截一张图，量出目标在**图片里的像素**，减去窗口原点，就是 click 的入参——不要拿 CSS 坐标直接点。
 
+**量尺寸前先修 DPI 感知**：pwsh 是 DPI 不感知进程，`GetWindowRect` 给的是**虚拟化**坐标（150% 屏上比真实小 1.5 倍）。
+量物理像素要先在**当前线程**开感知（不需要改宿主程序）：
+
+```powershell
+[DllImport("user32.dll")] static extern IntPtr SetThreadDpiAwarenessContext(IntPtr ctx);
+SetThreadDpiAwarenessContext((IntPtr)(-4));   // PER_MONITOR_AWARE_V2，之后再 GetWindowRect / CopyFromScreen
+```
+
+`SetForegroundWindow` 之后 `Sleep(400)` 再抓图；整屏抓 `0,0,2560,1600` 能同时看到窗口四周留白，比只抓窗口更能说明"大小合不合适"。
+
 ## 2. 布局：两个"看起来是 bug，其实是 CSS"的坑
 
 | 现象 | 根因 | 修法 |
@@ -66,3 +76,43 @@ button:focus-visible { background: var(--fill-subtle-hover); }   /* 只有键盘
   要写就 `[IO.File]::WriteAllText($p,$t,[Text.UTF8Encoding]::new($false))`。
 - 别把 `Get-Process | Select -First 1` 当成"那个应用"：Tauri dev 会有多个进程，认 `MainWindowTitle`。
 - 别在窗口被遮挡时截图，然后下结论说样式没生效。
+
+## 8. 窗口初始尺寸：按工作区比例算，别写死
+
+`tauri.conf.json` 里的 `width/height` 是**绝对逻辑像素**——同一份 1120×700，在 1366×768 笔记本上几乎占满，
+在 2560×1600 上又显小。用户要的是"按分辨率算一个不大不小的尺寸"。
+
+判据（放 Rust `setup` 里，不放 config）：
+
+```rust
+// Monitor::work_area() 是物理像素，除以 scale_factor 换成逻辑像素（= 用户看到的点数）
+let scale = monitor.scale_factor();
+let (work_w, work_h) = (area.size.width as f64 / scale, area.size.height as f64 / scale);
+
+let mut w = work_w * 0.72;          // 宽度取工作区的 72%
+let mut h = w / (16.0 / 10.0);      // 宽屏比例；超宽屏时这条会被下面截断
+if h > work_h * 0.88 { h = work_h * 0.88; w = h * (16.0 / 10.0); }   // 先让高，别顶到任务栏
+if w < 920.0 { w = 920.0; h = w / (16.0 / 10.0); }                   // 下限跟 config 的
+if h < 600.0 { h = 600.0; w = h * (16.0 / 10.0); }                   // minWidth/minHeight 同步
+window.set_size(LogicalSize::new(w.min(work_w).round(), h.min(work_h).round()));
+```
+
+三个必须知道的点：
+
+1. **`set_size` 设的是客户区**（tao inner size）。无边框窗口外面还有一圈不可见 resize 边框（本机 150% 下 22×13 px），
+   所以居中要用 `window.outer_size()`，拿 `width*scale` 当外框会让窗口左右各偏 ~11px。
+2. **居中要贴工作区**（`work_area.position + (work_area.size - outer)/2`），不要 `center: true` 或整屏居中——
+   任务栏会把窗口压到底边，多屏时也会跑到错的屏幕。
+3. **在 `setup` 里改，用户看不到跳变**：config 窗口在 setup 之前创建但还没进消息循环，第一帧就是新尺寸。
+   保持 config 的 `width/height` 当兜底（拿不到 monitor 时用）。
+
+实测曲线（16:10，工作区已是扣掉任务栏的逻辑尺寸）：
+
+| 屏幕 | 工作区 | 窗口 |
+| --- | --- | --- |
+| 1366×768 @100% | 1366×728 | 984×615 |
+| 1920×1080 @100% | 1920×1040 | 1382×864 |
+| 2560×1600 @150% | 1707×1019 | 1229×768 |
+| 3440×1440 @100% | 3440×1400 | 1232 高封顶 → 1971×1232 |
+
+要换成 16:9 只改一个常量；要更"小一号"就调 `0.72`，别再去 config 写死数字。

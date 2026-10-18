@@ -20,6 +20,21 @@ Step 'frontend types' {
   try { & npx --no-install vue-tsc --noEmit } finally { Pop-Location }
 }
 
+Step 'rust build' {
+  # Half the shell is Rust; a broken lib.rs must fail the gate, not the app.
+  $cargo = Join-Path $env:USERPROFILE '.cargo\bin\cargo.exe'
+  if (-not (Test-Path $cargo)) {
+    $found = Get-Command cargo -ErrorAction SilentlyContinue
+    if ($found) { $cargo = $found.Source } else { $cargo = $null }
+  }
+  if (-not $cargo) {
+    Write-Host 'skip: cargo not found'
+  } else {
+    Push-Location (Join-Path $root 'src-tauri')
+    try { & $cargo check --quiet } finally { Pop-Location }
+  }
+}
+
 Step 'core syntax' {
   & $py -m compileall -q (Join-Path $root 'core\exmt_core')
 }

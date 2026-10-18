@@ -92,6 +92,7 @@ bun run check     # 见 §6
 | 区域 | 规则 |
 | --- | --- |
 | 侧边导航 | NavigationView：展开 272px / 折叠 48px；`☰` 在面板头部，与图标共用 40×40 盒子、`2px auto`；折叠时图标居中、文字淡出；状态存 localStorage |
+| 窗口 | 初始尺寸**按显示器工作区算**，不写死：`16:10` 宽屏，宽度 = 工作区 72%，高度上限 88%（超宽屏先让高），下限 920×600，居中于工作区（不是整屏，避开任务栏）。见 `src-tauri/src/lib.rs` 的 `default_window_size` |
 | 焦点 | **鼠标点选不出现蓝色 focus 框**：`.nav-item:focus, :focus-visible { outline: none }`，改用 `--fill-subtle-hover` 填充；键盘用户靠填充感知 |
 | 页面 | **full-bleed**：`.page { max-width: none; margin: 0; padding: 18px 24px }`。别用 `max-width + margin:auto`，宽窗口留死白、超宽把内容推出屏幕 |
 | 栅格 | 用 `minmax(0, Nfr)`；裸 `1fr` / `70% 30%` 会被子元素 min-content 顶宽，产生横向溢出 |
@@ -137,9 +138,10 @@ bun run check     # 见 §6
 `package.json` 的 `check` 依次执行：
 
 1. `vue-tsc --noEmit`
-2. `python -m compileall core/exmt_core`（核心语法）
-3. `python -m exmt_core list <已知bundle>`（核心冒烟）
-4. `vitepress build`（若 `C:\Dev\EXMTDoc` 存在）
+2. `cargo check`（`src-tauri/`，找不到 cargo 才跳过）——外壳是 Rust，编译坏了不能等到 `tauri dev` 才发现
+3. `python -m compileall core/exmt_core`（核心语法）
+4. `python -m exmt_core meshes <已知bundle>`（核心冒烟，断言输出含 `c_Vepley`）
+5. `vitepress build`（若 `C:\Dev\EXMTDoc` 存在）
 
 任何一步失败都不许说"完成"。
 
