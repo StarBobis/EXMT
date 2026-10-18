@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from "vue";
+import { computed, ref, watch, type CSSProperties } from "vue";
 import { openPath } from "@tauri-apps/plugin-opener";
 import { t } from "../lib/i18n";
 import MeshViewer from "../components/MeshViewer.vue";
@@ -135,6 +135,44 @@ const artCards = computed(() => {
 
 function label(entry: CatalogEntry) {
   return entry.display || entry.name;
+}
+
+// ------------------------------------------------------------------------- //
+// 立绘轮播：当前卡永远在中间，其余按环形距离叠在左右两侧
+// ------------------------------------------------------------------------- //
+const activeIndex = computed(() => {
+  const id = selected.value?.id;
+  const i = artCards.value.findIndex((c) => c.entry.id === id);
+  return i < 0 ? 0 : i;
+});
+
+/** 相对当前卡的环形位置：0 = 中间，±1 = 紧邻左右，依此类推。 */
+function slotOf(i: number) {
+  const n = artCards.value.length;
+  if (n < 2) return 0;
+  const a = activeIndex.value;
+  let d = i - a;
+  if (d > n / 2) d -= n;
+  else if (d < -n / 2) d += n;
+  return d;
+}
+
+/** 位置 -> 位移/缩放/倾角；越远越小越暗，超过 3 层藏起来。 */
+function slotStyle(i: number): CSSProperties {
+  const d = slotOf(i);
+  const depth = Math.min(Math.abs(d), 4);
+  const dir = Math.sign(d);
+  const scale = [1, 0.86, 0.74, 0.64, 0.56][depth];
+  const shift = [0, 64, 96, 118, 132][depth];
+  const tilt = [0, 10, 16, 20, 22][depth];
+  const dx = dir * shift;
+  const x = dx < 0 ? `-50% - ${-dx}%` : `-50% + ${dx}%`;
+  return {
+    transform: `translate(calc(${x}), -50%) rotateY(${-dir * tilt}deg) scale(${scale})`,
+    zIndex: String(30 - depth),
+    opacity: Math.abs(d) > 3 ? "0" : Math.abs(d) === 3 ? "0.48" : "1",
+    pointerEvents: Math.abs(d) > 3 ? "none" : "auto",
+  };
 }
 
 function portraitUrl(entry: CatalogEntry) {
@@ -299,6 +337,7 @@ watch(
             :class="{ 'roster__item--active': selectedChar?.key === c.key }"
             type="button"
             :title="c.display"
+            @mousedown.prevent
             @click="pickChar(c)"
           >
             <div class="roster__avatar">
@@ -326,45 +365,51 @@ watch(
             </span>
           </div>
 
-          <div v-if="artCards.length" class="artrow">
-            <button
-              v-for="card in artCards"
+          <div v-if="artCards.length" class="deck">
+            <div
+              v-for="(card, i) in artCards"
               :key="card.entry.id"
-              class="artrow__item"
-              :class="{
-                'artrow__item--active': selected?.id === card.entry.id,
-                'artrow__item--empty': !card.art,
-              }"
-              type="button"
-              :title="card.art ? card.art.label : t('models.titleNoArt', { name: label(card.entry) })"
-              @click="selected = card.entry"
+              class="deck__slot"
+              :style="slotStyle(i)"
             >
-              <img
-                v-if="card.art"
-                class="artrow__img"
-                :src="card.art.file"
-                :alt="card.art.label"
-                loading="lazy"
-              />
-              <div v-else class="artrow__placeholder">
+              <button
+                class="deck__card"
+                :class="{
+                  'deck__card--active': selected?.id === card.entry.id,
+                  'deck__card--empty': !card.art,
+                }"
+                type="button"
+                :title="card.art ? card.art.label : t('models.titleNoArt', { name: label(card.entry) })"
+                @mousedown.prevent
+                @click="selected = card.entry"
+              >
                 <img
-                  v-if="card.entry.portrait"
-                  class="artrow__head"
-                  :src="portraitUrl(card.entry)"
-                  :alt="label(card.entry)"
+                  v-if="card.art"
+                  class="deck__img"
+                  :src="card.art.file"
+                  :alt="card.art.label"
                   loading="lazy"
                 />
-                <span v-else class="artrow__initial">{{ label(card.entry).slice(0, 1) }}</span>
-                <span class="artrow__nopic">{{ t("models.noArt") }}</span>
-              </div>
+                <div v-else class="deck__placeholder">
+                  <img
+                    v-if="card.entry.portrait"
+                    class="deck__head"
+                    :src="portraitUrl(card.entry)"
+                    :alt="label(card.entry)"
+                    loading="lazy"
+                  />
+                  <span v-else class="deck__initial">{{ label(card.entry).slice(0, 1) }}</span>
+                  <span class="deck__nopic">{{ t("models.noArt") }}</span>
+                </div>
 
-              <div class="artrow__label">
-                <span class="artrow__name">{{ card.art ? card.art.label : label(card.entry) }}</span>
-                <span class="artrow__code mono">
-                  {{ card.art ? card.art.entry_label || card.art.code : card.entry.variant }}
-                </span>
-              </div>
-            </button>
+                <div class="deck__label">
+                  <span class="deck__name">{{ card.art ? card.art.label : label(card.entry) }}</span>
+                  <span class="deck__code mono">
+                    {{ card.art ? card.art.entry_label || card.art.code : card.entry.variant }}
+                  </span>
+                </div>
+              </button>
+            </div>
           </div>
           <p v-else class="artboard__empty">{{ t("models.noArtHint") }}</p>
         </section>
@@ -615,42 +660,55 @@ watch(
   opacity: 0.6;
 }
 
-/* 立绘卡片：宽高比锁死成立绘本身的 380:752，卡片有多宽、立绘就有多大，
-   一排平分面板（最多 240px 一张），不靠拉伸或留白凑高度 */
-.artrow {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 10px;
-  max-width: 100%;
+/* 立绘卡牌：一张居中、其余按环形距离往两侧叠；卡面比例锁死成立绘本身的 380:752 */
+.deck {
+  --deck-h: clamp(380px, 40vh, 480px);
+  position: relative;
+  height: var(--deck-h);
+  margin: 4px 0 6px;
+  perspective: 1400px;
+  perspective-origin: 50% 46%;
 }
 
-.artrow__item {
+.deck__slot {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: calc(var(--deck-h) * 380 / 752);
+  height: var(--deck-h);
+  transform-origin: 50% 50%;
+  transition:
+    transform 340ms cubic-bezier(0.2, 0.7, 0.2, 1),
+    opacity 340ms ease;
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+}
+
+.deck__card {
   position: relative;
-  flex: 1 1 0;
-  min-width: 118px;
-  max-width: 240px;
-  aspect-ratio: 380 / 752;
+  display: block;
+  width: 100%;
+  height: 100%;
   padding: 0;
   border: 1px solid var(--stroke, rgba(255, 255, 255, 0.08));
   border-radius: 12px;
   overflow: hidden;
   background: radial-gradient(120% 70% at 50% 20%, #2a3a55 0%, #131b28 70%, #0d131d 100%);
   cursor: pointer;
-  transition: 120ms ease;
+  transition: transform 140ms ease, border-color 140ms ease, box-shadow 140ms ease;
 }
 
-.artrow__item:hover {
-  transform: translateY(-2px);
+.deck__card:hover {
+  transform: translateY(-3px);
   border-color: rgba(255, 255, 255, 0.24);
 }
 
-.artrow__item--active {
+.deck__card--active {
   border-color: var(--accent, #4cc2ff);
-  box-shadow: 0 0 0 1px var(--accent, #4cc2ff) inset, 0 8px 22px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 0 0 1px var(--accent, #4cc2ff) inset, 0 14px 34px rgba(0, 0, 0, 0.5);
 }
 
-.artrow__img {
+.deck__img {
   width: 100%;
   height: 100%;
   object-fit: contain;
@@ -658,7 +716,7 @@ watch(
 }
 
 /* 没有立绘的皮肤：同一张卡片位，显示头像 + 「无立绘」标记 */
-.artrow__item--empty {
+.deck__card--empty {
   background: repeating-linear-gradient(
       135deg,
       rgba(255, 255, 255, 0.022) 0 10px,
@@ -667,7 +725,7 @@ watch(
     radial-gradient(120% 70% at 50% 25%, #202b3d 0%, #121a26 70%, #0d131d 100%);
 }
 
-.artrow__placeholder {
+.deck__placeholder {
   position: absolute;
   inset: 0;
   display: flex;
@@ -678,7 +736,7 @@ watch(
   padding-bottom: 30px;
 }
 
-.artrow__head {
+.deck__head {
   width: 54%;
   aspect-ratio: 1;
   border-radius: 50%;
@@ -687,13 +745,13 @@ watch(
   filter: grayscale(0.35);
 }
 
-.artrow__initial {
+.deck__initial {
   font-size: 30px;
   font-weight: 600;
   opacity: 0.4;
 }
 
-.artrow__nopic {
+.deck__nopic {
   font-size: 10px;
   letter-spacing: 0.08em;
   color: rgba(206, 224, 255, 0.45);
@@ -702,17 +760,17 @@ watch(
   padding: 1px 8px;
 }
 
-.artrow__label {
+.deck__label {
   position: absolute;
   inset: auto 0 0 0;
   display: flex;
   flex-direction: column;
   gap: 1px;
-  padding: 14px 7px 6px;
+  padding: 14px 8px 8px;
   background: linear-gradient(to top, rgba(6, 10, 18, 0.94), rgba(6, 10, 18, 0.6) 55%, transparent);
 }
 
-.artrow__name {
+.deck__name {
   font-size: 12px;
   font-weight: 600;
   color: #eef4ff;
@@ -721,7 +779,7 @@ watch(
   white-space: nowrap;
 }
 
-.artrow__code {
+.deck__code {
   font-size: 9px;
   color: rgba(214, 230, 255, 0.6);
   overflow: hidden;
