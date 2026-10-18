@@ -206,25 +206,29 @@ async function openStudio(entry: CatalogEntry) {
   busy.value = t("models.studio.loading");
   try {
     const prefix = `${skinKey}_`;
+    // The catalog already knows which meshes make up this skin and which
+    // bundle holds each part, so only those bundles are opened.
     const parts = Object.entries(entry.parts ?? {});
     const pool = new Map<string, SkinMesh>();
     const add = (list: SkinMesh[]) => {
       for (const mesh of list) if (!pool.has(mesh.name)) pool.set(mesh.name, mesh);
     };
 
-    // The catalog already knows which meshes make up this skin; the bundle is
-    // only asked for their vertex counts (and for parts stored in other bundles).
-    add(await loadMeshes([entry.bundle]));
-    if (mine !== token) return;
     for (const [part, meshName] of parts) {
       if (pool.has(meshName)) continue;
-      add(await loadMeshes(entry.part_bundles?.[part] ?? []));
-      if (mine !== token) return;
+      const candidates = entry.part_bundles?.[part] ?? [];
+      for (const hash of candidates.length ? candidates : [entry.bundle]) {
+        add(await loadMeshes([hash]));
+        if (mine !== token) return;
+        if (pool.has(meshName)) break;
+      }
     }
 
     let list = parts.map(([, name]) => pool.get(name)).filter((m): m is SkinMesh => !!m);
     if (!list.length) {
       // no catalog parts for this entry: fall back to the skin's own meshes
+      add(await loadMeshes([entry.bundle]));
+      if (mine !== token) return;
       list = [...pool.values()].filter((m) => m.name.startsWith(prefix));
     }
     meshes.value = list;
@@ -283,7 +287,8 @@ async function startMaking() {
   busy.value = t("models.making");
   status.value = null;
   try {
-    const result = await makeWorkspace(entry, label(entry), meshes.value, textures.value);
+    const ready = textures.value.filter((tex) => tex.png);
+    const result = await makeWorkspace(entry, label(entry), meshes.value, ready);
     status.value = {
       kind: "ok",
       text: t("models.made", { meshes: result.meshes, textures: result.textures, dir: result.dir }),

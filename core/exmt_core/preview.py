@@ -277,24 +277,28 @@ def make_workspace(outdir: str, spec: dict) -> dict:
         })
 
     written_textures = []
+    failed = []
     for item in spec.get("textures", []):
         hash_ = item["bundle"]
-        if hash_ not in bundles:
-            bundles[hash_] = open_bundle(spec["bundles"][hash_])
-        bundle = bundles[hash_]
-        img = T.decode_texture(bundle, item["name"])
-        if max(img.size) > 2048:
-            img.thumbnail((2048, 2048))
-        fname = _safe(item["name"]) + ".png"
-        path = os.path.join(tex_dir, fname)
-        img.save(path)
-        written_textures.append({
-            "file": "textures/" + fname,
-            "name": item["name"],
-            "bundle": hash_,
-            "width": int(img.size[0]),
-            "height": int(img.size[1]),
-        })
+        try:
+            if hash_ not in bundles:
+                bundles[hash_] = open_bundle(spec["bundles"][hash_])
+            bundle = bundles[hash_]
+            img = T.decode_texture(bundle, item["name"])
+            if max(img.size) > 2048:
+                img.thumbnail((2048, 2048))
+            fname = _safe(item["name"]) + ".png"
+            path = os.path.join(tex_dir, fname)
+            img.save(path)
+            written_textures.append({
+                "file": "textures/" + fname,
+                "name": item["name"],
+                "bundle": hash_,
+                "width": int(img.size[0]),
+                "height": int(img.size[1]),
+            })
+        except Exception as exc:  # noqa: BLE001 - one broken texture must not sink the export
+            failed.append({"name": item.get("name", ""), "error": str(exc)[:200]})
 
     manifest = {
         "format": "exmt-workspace-1",
@@ -303,6 +307,7 @@ def make_workspace(outdir: str, spec: dict) -> dict:
         "game_bundles": spec.get("game_bundles", ""),
         "meshes": written_meshes,
         "textures": written_textures,
+        "failed_textures": failed,
     }
     with open(os.path.join(outdir, "workspace.json"), "w", encoding="utf-8") as fh:
         json.dump(manifest, fh, ensure_ascii=False, indent=1)
@@ -311,5 +316,6 @@ def make_workspace(outdir: str, spec: dict) -> dict:
         "dir": outdir,
         "meshes": len(written_meshes),
         "textures": len(written_textures),
+        "failed_textures": len(failed),
         "bytes": sum(os.path.getsize(os.path.join(outdir, m["file"])) for m in written_meshes),
     }
