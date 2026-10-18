@@ -12,6 +12,7 @@ import {
   writeMod,
 } from "../lib/modbox";
 import catalogData from "../data/catalog.json";
+import artData from "../data/art.json";
 
 interface CatalogEntry {
   id: string;
@@ -22,25 +23,120 @@ interface CatalogEntry {
   parts: Record<string, string>;
   part_bundles?: Record<string, string[]>;
   portrait?: { bundle: string; texture: string } | null;
-  splash?: string;
-  splash_source?: string;
-  splash_kind?: string;
-  splash_size?: number[];
+}
+
+interface ArtItem {
+  source: string;
+  file: string;
+  code: string;
+  rarity: string;
+  entry: string | null;
+  label: string;
+  size: number[];
+}
+
+interface CharArt {
+  display: string;
+  default: ArtItem | null;
+  skins: ArtItem[];
+}
+
+interface Character {
+  key: string;
+  display: string;
+  entries: CatalogEntry[];
+  portraitEntry: CatalogEntry;
+  art: CharArt | null;
+}
+
+const RARITY = /^(.*?)(SSR|SR|R)(\d*)$/;
+
+/** VepleySSR01 -> Vepley ; VepleyDorm -> Vepley */
+function charKeyOf(name: string) {
+  if (name.endsWith("Dorm")) return name.slice(0, -4);
+  const m = RARITY.exec(name);
+  return m ? m[1] : name;
 }
 
 const catalog = ref<CatalogEntry[]>(catalogData.characters as CatalogEntry[]);
+const art = artData as Record<string, CharArt>;
+
+const characters = computed<Character[]>(() => {
+  const map = new Map<string, Character>();
+  for (const e of catalog.value) {
+    const key = charKeyOf(e.name);
+    let c = map.get(key);
+    if (!c) {
+      c = { key, display: e.display || key, entries: [], portraitEntry: e, art: art[key] ?? null };
+      map.set(key, c);
+    }
+    c.entries.push(e);
+    // prefer a slg entry, and the entry that owns the default illustration
+    const better =
+      (e.variant === "slg" && c.portraitEntry.variant !== "slg") ||
+      (c.art?.default?.entry === e.id && c.art?.default?.entry !== c.portraitEntry.id);
+    if (better) {
+      c.portraitEntry = e;
+      if (e.display) c.display = e.display;
+    }
+  }
+  for (const c of map.values()) c.display = c.display.replace(/\s*·\s*宿舍$/, "");
+  const list = [...map.values()];
+  list.sort((a, b) => a.display.localeCompare(b.display, "zh-Hans-CN"));
+  return list;
+});
+
 const query = ref("");
-const selected = ref<CatalogEntry | null>(catalog.value[0] ?? null);
+const selectedChar = ref<Character | null>(characters.value[0] ?? null);
+const selected = ref<CatalogEntry | null>(selectedChar.value?.portraitEntry ?? null);
 const busy = ref("");
 const log = ref<{ kind: "info" | "ok" | "err"; text: string }[]>([]);
 
 const filtered = computed(() => {
   const q = query.value.trim().toLowerCase();
-  if (!q) return catalog.value;
-  return catalog.value.filter((c) => {
-    const d = (c.display ?? "").toLowerCase();
-    return c.id.toLowerCase().includes(q) || c.name.toLowerCase().includes(q) || d.includes(q);
+  if (!q) return characters.value;
+  return characters.value.filter((c) => {
+    if (c.key.toLowerCase().includes(q)) return true;
+    if (c.display.toLowerCase().includes(q)) return true;
+    return c.entries.some((e) => e.id.toLowerCase().includes(q) || e.name.toLowerCase().includes(q));
   });
+});
+
+function entryById(id: string | null | undefined) {
+  if (!id) return null;
+  return catalog.value.find((e) => e.id === id) ?? null;
+}
+
+function pickChar(c: Character) {
+  selectedChar.value = c;
+  const preferred =
+    entryById(c.art?.default?.entry) ??
+    c.entries.find((e) => e.variant === "slg") ??
+    c.entries[0] ??
+    null;
+  selected.value = preferred;
+}
+
+function pickArt(item: ArtItem) {
+  const e = entryById(item.entry);
+  if (e) selected.value = e;
+}
+
+const illustrations = computed(() => {
+  const c = selectedChar.value;
+  if (!c?.art) return [] as ArtItem[];
+  const list = [];
+  if (c.art.default) list.push(c.art.default);
+  list.push(...c.art.skins);
+  return list;
+});
+
+/** catalog entries of this character that have no illustration of their own */
+const otherSkins = computed(() => {
+  const c = selectedChar.value;
+  if (!c) return [];
+  const used = new Set(illustrations.value.map((i) => i.entry).filter(Boolean) as string[]);
+  return c.entries.filter((e) => !used.has(e.id));
 });
 
 const parts = computed(() => Object.entries(selected.value?.parts ?? {}));
@@ -56,20 +152,6 @@ function push(kind: "info" | "ok" | "err", text: string) {
 
 function portraitUrl(entry: CatalogEntry) {
   return `portraits/${entry.id}.png`;
-}
-
-/** Skin label derived from the internal skin code (the game keeps localized names elsewhere). */
-function skinName(entry: CatalogEntry) {
-  const code = entry.id.includes("_") ? entry.id.split("_")[1] : entry.id;
-  let suffix = entry.name && code.startsWith(entry.name) ? code.slice(entry.name.length) : code;
-  if (!suffix) return "默认";
-  if (/^dorm/i.test(suffix)) return "宿舍装";
-  suffix = suffix.replace(/^SSR0?/i, "SSR ").replace(/^SR0?/i, "SR ");
-  return suffix;
-}
-
-function initials(entry: CatalogEntry) {
-  return label(entry).slice(0, 1) || entry.id.slice(2, 3);
 }
 
 async function exportAllParts(entry: CatalogEntry) {
@@ -267,47 +349,84 @@ async function restore(entry: CatalogEntry) {
       </div>
       <div class="page-actions">
         <input v-model="query" class="input" type="search" placeholder="搜索角色…" />
-        <span class="chip chip--accent">{{ catalog.length }} 个角色</span>
+        <span class="chip chip--accent">{{ characters.length }} 个角色</span>
       </div>
     </header>
 
-    <div class="roster">
-      <button
-        v-for="entry in filtered"
-        :key="entry.id"
-        class="roster__item"
-        :class="{
-          'roster__item--active': selected?.id === entry.id,
-          'roster__item--plain': entry.splash_kind !== 'skinpic',
-        }"
-        type="button"
-        @click="selected = entry"
-      >
-        <div class="roster__avatar">
-          <img
-            v-if="entry.splash"
-            class="roster__img"
-            :class="entry.splash_kind === 'skinpic' ? 'roster__img--splash' : 'roster__img--crop'"
-            :src="entry.splash"
-            :alt="label(entry)"
-            loading="lazy"
-          />
-          <img
-            v-else-if="entry.portrait"
-            class="roster__img roster__img--crop"
-            :src="portraitUrl(entry)"
-            :alt="label(entry)"
-            loading="lazy"
-          />
-          <span v-else class="roster__ph">{{ initials(entry) }}</span>
-          <div class="roster__badge">{{ entry.variant }}</div>
+    <!-- 卡牌视图：圆角方块选角色 -->
+    <div class="models">
+      <!-- 卡牌视图：圆角方块选角色 -->
+      <aside class="models__list">
+        <div class="roster">
+          <button
+            v-for="c in filtered"
+            :key="c.key"
+            class="roster__item"
+            :class="{ 'roster__item--active': selectedChar?.key === c.key }"
+            type="button"
+            :title="c.display"
+            @click="pickChar(c)"
+          >
+            <div class="roster__avatar">
+              <img
+                v-if="c.portraitEntry.portrait"
+                class="roster__img"
+                :src="portraitUrl(c.portraitEntry)"
+                :alt="c.display"
+                loading="lazy"
+              />
+              <span v-else class="roster__ph">{{ c.display.slice(0, 1) }}</span>
+            </div>
+            <div class="roster__name">{{ c.display }}</div>
+            <div class="roster__skin mono">{{ c.art ? `${c.art.skins.length + 1} 张立绘` : "无立绘" }}</div>
+          </button>
         </div>
-        <div class="roster__name">{{ label(entry) }}</div>
-        <div class="roster__skin mono">{{ skinName(entry) }}</div>
-      </button>
-    </div>
+      </aside>
 
-    <article v-if="selected" class="card" style="margin-top: 16px">
+      <div class="models__detail">
+        <!-- 选中角色的立绘：默认立绘 + 各皮肤立绘 -->
+        <section v-if="selectedChar" class="artboard">
+      <div class="artboard__head">
+        <h3 class="artboard__title">{{ selectedChar.display }}</h3>
+        <span class="chip">{{ illustrations.length }} 张立绘 · {{ selectedChar.entries.length }} 个皮肤</span>
+      </div>
+
+      <div v-if="illustrations.length" class="artrow">
+        <button
+          v-for="item in illustrations"
+          :key="item.source"
+          class="artrow__item"
+          :class="{ 'artrow__item--active': selected?.id === item.entry }"
+          type="button"
+          :title="item.label"
+          @click="pickArt(item)"
+        >
+          <img class="artrow__img" :src="item.file" :alt="item.label" loading="lazy" />
+          <div class="artrow__label">
+            <span class="artrow__name">{{ item.label }}</span>
+            <span class="artrow__code mono">{{ item.source.replace("Img_ChrSkinPic_", "") }}</span>
+          </div>
+        </button>
+      </div>
+      <p v-else class="artboard__empty">这个角色没有独立立绘资源，下面直接选皮肤模型。</p>
+
+      <div v-if="otherSkins.length" class="skinchips">
+        <span class="skinchips__hint">其它皮肤（无独立立绘）</span>
+        <button
+          v-for="e in otherSkins"
+          :key="e.id"
+          class="skinchips__item"
+          :class="{ 'skinchips__item--active': selected?.id === e.id }"
+          type="button"
+          @click="selected = e"
+        >
+          {{ e.display || e.name }}
+          <span class="mono">{{ e.variant }}</span>
+        </button>
+      </div>
+    </section>
+
+    <article v-if="selected" class="card" style="margin-top: 14px">
       <div class="model-head">
         <div class="feature__icon">
           <span class="glyph">&#xE8F1;</span>
@@ -412,7 +531,7 @@ async function restore(entry: CatalogEntry) {
         <div class="terminal__bar"><span class="terminal__dot" /><span>pipeline</span></div>
         <div class="terminal__body" style="min-height: 140px">
           <div v-if="log.length === 0" class="terminal__line--dim">
-            选角色 → 导出 glTF → Blender 修改 → 导出 .exmtmesh → 这里「替换…」装回来
+            选角色 → 导出 .exmtmesh → Blender 修改 → 导出 .exmtmesh → 这里「替换…」装回来
           </div>
           <div
             v-for="(line, i) in log"
@@ -424,131 +543,218 @@ async function restore(entry: CatalogEntry) {
         </div>
       </div>
     </div>
+      </div>
+    </div>
   </section>
 </template>
 
 <style scoped>
+/* ---------- 卡牌视图 + 详情 双栏 ---------- */
+.models {
+  display: grid;
+  grid-template-columns: 330px minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.models__list {
+  max-height: calc(100vh - 190px);
+  overflow-y: auto;
+  padding-right: 6px;
+  border-right: 1px solid var(--stroke, rgba(255, 255, 255, 0.06));
+}
+
+.models__detail {
+  min-width: 0;
+}
+
 .roster {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
   align-items: start;
-  gap: 12px;
+  gap: 8px;
 }
 
 .roster__item {
-  position: relative;
-  display: block;
-  padding: 0;
-  aspect-ratio: 505 / 1000;
-  border-radius: 12px;
-  overflow: hidden;
-  border: 1px solid var(--stroke, rgba(255, 255, 255, 0.07));
-  background: linear-gradient(170deg, #223049 0%, #16202f 55%, #0d131d 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 4px 8px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: transparent;
   cursor: pointer;
   transition: 120ms ease;
 }
 
 .roster__item:hover {
-  transform: translateY(-2px);
-  border-color: rgba(255, 255, 255, 0.22);
-}
-
-/* 所有卡片尺寸统一：没有立绘的皮肤用同一张卡片，图按比例居中显示 */
-.roster__item--plain .roster__avatar {
-  background: radial-gradient(120% 80% at 50% 30%, #2a3a55 0%, #131b28 70%, #0d131d 100%);
+  background: rgba(255, 255, 255, 0.06);
 }
 
 .roster__item--active {
-  border-color: var(--accent, #4cc2ff);
-  box-shadow: 0 0 0 1px var(--accent, #4cc2ff) inset, 0 8px 24px rgba(0, 0, 0, 0.35);
+  background: rgba(76, 194, 255, 0.12);
+  border-color: rgba(76, 194, 255, 0.55);
 }
 
 .roster__avatar {
-  position: absolute;
-  inset: 0;
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  overflow: hidden;
+  background: linear-gradient(160deg, #24334a, #101724);
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(160deg, #24334a, #101724);
 }
 
 .roster__img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-}
-
-/* 皮肤立绘：整张竖图完整显示，人物站在卡片底部 */
-.roster__img--splash {
-  object-fit: contain;
-  object-position: 50% 100%;
-}
-
-/* 头像 / 半身图（没有立绘的皮肤）：整张图按比例居中，卡片尺寸和立绘卡一致 */
-.roster__img--crop {
-  object-fit: contain;
-  object-position: 50% 32%;
+  object-position: 50% 12%;
 }
 
 .roster__ph {
-  font-size: 40px;
+  font-size: 22px;
   font-weight: 600;
-  opacity: 0.7;
+  opacity: 0.75;
 }
 
 .roster__name {
-  position: absolute;
-  left: 10px;
-  right: 10px;
-  bottom: 26px;
-  font-size: 13px;
-  font-weight: 600;
-  color: #f2f6ff;
-  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+  font-size: 11px;
+  max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .roster__skin {
+  font-size: 9px;
+  opacity: 0.5;
+}
+
+/* ---------- 立绘卡片 ---------- */
+.artboard {
+  margin-top: 18px;
+}
+
+.artboard__head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.artboard__title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.artboard__empty {
+  margin: 6px 0 0;
+  font-size: 12px;
+  opacity: 0.6;
+}
+
+.artrow {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
+  gap: 10px;
+}
+
+.artrow__item {
+  position: relative;
+  aspect-ratio: 505 / 1000;
+  padding: 0;
+  border: 1px solid var(--stroke, rgba(255, 255, 255, 0.08));
+  border-radius: 12px;
+  overflow: hidden;
+  background: radial-gradient(120% 70% at 50% 20%, #2a3a55 0%, #131b28 70%, #0d131d 100%);
+  cursor: pointer;
+  transition: 120ms ease;
+}
+
+.artrow__item:hover {
+  transform: translateY(-2px);
+  border-color: rgba(255, 255, 255, 0.24);
+}
+
+.artrow__item--active {
+  border-color: var(--accent, #4cc2ff);
+  box-shadow: 0 0 0 1px var(--accent, #4cc2ff) inset, 0 8px 22px rgba(0, 0, 0, 0.4);
+}
+
+.artrow__img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: 50% 100%;
+}
+
+.artrow__label {
   position: absolute;
-  left: 10px;
-  right: 10px;
-  bottom: 9px;
-  font-size: 10px;
-  color: rgba(224, 236, 255, 0.72);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  inset: auto 0 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 16px 8px 7px;
+  background: linear-gradient(to top, rgba(6, 10, 18, 0.94), rgba(6, 10, 18, 0.6) 55%, transparent);
+}
+
+.artrow__name {
+  font-size: 11px;
+  font-weight: 600;
+  color: #eef4ff;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-/* bottom scrim so the overlaid labels always read */
-.roster__item::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 42%;
-  background: linear-gradient(to top, rgba(6, 10, 18, 0.92), rgba(6, 10, 18, 0.55) 45%, transparent);
-  pointer-events: none;
+.artrow__code {
+  font-size: 8.5px;
+  color: rgba(214, 230, 255, 0.6);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.roster__badge {
-  position: absolute;
-  right: 8px;
-  top: 8px;
-  z-index: 2;
-  padding: 1px 7px;
+.skinchips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.skinchips__hint {
+  font-size: 11px;
+  opacity: 0.55;
+  margin-right: 2px;
+}
+
+.skinchips__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 9px;
   border-radius: 999px;
+  border: 1px solid var(--stroke, rgba(255, 255, 255, 0.1));
+  background: rgba(255, 255, 255, 0.04);
+  font-size: 11px;
+  color: inherit;
+  cursor: pointer;
+}
+
+.skinchips__item--active {
+  border-color: var(--accent, #4cc2ff);
+  background: rgba(76, 194, 255, 0.14);
+}
+
+.skinchips__item .mono {
   font-size: 9px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: #dbe7ff;
-  background: rgba(8, 14, 24, 0.66);
-  backdrop-filter: blur(4px);
+  opacity: 0.55;
 }
 
 .parts {
