@@ -233,3 +233,34 @@ Python 只负责解包/打包。纯 numpy 手搓到"看起来对"的代价很高
 
 
 
+
+## 23. 骨骼数据的边界：只有哈希，没有名字与层级
+
+**症状**：导出的网格在 Blender 里"有骨架但看着不像骨架"——126 根骨堆在一起，没有父子关系，名字是 `b0…b125`。
+
+**机制**：
+- `Mesh` 里骨骼信息只有三样：`m_BindPose`（每骨 4×4 逆绑定矩阵）、`m_BoneNameHashes`（CRC32）、`m_RootBoneNameHash`。
+- 顶点侧是 `bones (N,4) u32` + `weights (N,4) f32`，指向哈希数组下标。
+- **没有** parent 索引、没有名字字符串。名字在 `SkinnedMeshRenderer.bones → Transform` 那一侧，网格本身拿不到。
+
+**结论（可复用）**：
+1. 只要拿到 bind pose + 哈希，骨架就"在"文件里；缺的只是**可读性**。
+2. 不要用几何距离重建父子（MST/Prim）：会得出 `髋→大腿→手` 这种链，一旋转整条肢体跟着走，比平铺更糟。宁可不连。
+3. 导出时额外写一份明文 `skeleton.json`（每骨 index/hash/rest_position + root hash），比让人去翻 npz 强得多。
+4. 想要真名字只能**对撞**：拿标准人形骨名（`Bip001 Pelvis`、`J_Bip_C_Hips`、`Hips`、`mixamorig:Hips`…）算 CRC32，与 `m_BoneNameHashes` 求交。
+
+**Blender 侧落地**（`mesh_io.py`）：
+```python
+for i, m in enumerate(bind):            # bind = m_BindPose
+    eb = arm.edit_bones.new("b%03d" % i)
+    world = matrix_from_dict(m).inverted()
+    eb.head = world.translation
+    eb.tail = eb.head + (world.to_3x3() @ Vector((0, 1, 0))) * 0.04
+# 哈希挂到骨架自定义属性（uint32 直接存会 OverflowError，用 JSON 字符串）
+arm_obj["exmt_bone_hashes"] = json.dumps([int(h) for h in hashes])
+arm.display_type = "OCTAHEDRAL"   # 注意是 armature data，不是 object
+arm_obj.show_in_front = True
+```
+
+**glTF 为什么不够**：glTF 的 skin 只有 joints + inverseBindMatrices，**丢弃** `m_BoneNameHashes`、`m_BonesAABB`、`m_RootBoneNameHash`、通道布局与碰撞体；
+一个"看起来对"的 glTF 回灌游戏必然掉字段。交换格式必须自定义且无损。

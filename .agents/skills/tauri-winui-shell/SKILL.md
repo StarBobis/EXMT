@@ -1,93 +1,109 @@
 ---
 name: tauri-winui-shell
-description: Build a Windows-first Tauri 2 desktop shell with a WinUI 3 / Fluent look — custom title bar (decorations off), NavigationView-style sidebar, light/dark tokens — and configure capabilities so the app can read and write any path and call any http(s) URL. Use when scaffolding a Tauri desktop app on Windows, when a custom title bar will not drag or maximize, or when fs/http plugin calls are rejected by the configured scope.
+description: Build a Windows-first Tauri 2 desktop shell with a WinUI 3 / Fluent look — custom title bar (decorations off), NavigationView-style sidebar, light/dark tokens — and configure capabilities so the app can read and write any path and call any http(s) URL. Use when scaffolding a Tauri desktop app on Windows, when a custom title bar will not drag or maximize, when a WinUI-style sidebar needs expand/collapse, or when fs/http plugin calls are rejected by the configured scope.
 metadata:
-  version: "1"
+  version: "2"
 ---
 
 # Tauri 2 + WinUI 3 外壳
 
-面向"把已有项目变成 Windows 桌面应用，界面要像 WinUI 3"的任务。产出一个可运行外壳：
-自定义标题栏、侧边导航、明暗主题、放开任意路径读写与任意 URL 访问。
+面向"把已有项目变成 Windows 桌面应用，界面要像 WinUI 3"的任务。目标是产出一个**看起来像系统原生**的外壳：
+自定义标题栏、NavigationView 侧栏、明暗主题、放开任意路径读写与任意 URL 访问。
+
+具体到本仓库（EXMT Modbox）的实现与踩坑见 `references/windows-shell-lessons.md`。
 
 ## 环境（一次到位）
 
 ```powershell
 winget install Microsoft.VisualStudio.2022.BuildTools --accept-source-agreements --accept-package-agreements `
   --override "--wait --quiet --norestart --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended"
-# rustup（走清华镜像，直连 static.rust-lang.org 在国内常超时）
+
+# rustup：清华镜像（直连 static.rust-lang.org 在国内常超时）
 $env:RUSTUP_DIST_SERVER='https://mirrors.tuna.tsinghua.edu.cn/rustup'
-# bun（GitHub release 直连 300s 只下 10/44 MB，用 npmmirror 二进制镜像）
+
+# bun：GitHub release 直连基本下不动，用 npmmirror 的二进制镜像
 # https://registry.npmmirror.com/-/binary/bun/bun-v<ver>/bun-windows-x64.zip
 ```
 
 - cargo 换源：`~/.cargo/config.toml` → `[source.crates-io] replace-with="rsproxy-sparse"` + `registry="sparse+https://rsproxy.cn/index/"`
 - npm/bun 换源：`BUN_CONFIG_REGISTRY=https://registry.npmmirror.com`
-- 脚手架：`bun create tauri-app <dir> -t vue-ts -m bun --tauri-version 2 -y`，再把文件搬到仓库根（别留在子目录）
-- 首次 `cargo build` 约 5 分钟、432 个 crate；之后改配置增量 20 秒
+- 脚手架：`bun create tauri-app <dir> -t vue-ts -m bun --tauri-version 2 -y`，然后把文件挪到仓库根（别留在子目录）
+- 首次 `cargo build` 约 5 分钟（≈532 crate）；之后改配置增量 ~20 秒
 
-## 自定义标题栏（decorations: false）
+## 自定义标题栏（`decorations: false`）
 
 - `tauri.conf.json`：`"decorations": false, "shadow": true, "transparent": false`
-- 拖拽：`data-tauri-drag-region` **只对带该属性的元素本身生效**。子元素（logo SVG、标题文本、徽标）
-  必须 `pointer-events: none`，否则点在图标上不拖。
-- 双击最大化：Tauri 内核已处理（`internal_toggle_maximize`），**前端不要再绑 dblclick**，否则两次切换互相抵消。
-- caption 按钮按 Win11 习惯：46×32、贴顶（只有顶部 32px 响应），close hover `#c42b1c` + 白字。
-- 还原图标：`getCurrentWindow().onResized()` → `isMaximized()` 决定显示 E922/E923。
-- 必需权限：`core:window:allow-start-dragging`、`core:window:allow-internal-toggle-maximize`、
-  `…-minimize`、`…-toggle-maximize`、`…-is-maximized`、`…-close`。
+- 拖动：`data-tauri-drag-region` **只对该元素本身生效**。子元素（logo、标题文字、图标）必须 `pointer-events: none`，否则点在图标上不拖。
+- 双击最大化：Tauri 内核已处理（`data-tauri-drag-region` 上双击）；窗口按钮走 `appWindow.minimize() / toggleMaximize() / close()`。
+- 标题栏高度 36–40px，左右各留 12px；按钮 46×32，`hover` 用 `#e9e9e9 / #2d2d2d`。
 
-## WinUI 3 设计令牌（照抄，别自己调色）
+## NavigationView 侧栏（展开 / 折叠）
 
-| 用途 | 亮色 | 暗色 |
-| --- | --- | --- |
-| 主文本 | `rgba(0,0,0,.8956)` | `rgba(255,255,255,.8956)` |
-| 次文本 | `.6063` | `.6063` |
-| 三级文本 | `.4458` | `.4458` |
-| 描边 | `rgba(0,0,0,.0578)` | `rgba(255,255,255,.0698)` |
-| hover / 选中填充 | `.0373` | `.0605` |
-| accent | `#0067c0` | `#60cdff` |
+- 两档宽度：展开 **272px**、折叠 **48px**（WinUI 的 compact pane 就是 48）。
+- `☰`（Segoe MDL2 `&#xE700;`）放在侧栏头部，**与导航图标共用同一个 40×40 盒子**、`margin: 2px auto`，否则折叠时会偏。
+- 折叠时：图标水平居中、文字标签宽度归零并淡出（`opacity` + `width` 过渡），不要 `display:none`（会跳）。
+- 过渡曲线用 `cubic-bezier(0.2, 0, 0, 1)`（Fluent 的 standard easing），时长 150–200ms。
+- 折叠状态存 `localStorage`，刷新后保持。
+- **选中态**：左侧 3px 强调条 + `--fill-selected` 背景，**不要**蓝框。
 
-- 圆角：控件 4、卡片 8；字体 `Segoe UI Variable Text`，标题用 `Display`。
-- 侧边栏：宽 272，item 高 40、左右 8px 外边距、选中项左侧 3×16 圆角胶囊（accent）+ SubtleFill 背景。
-- Mica：不要为了"真 Mica"去开 `transparent: true`（Win10/部分驱动会黑底）；用两层径向渐变模拟即可。
+## 焦点与点击反馈（最容易做丑的地方）
 
-## 权限：任意路径 + 任意 URL
+WebView2 在鼠标点击后会触发 `:focus-visible`，于是按钮上出现系统蓝框，和 WinUI 完全不搭。
 
-```jsonc
-{ "identifier": "fs:scope", "allow": [{ "path": "**" }, { "path": "**/*" }, { "path": "*" }] },
-{ "identifier": "http:default", "allow": [
-  { "url": "http://*" },   { "url": "https://*" },
-  { "url": "http://*:*" }, { "url": "https://*:*" },   // 端口必须显式写 *:*
-  { "url": "http://*:*/*" }, { "url": "https://*:*/*" }
-]}
+```css
+.nav-item:focus,
+.nav-item:focus-visible { outline: none; }
+.nav-item:focus-visible { background: var(--fill-subtle-hover); }
 ```
 
-- **最大的坑：`http://**` 不匹配非默认端口**。http 插件用 URLPattern 语义解析 scope，不带 port 的模式
-  只匹配默认端口；失败信息是 `url not allowed on the configured scope: http://127.0.0.1:1420/`。
-  加上 `http://*:*` 即可覆盖任意端口（IP 里有句点也能被 `*` 匹配）。
-- `http:allow-fetch` 可以省略——`http:default` 已含该命令。
-- fs 侧还要给命令权限：`fs:allow-read-text-file` / `-write-text-file` / `-read-file` / `-write-file` /
-  `-read-dir` / `-mkdir` / `-remove` / `-rename` / `-exists` / `-stat` 等。
-- 验证方式：临时在 `main.ts` 里跑探针（写任意目录、读 `C:/Windows/win.ini`、fetch 外网 + localhost），
-  把结果写进文件再读，验证完删除探针。
+规则：**鼠标点选不出现外框**，改用填充表示焦点；键盘用户靠填充变化感知。
 
-## 无人工点击的验证（Windows）
+## 页面与栅格（宽窗口下的两个经典坑）
 
-- WebView2 是 GPU 合成，`PrintWindow` 抓到黑图 → 用 `CopyFromScreen` 抓**客户区**。
-- 抓图/点击进程必须 **DPI-aware**：`SetProcessDpiAwarenessContext(-4)`，否则 150% 缩放下坐标与像素
-  空间不一致，会抓偏半个窗口（本机屏幕 2560×1600 @150% = 逻辑 1707×1067）。
-- 点击/拖拽：`ClientToScreen + SetCursorPos + mouse_event`，坐标传 **CSS 像素**。
-- 拖拽验证看 `GetWindowRect` 前后差值是否等于鼠标位移。
+1. **不要 `max-width + margin:auto`**。桌面窗口可以很宽，居中会在两侧留死白；窗口不够宽时又把内容顶出屏。
+   用 full-bleed：`.page { max-width: none; margin: 0; padding: 18px 24px; }`
+2. **栅格用 `minmax(0, Nfr)`**。裸 `1fr` 或 `70% 30%` 会被子元素的 min-content 撑宽，产生横向溢出/右侧被切。
+   两栏页面（如设置页 7:3）：`grid-template-columns: minmax(0, 7fr) minmax(0, 3fr);` + `.settings > * { min-width: 0; }`
 
-## 坑速查
+## 放开任意路径与任意 URL
 
-| 现象 | 原因 / 解法 |
-| --- | --- |
-| 窗口量出来 0×0 | 被 `ShowWindow(SW_RESTORE)` 或最小化；先 `ShowWindow(5)` 再量 |
-| 截图抓偏半个窗口 | 进程 DPI 不感知，却用了物理坐标 |
-| 拖拽只能拖空白处 | 子元素缺 `pointer-events: none` |
-| 双击最大化没反应 | 前端和内核各 toggle 一次，互相抵消 |
-| fs 写失败但路径合法 | scope 没给 `**`，或用相对路径（插件解析到 appdata） |
-| fetch 本地服务失败但外网正常 | 服务只监听 `::1` 或 `127.0.0.1` 之一，先 `netstat` 确认 |
-| `bun create tauri-app` 卡住 | 没设 `BUN_CONFIG_REGISTRY`，还在连 registry.npmjs.org |
+`src-tauri/capabilities/default.json`：
+
+```json
+{
+  "identifier": "default",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    "dialog:default",
+    "fs:default",
+    "fs:allow-read-file",
+    "fs:allow-write-file",
+    { "identifier": "fs:scope", "allow": [{ "path": "**" }] },
+    { "identifier": "http:default", "allow": [{ "url": "http://**" }, { "url": "https://**" }] }
+  ]
+}
+```
+
+- `fs:scope` 允许 `**`（**含盘符**：Windows 上写成 `"**"` 即可，不要写 `"/**"`），配合 Rust 侧命令尤其实用。
+- 只用 Rust 命令读写文件时，其实不需要 `fs` 权限；但前端直接调 `@tauri-apps/plugin-fs` 时必须要。
+- `http` 插件同理；`fetch` 走插件而不是 WebView 才有跨域豁免。
+
+## 让前端跑 Python 核心（本仓库做法）
+
+Rust 侧一个通用命令：
+
+```rust
+#[tauri::command]
+async fn run_core(args: Vec<String>) -> Result<CoreOut, String> { /* Command::new(python).args(...) */ }
+```
+
+- 用 `python.exe -m <pkg>` + `current_dir(core)`，避免依赖 PATH 里的 `python`。
+- stdout/stderr/退出码**原样回传**，前端只负责展示；解析在 Python 侧打印 JSON 行，前端取最后一行 `JSON.parse`。
+- 长任务（提取 240 张贴图）要能显示进度：Python 每完成一批 `print(json.dumps({...}), flush=True)`，前端按行读。
+
+## 截图与自动化验证（Windows）
+
+- `PrintWindow` 在窗口被遮挡时返回**旧帧**；正确做法：`SetWindowPos(HWND_TOPMOST)` → `SetWindowPos(HWND_NOTOPMOST)` → `SetForegroundWindow` → `CopyFromScreen`。
+- 点击坐标是**客户区物理像素**：`client = CSS × DPI缩放`（150% 时 ×1.5）。
+- 不要用 `pwsh` 的 `Set-Content` 改 `.vue`/`.ts`（BOM/GBK 往返会写坏文件）。

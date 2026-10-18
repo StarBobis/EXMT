@@ -9,7 +9,8 @@
     "build": "vue-tsc --noEmit && vite build",
     "preview": "vite preview",
     "tauri": "tauri",
-    "typecheck": "vue-tsc --noEmit"
+    "typecheck": "vue-tsc --noEmit",
+    "check": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/check.ps1"
   },
   "dependencies": {
     "@tauri-apps/api": "^2",
