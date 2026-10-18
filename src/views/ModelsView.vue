@@ -167,49 +167,19 @@ async function exportAllParts(entry: CatalogEntry) {
   }
 }
 
-async function exportGlb(entry: CatalogEntry) {
-  busy.value = entry.id;
-  try {
-    const out = await save({
-      title: "导出 glTF（仅用于预览）",
-      defaultPath: `${entry.id}.glb`,
-      filters: [{ name: "glTF 二进制", extensions: ["glb"] }],
-    });
-    if (!out) return;
-    const res = await runCore(["glb", bundlePath(entry.bundle), out]);
-    if (res.code !== 0) throw new Error(res.stderr || res.stdout);
-    const info = JSON.parse(res.stdout.trim().split("\n").pop() || "{}");
-    push("ok", `glTF（预览用，不含骨骼哈希/碰撞等数据）：${info.meshes} 个网格 → ${out}`);
-  } catch (e) {
-    push("err", String(e));
-  } finally {
-    busy.value = "";
-  }
-}
-
-async function exportModel(entry: CatalogEntry, format: "glb" | "exmtmesh") {
+async function exportPart(entry: CatalogEntry) {
   busy.value = entry.id;
   try {
     const part = entry.parts.cloth || entry.parts.body || Object.values(entry.parts)[0];
     const out = await save({
-      title: format === "glb" ? "导出 glTF（含骨架）" : "导出 .exmtmesh",
-      defaultPath: format === "glb" ? `${entry.id}.glb` : `${part}.exmtmesh`,
-      filters:
-        format === "glb"
-          ? [{ name: "glTF 二进制", extensions: ["glb"] }]
-          : [{ name: "EXMT Mesh", extensions: ["exmtmesh"] }],
+      title: "导出 .exmtmesh",
+      defaultPath: `${part}.exmtmesh`,
+      filters: [{ name: "EXMT Mesh", extensions: ["exmtmesh"] }],
     });
     if (!out) return;
-    if (format === "glb") {
-      const res = await runCore(["glb", bundlePath(entry.bundle), out]);
-      if (res.code !== 0) throw new Error(res.stderr || res.stdout);
-      const info = JSON.parse(res.stdout.trim().split("\n").pop() || "{}");
-      push("ok", `${label(entry)}：${info.meshes} 个网格 / ${info.skins} 套骨架 → ${out}`);
-    } else {
-      const res = await runCore(["extract", bundlePath(entry.bundle), part, out]);
-      if (res.code !== 0) throw new Error(res.stderr || res.stdout);
-      push("ok", res.stdout.trim() || `已导出 → ${out}`);
-    }
+    const res = await runCore(["extract", bundlePath(entry.bundle), part, out]);
+    if (res.code !== 0) throw new Error(res.stderr || res.stdout);
+    push("ok", res.stdout.trim() || `已导出 → ${out}`);
   } catch (e) {
     push("err", String(e));
   } finally {
@@ -486,16 +456,7 @@ async function restore(entry: CatalogEntry) {
           class="btn"
           type="button"
           :disabled="busy === selected.id"
-          @click="exportGlb(selected)"
-        >
-          <span class="glyph">&#xE74E;</span>
-          导出 glTF（仅预览）
-        </button>
-        <button
-          class="btn"
-          type="button"
-          :disabled="busy === selected.id"
-          @click="exportModel(selected, 'exmtmesh')"
+          @click="exportPart(selected)"
         >
           导出单个部位
         </button>

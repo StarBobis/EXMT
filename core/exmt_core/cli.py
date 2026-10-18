@@ -216,25 +216,6 @@ def cmd_copy_texture(args):
     return 0
 
 
-def cmd_glb(args):
-    """glb <bundle> <out.glb> [mesh ...] — export meshes (with skeleton) as glTF."""
-    from . import gltf
-    bundle_path, out = args[0], args[1]
-    wanted = args[2:]
-    b = open_bundle(bundle_path)
-    meshes = []
-    for o in b.meshes():
-        md = M.from_tree(o.read_typetree())
-        if wanted and md.name not in wanted:
-            continue
-        meshes.append((md.name, md))
-    if not meshes:
-        raise SystemExit("no matching meshes")
-    info = gltf.build_glb(meshes, out)
-    print(json.dumps(info, ensure_ascii=False))
-    return 0
-
-
 def cmd_set_texture(args):
     """set-texture <bundle> <texture> <image.png> <out.bundle> — encode + replace in .resS."""
     import math
@@ -287,7 +268,7 @@ def main(argv=None):
         "retarget": cmd_retarget,
         "copy-texture": cmd_copy_texture,
         "set-texture": cmd_set_texture,
-        "glb": cmd_glb,
+    
     }
     if cmd not in table:
         print("unknown command", cmd)
