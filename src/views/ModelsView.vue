@@ -31,6 +31,7 @@ interface ArtItem {
   code: string;
   rarity: string;
   entry: string | null;
+  entry_label?: string | null;
   label: string;
   size: number[];
 }
@@ -117,26 +118,19 @@ function pickChar(c: Character) {
   selected.value = preferred;
 }
 
-function pickArt(item: ArtItem) {
-  const e = entryById(item.entry);
-  if (e) selected.value = e;
-}
-
-const illustrations = computed(() => {
+/** every skin of the character gets a card; skins without art show a placeholder card */
+const artCards = computed(() => {
   const c = selectedChar.value;
-  if (!c?.art) return [] as ArtItem[];
-  const list = [];
-  if (c.art.default) list.push(c.art.default);
-  list.push(...c.art.skins);
-  return list;
-});
-
-/** catalog entries of this character that have no illustration of their own */
-const otherSkins = computed(() => {
-  const c = selectedChar.value;
-  if (!c) return [];
-  const used = new Set(illustrations.value.map((i) => i.entry).filter(Boolean) as string[]);
-  return c.entries.filter((e) => !used.has(e.id));
+  if (!c) return [] as { entry: CatalogEntry; art: ArtItem | null }[];
+  const byEntry = new Map<string, ArtItem>();
+  const def = c.art?.default ?? null;
+  if (def?.entry) byEntry.set(def.entry, def);
+  for (const s of c.art?.skins ?? []) if (s.entry) byEntry.set(s.entry, s);
+  const cards = c.entries.map((e) => ({ entry: e, art: byEntry.get(e.id) ?? null }));
+  const rank = (x: { entry: CatalogEntry; art: ArtItem | null }) =>
+    x.art && x.art === def ? 0 : x.entry.variant === "slg" ? 1 : 2;
+  cards.sort((a, b) => rank(a) - rank(b));
+  return cards;
 });
 
 const parts = computed(() => Object.entries(selected.value?.parts ?? {}));
@@ -378,7 +372,10 @@ async function restore(entry: CatalogEntry) {
               <span v-else class="roster__ph">{{ c.display.slice(0, 1) }}</span>
             </div>
             <div class="roster__name">{{ c.display }}</div>
-            <div class="roster__skin mono">{{ c.art ? `${c.art.skins.length + 1} 张立绘` : "无立绘" }}</div>
+            <div class="roster__skin mono">
+              {{ c.art ? `${(c.art.default ? 1 : 0) + c.art.skins.length} 立绘` : "无立绘" }} ·
+              {{ c.entries.length }} 皮肤
+            </div>
           </button>
         </div>
       </aside>
@@ -388,42 +385,50 @@ async function restore(entry: CatalogEntry) {
         <section v-if="selectedChar" class="artboard">
       <div class="artboard__head">
         <h3 class="artboard__title">{{ selectedChar.display }}</h3>
-        <span class="chip">{{ illustrations.length }} 张立绘 · {{ selectedChar.entries.length }} 个皮肤</span>
+        <span class="chip">{{ artCards.filter(c => c.art).length }} 张立绘 · {{ selectedChar.entries.length }} 个皮肤</span>
       </div>
 
-      <div v-if="illustrations.length" class="artrow">
+      <div v-if="artCards.length" class="artrow">
         <button
-          v-for="item in illustrations"
-          :key="item.source"
+          v-for="card in artCards"
+          :key="card.entry.id"
           class="artrow__item"
-          :class="{ 'artrow__item--active': selected?.id === item.entry }"
+          :class="{
+            'artrow__item--active': selected?.id === card.entry.id,
+            'artrow__item--empty': !card.art,
+          }"
           type="button"
-          :title="item.label"
-          @click="pickArt(item)"
+          :title="card.art ? card.art.label : `${label(card.entry)}（无立绘）`"
+          @click="selected = card.entry"
         >
-          <img class="artrow__img" :src="item.file" :alt="item.label" loading="lazy" />
+          <img
+            v-if="card.art"
+            class="artrow__img"
+            :src="card.art.file"
+            :alt="card.art.label"
+            loading="lazy"
+          />
+          <div v-else class="artrow__placeholder">
+            <img
+              v-if="card.entry.portrait"
+              class="artrow__head"
+              :src="portraitUrl(card.entry)"
+              :alt="label(card.entry)"
+              loading="lazy"
+            />
+            <span v-else class="artrow__initial">{{ label(card.entry).slice(0, 1) }}</span>
+            <span class="artrow__nopic">无立绘</span>
+          </div>
+
           <div class="artrow__label">
-            <span class="artrow__name">{{ item.label }}</span>
-            <span class="artrow__code mono">{{ item.source.replace("Img_ChrSkinPic_", "") }}</span>
+            <span class="artrow__name">{{ card.art ? card.art.label : label(card.entry) }}</span>
+            <span class="artrow__code mono">
+              {{ card.art ? card.art.entry_label || card.art.code : card.entry.variant }}
+            </span>
           </div>
         </button>
       </div>
-      <p v-else class="artboard__empty">这个角色没有独立立绘资源，下面直接选皮肤模型。</p>
-
-      <div v-if="otherSkins.length" class="skinchips">
-        <span class="skinchips__hint">其它皮肤（无独立立绘）</span>
-        <button
-          v-for="e in otherSkins"
-          :key="e.id"
-          class="skinchips__item"
-          :class="{ 'skinchips__item--active': selected?.id === e.id }"
-          type="button"
-          @click="selected = e"
-        >
-          {{ e.display || e.name }}
-          <span class="mono">{{ e.variant }}</span>
-        </button>
-      </div>
+      <p v-else class="artboard__empty">这个角色没有立绘资源，下面直接选皮肤模型。</p>
     </section>
 
     <article v-if="selected" class="card" style="margin-top: 14px">
@@ -552,9 +557,10 @@ async function restore(entry: CatalogEntry) {
 /* ---------- 卡牌视图 + 详情 双栏 ---------- */
 .models {
   display: grid;
-  grid-template-columns: 330px minmax(0, 1fr);
-  gap: 16px;
+  grid-template-columns: 300px minmax(0, 1fr);
+  gap: 14px;
   align-items: start;
+  min-width: 0;
 }
 
 .models__list {
@@ -566,6 +572,7 @@ async function restore(entry: CatalogEntry) {
 
 .models__detail {
   min-width: 0;
+  overflow-x: hidden;
 }
 
 .roster {
@@ -636,14 +643,14 @@ async function restore(entry: CatalogEntry) {
 
 /* ---------- 立绘卡片 ---------- */
 .artboard {
-  margin-top: 18px;
+  margin-top: 12px;
 }
 
 .artboard__head {
   display: flex;
   align-items: baseline;
   gap: 10px;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 
 .artboard__title {
@@ -660,8 +667,9 @@ async function restore(entry: CatalogEntry) {
 
 .artrow {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  justify-content: start;
+  gap: 8px;
 }
 
 .artrow__item {
@@ -691,6 +699,51 @@ async function restore(entry: CatalogEntry) {
   height: 100%;
   object-fit: contain;
   object-position: 50% 100%;
+}
+
+/* 没有立绘的皮肤：同一张卡片位，显示头像 + 「无立绘」标记 */
+.artrow__item--empty {
+  background: repeating-linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.022) 0 10px,
+      transparent 10px 20px
+    ),
+    radial-gradient(120% 70% at 50% 25%, #202b3d 0%, #121a26 70%, #0d131d 100%);
+}
+
+.artrow__placeholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding-bottom: 34px;
+}
+
+.artrow__head {
+  width: 54%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  object-fit: cover;
+  opacity: 0.55;
+  filter: grayscale(0.35);
+}
+
+.artrow__initial {
+  font-size: 34px;
+  font-weight: 600;
+  opacity: 0.4;
+}
+
+.artrow__nopic {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: rgba(206, 224, 255, 0.45);
+  border: 1px solid rgba(206, 224, 255, 0.18);
+  border-radius: 999px;
+  padding: 1px 8px;
 }
 
 .artrow__label {

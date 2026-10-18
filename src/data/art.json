@@ -6,12 +6,13 @@
    "file": "/splash/Img_ChrSkinPic_VoymastinaSSR.webp",
    "code": "VoymastinaSSR",
    "rarity": "SSR",
-   "entry": null,
+   "entry": "c_VoymastinaSSR01",
    "label": "默认",
    "size": [
     380,
     752
-   ]
+   ],
+   "entry_label": "沃玛斯蒂娜"
   },
   "skins": [
    {
@@ -19,24 +20,26 @@
     "file": "/splash/Img_ChrSkinPic_VoymastinaSSR01.webp",
     "code": "VoymastinaSSR01",
     "rarity": "SSR",
-    "entry": "c_VoymastinaSSR01",
+    "entry": "c_VoymastinaSSR0101",
     "label": "沃玛斯蒂娜",
     "size": [
      380,
      752
-    ]
+    ],
+    "entry_label": "沃玛斯蒂娜"
    },
    {
     "source": "Img_ChrSkinPic_VoymastinaSSR02",
     "file": "/splash/Img_ChrSkinPic_VoymastinaSSR02.webp",
     "code": "VoymastinaSSR02",
     "rarity": "SSR",
-    "entry": null,
-    "label": "皮肤 02",
+    "entry": "c_VoymastinaSSR0102",
+    "label": "沃玛斯蒂娜 ·2",
     "size": [
      380,
      752
-    ]
+    ],
+    "entry_label": "沃玛斯蒂娜 ·2"
    }
   ]
  },
@@ -47,12 +50,13 @@
    "file": "/splash/Img_ChrSkinPic_OTs14SSR.webp",
    "code": "OTs14SSR",
    "rarity": "SSR",
-   "entry": null,
+   "entry": "c_OTs14SSR01",
    "label": "默认",
    "size": [
     380,
     752
-   ]
+   ],
+   "entry_label": "OTs-14"
   },
   "skins": [
    {
@@ -60,24 +64,26 @@
     "file": "/splash/Img_ChrSkinPic_OTs14SSR01.webp",
     "code": "OTs14SSR01",
     "rarity": "SSR",
-    "entry": "c_OTs14SSR01",
+    "entry": "c_OTs14SSR0101",
     "label": "OTs-14",
     "size": [
      378,
      750
-    ]
+    ],
+    "entry_label": "OTs-14"
    },
    {
     "source": "Img_ChrSkinPic_OTs14SSR02",
     "file": "/splash/Img_ChrSkinPic_OTs14SSR02.webp",
     "code": "OTs14SSR02",
     "rarity": "SSR",
-    "entry": null,
-    "label": "皮肤 02",
+    "entry": "c_OTs14SSR0102",
+    "label": "OTs-14 ·2",
     "size": [
      380,
      752
-    ]
+    ],
+    "entry_label": "OTs-14 ·2"
    }
   ]
  },
@@ -88,12 +94,13 @@
    "file": "/splash/Img_ChrSkinPic_SharkrySR.webp",
    "code": "SharkrySR",
    "rarity": "SR",
-   "entry": null,
+   "entry": "c_SharkrySR01",
    "label": "默认",
    "size": [
     380,
     752
-   ]
+   ],
+   "entry_label": "沙克里"
   },
   "skins": [
    {
@@ -101,24 +108,26 @@
     "file": "/splash/Img_ChrSkinPic_SharkrySR01.webp",
     "code": "SharkrySR01",
     "rarity": "SR",
-    "entry": "c_SharkrySR01",
+    "entry": "c_SharkrySR0101",
     "label": "沙克里",
     "size": [
      380,
      752
-    ]
+    ],
+    "entry_label": "沙克里"
    },
    {
     "source": "Img_ChrSkinPic_SharkrySR02",
     "file": "/splash/Img_ChrSkinPic_SharkrySR02.webp",
     "code": "SharkrySR02",
     "rarity": "SR",
-    "entry": null,
-    "label": "皮肤 02",
+    "entry": "c_SharkrySR0102",
+    "label": "沙克里 ·2",
     "size": [
      380,
      752
-    ]
+    ],
+    "entry_label": "沙克里 ·2"
    }
   ]
  },
@@ -129,12 +138,13 @@
    "file": "/splash/Img_ChrSkinPic_PhaetusaSSR.webp",
    "code": "PhaetusaSSR",
    "rarity": "SSR",
-   "entry": null,
+   "entry": "c_PhaetusaSSR0101",
    "label": "默认",
    "size": [
     380,
     752
-   ]
+   ],
+   "entry_label": "PhaetusaSSR0101"
   },
   "skins": [
    {
@@ -142,12 +152,13 @@
     "file": "/splash/Img_ChrSkinPic_PhaetusaSSR01.webp",
     "code": "PhaetusaSSR01",
     "rarity": "SSR",
-    "entry": null,
-    "label": "皮肤 01",
+    "entry": "c_PhaetusaDorm",
+    "label": "PhaetusaDorm",
     "size": [
      380,
      752
-    ]
+    ],
+    "entry_label": "PhaetusaDorm"
    }
   ]
  },
@@ -158,12 +169,13 @@
    "file": "/splash/Img_ChrSkinPic_LoreleySSR.webp",
    "code": "LoreleySSR",
    "rarity": "SSR",
-   "entry": null,
+   "entry": "c_LoreleySSR01",
    "label": "默认",
    "size": [
     380,
     752
-   ]
+   ],
+   "entry_label": "罗蕾莱"
   },
   "skins": [
    {
@@ -171,12 +183,13 @@
     "file": "/splash/Img_ChrSkinPic_LoreleySSR01.webp",
     "code": "LoreleySSR01",
     "rarity": "SSR",
-    "entry": "c_LoreleySSR01",
+    "entry": "c_LoreleySSR0101",
     "label": "罗蕾莱",
     "size": [
      380,
      752
-    ]
+    ],
+    "entry_label": "罗蕾莱"
    }
   ]
  },
@@ -187,12 +200,13 @@
    "file": "/splash/Img_ChrSkinPic_NagantSR.webp",
    "code": "NagantSR",
    "rarity": "SR",
-   "entry": null,
+   "entry": "c_NagantSR01",
    "label": "默认",
    "size": [
     380,
     752
-   ]
+   ],
+   "entry_label": "纳甘"
   },
   "skins": [
    {
@@ -200,12 +214,13 @@
     "file": "/splash/Img_ChrSkinPic_NagantSR01.webp",
     "code": "NagantSR01",
     "rarity": "SR",
-    "entry": "c_NagantSR01",
+    "entry": "c_NagantSR0101",
     "label": "纳甘",
     "size": [
      380,
      752
-    ]
+    ],
+    "entry_label": "纳甘"
    }
   ]
  },
@@ -216,12 +231,13 @@
    "file": "/splash/Img_ChrSkinPic_ZhaohuiSSR.webp",
    "code": "ZhaohuiSSR",
    "rarity": "SSR",
-   "entry": null,
+   "entry": "c_ZhaohuiSSR01",
    "label": "默认",
    "size": [
     380,
     752
-   ]
+   ],
+   "entry_label": "昭晖"
   },
   "skins": [
    {
@@ -229,12 +245,13 @@
     "file": "/splash/Img_ChrSkinPic_ZhaohuiSSR01.webp",
     "code": "ZhaohuiSSR01",
     "rarity": "SSR",
-    "entry": "c_ZhaohuiSSR01",
+    "entry": "c_ZhaohuiSSR0101",
     "label": "昭晖",
     "size": [
      380,
      752
-    ]
+    ],
+    "entry_label": "昭晖"
    }
   ]
  },
@@ -245,12 +262,13 @@
    "file": "/splash/Img_ChrSkinPic_LottaSR.webp",
    "code": "LottaSR",
    "rarity": "SR",
-   "entry": null,
+   "entry": "c_LottaSR01",
    "label": "默认",
    "size": [
     380,
     752
-   ]
+   ],
+   "entry_label": "洛塔"
   },
   "skins": [
    {
@@ -258,12 +276,13 @@
     "file": "/splash/Img_ChrSkinPic_LottaSR01.webp",
     "code": "LottaSR01",
     "rarity": "SR",
-    "entry": "c_LottaSR01",
+    "entry": "c_LottaSR0101",
     "label": "洛塔",
     "size": [
      380,
      752
-    ]
+    ],
+    "entry_label": "洛塔"
    }
   ]
  },
@@ -274,12 +293,13 @@
    "file": "/splash/Img_ChrSkinPic_LevaSSR.webp",
    "code": "LevaSSR",
    "rarity": "SSR",
-   "entry": null,
+   "entry": "c_LevaSSR01",
    "label": "默认",
    "size": [
     380,
     752
-   ]
+   ],
+   "entry_label": "列瓦"
   },
   "skins": [
    {
@@ -287,36 +307,39 @@
     "file": "/splash/Img_ChrSkinPic_LevaSSR01.webp",
     "code": "LevaSSR01",
     "rarity": "SSR",
-    "entry": "c_LevaSSR01",
+    "entry": "c_LevaSSR0101",
     "label": "列瓦",
     "size": [
      380,
      752
-    ]
+    ],
+    "entry_label": "列瓦"
    },
    {
     "source": "Img_ChrSkinPic_LevaSSR02",
     "file": "/splash/Img_ChrSkinPic_LevaSSR02.webp",
     "code": "LevaSSR02",
     "rarity": "SSR",
-    "entry": null,
-    "label": "皮肤 02",
+    "entry": "c_LevaSSR0102",
+    "label": "列瓦 ·2",
     "size": [
      380,
      752
-    ]
+    ],
+    "entry_label": "列瓦 ·2"
    },
    {
     "source": "Img_ChrSkinPic_LevaSSR03",
     "file": "/splash/Img_ChrSkinPic_LevaSSR03.webp",
     "code": "LevaSSR03",
     "rarity": "SSR",
-    "entry": null,
-    "label": "皮肤 03",
+    "entry": "c_LevaSSR0103",
+    "label": "列瓦 ·3",
     "size": [
      378,
      750
-    ]
+    ],
+    "entry_label": "列瓦 ·3"
    }
   ]
  },
@@ -327,12 +350,13 @@
    "file": "/splash/Img_ChrSkinPic_CheetaSR.webp",
    "code": "CheetaSR",
    "rarity": "SR",
-   "entry": null,
+   "entry": "c_CheetaSR01",
    "label": "默认",
    "size": [
     380,
     752
-   ]
+   ],
+   "entry_label": "奇塔"
   },
   "skins": [
    {
@@ -340,12 +364,13 @@
     "file": "/splash/Img_ChrSkinPic_CheetaSR01.webp",
     "code": "CheetaSR01",
     "rarity": "SR",
-    "entry": "c_CheetaSR01",
+    "entry": "c_CheetaSR0101",
     "label": "奇塔",
     "size": [
      380,
      752
-    ]
+    ],
+    "entry_label": "奇塔"
    }
   ]
  },
@@ -356,12 +381,13 @@
    "file": "/splash/Img_ChrSkinPic_MosinnagantSSR.webp",
    "code": "MosinnagantSSR",
    "rarity": "SSR",
-   "entry": null,
+   "entry": "c_MosinnagantSSR01",
    "label": "默认",
    "size": [
     380,
     752
-   ]
+   ],
+   "entry_label": "莫辛纳甘"
   },
   "skins": [
    {
@@ -369,12 +395,13 @@
     "file": "/splash/Img_ChrSkinPic_MosinnagantSSR01.webp",
     "code": "MosinnagantSSR01",
     "rarity": "SSR",
-    "entry": "c_MosinnagantSSR01",
+    "entry": "c_MosinnagantSSR0101",
     "label": "莫辛纳甘",
     "size": [
      380,
      752
-    ]
+    ],
+    "entry_label": "莫辛纳甘"
    }
   ]
  },
@@ -385,12 +412,13 @@
    "file": "/splash/Img_ChrSkinPic_WelrodSSR.webp",
    "code": "WelrodSSR",
    "rarity": "SSR",
-   "entry": null,
+   "entry": "c_WelrodSSR01",
    "label": "默认",
    "size": [
     380,
     752
-   ]
+   ],
+   "entry_label": "韦尔罗德"
   },
   "skins": [
    {
@@ -398,12 +426,13 @@
     "file": "/splash/Img_ChrSkinPic_WelrodSSR01.webp",
     "code": "WelrodSSR01",
     "rarity": "SSR",
-    "entry": "c_WelrodSSR01",
+    "entry": "c_WelrodSSR0101",
     "label": "韦尔罗德",
     "size": [
      380,
      752
-    ]
+    ],
+    "entry_label": "韦尔罗德"
    }
   ]
  },
@@ -414,12 +443,13 @@
    "file": "/splash/Img_ChrSkinPic_LennaSSR.webp",
    "code": "LennaSSR",
    "rarity": "SSR",
-   "entry": null,
+   "entry": "c_LennaSSR01",
    "label": "默认",
    "size": [
     380,
     752
-   ]
+   ],
+   "entry_label": "蕾娜"
   },
   "skins": [
    {
@@ -427,24 +457,26 @@
     "file": "/splash/Img_ChrSkinPic_LennaSSR01.webp",
     "code": "LennaSSR01",
     "rarity": "SSR",
-    "entry": "c_LennaSSR01",
+    "entry": "c_LennaSSR0101",
     "label": "蕾娜",
     "size": [
      380,
      752
-    ]
+    ],
+    "entry_label": "蕾娜"
    },
    {
     "source": "Img_ChrSkinPic_LennaSSR05",
     "file": "/splash/Img_ChrSkinPic_LennaSSR05.webp",
     "code": "LennaSSR05",
     "rarity": "SSR",
-    "entry": null,
-    "label": "皮肤 05",
+    "entry": "c_LennaSSR0105",
+    "label": "蕾娜 ·5",
     "size": [
      380,
      752
-    ]
+    ],
+    "entry_label": "蕾娜 ·5"
    }
   ]
  },
@@ -471,12 +503,13 @@
    "file": "/splash/Img_ChrSkinPic_YooHeeSSR.webp",
    "code": "YooHeeSSR",
    "rarity": "SSR",
-   "entry": null,
+   "entry": "c_YooHeeSSR01",
    "label": "默认",
    "size": [
     380,
     752
-   ]
+   ],
+   "entry_label": "悠熙"
   },
   "skins": [
    {
@@ -484,12 +517,13 @@
     "file": "/splash/Img_ChrSkinPic_YooHeeSSR01.webp",
     "code": "YooHeeSSR01",
     "rarity": "SSR",
-    "entry": "c_YooHeeSSR01",
+    "entry": "c_YooHeeSSR0101",
     "label": "悠熙",
     "size": [
      380,
      752
-    ]
+    ],
+    "entry_label": "悠熙"
    }
   ]
  },
@@ -500,12 +534,13 @@
    "file": "/splash/Img_ChrSkinPic_LewisSSR.webp",
    "code": "LewisSSR",
    "rarity": "SSR",
-   "entry": null,
+   "entry": "c_LewisSSR01",
    "label": "默认",
    "size": [
     380,
     752
-   ]
+   ],
+   "entry_label": "刘易斯"
   },
   "skins": [
    {
@@ -513,24 +548,26 @@
     "file": "/splash/Img_ChrSkinPic_LewisSSR01.webp",
     "code": "LewisSSR01",
     "rarity": "SSR",
-    "entry": "c_LewisSSR01",
+    "entry": "c_LewisSSR0101",
     "label": "刘易斯",
     "size": [
      380,
      752
-    ]
+    ],
+    "entry_label": "刘易斯"
    },
    {
     "source": "Img_ChrSkinPic_LewisSSR02",
     "file": "/splash/Img_ChrSkinPic_LewisSSR02.webp",
     "code": "LewisSSR02",
     "rarity": "SSR",
-    "entry": null,
-    "label": "皮肤 02",
+    "entry": "c_LewisSSR0102",
+    "label": "刘易斯 ·2",
     "size": [
      378,
      750
-    ]
+    ],
+    "entry_label": "刘易斯 ·2"
    }
   ]
  },
@@ -541,12 +578,13 @@
    "file": "/splash/Img_ChrSkinPic_QiuhuaSSR.webp",
    "code": "QiuhuaSSR",
    "rarity": "SSR",
-   "entry": null,
+   "entry": "c_QiuhuaSSR01",
    "label": "默认",
    "size": [
     380,
     752
-   ]
+   ],
+   "entry_label": "秋桦"
   },
   "skins": [
    {
@@ -554,36 +592,39 @@
     "file": "/splash/Img_ChrSkinPic_QiuhuaSSR01.webp",
     "code": "QiuhuaSSR01",
     "rarity": "SSR",
-    "entry": "c_QiuhuaSSR01",
+    "entry": "c_QiuhuaSSR0101",
     "label": "秋桦",
     "size": [
      380,
      752
-    ]
+    ],
+    "entry_label": "秋桦"
    },
    {
     "source": "Img_ChrSkinPic_QiuhuaSSR02",
     "file": "/splash/Img_ChrSkinPic_QiuhuaSSR02.webp",
     "code": "QiuhuaSSR02",
     "rarity": "SSR",
-    "entry": null,
-    "label": "皮肤 02",
+    "entry": "c_QiuhuaSSR0102",
+    "label": "秋桦 ·2",
     "size": [
      380,
      752
-    ]
+    ],
+    "entry_label": "秋桦 ·2"
    },
    {
     "source": "Img_ChrSkinPic_QiuhuaSSR03",
     "file": "/splash/Img_ChrSkinPic_QiuhuaSSR03.webp",
     "code": "QiuhuaSSR03",
     "rarity": "SSR",
-    "entry": null,
-    "label": "皮肤 03",
+    "entry": "c_QiuhuaSSR0103",
+    "label": "秋桦 ·3",
     "size": [
      378,
      750
-    ]
+    ],
+    "entry_label": "秋桦 ·3"
    }
   ]
  },
@@ -594,12 +635,13 @@
    "file": "/splash/Img_ChrSkinPic_ClukaySSR.webp",
    "code": "ClukaySSR",
    "rarity": "SSR",
-   "entry": null,
+   "entry": "c_ClukaySSR01",
    "label": "默认",
    "size": [
     380,
     752
-   ]
+   ],
+   "entry_label": "克鲁凯"
   },
   "skins": [
    {
@@ -607,60 +649,65 @@
     "file": "/splash/Img_ChrSkinPic_ClukaySSR01.webp",
     "code": "ClukaySSR01",
     "rarity": "SSR",
-    "entry": "c_ClukaySSR01",
+    "entry": "c_ClukaySSR0101",
     "label": "克鲁凯",
     "size": [
      380,
      752
-    ]
+    ],
+    "entry_label": "克鲁凯"
    },
    {
     "source": "Img_ChrSkinPic_ClukaySSR02",
     "file": "/splash/Img_ChrSkinPic_ClukaySSR02.webp",
     "code": "ClukaySSR02",
     "rarity": "SSR",
-    "entry": null,
-    "label": "皮肤 02",
+    "entry": "c_ClukaySSR0102",
+    "label": "克鲁凯 ·2",
     "size": [
      380,
      752
-    ]
+    ],
+    "entry_label": "克鲁凯 ·2"
    },
    {
     "source": "Img_ChrSkinPic_ClukaySSR03",
     "file": "/splash/Img_ChrSkinPic_ClukaySSR03.webp",
     "code": "ClukaySSR03",
     "rarity": "SSR",
-    "entry": null,
-    "label": "皮肤 03",
+    "entry": "c_ClukaySSR0103",
+    "label": "克鲁凯 ·3",
     "size": [
      380,
      752
-    ]
+    ],
+    "entry_label": "克鲁凯 ·3"
    },
    {
     "source": "Img_ChrSkinPic_ClukaySSR04",
     "file": "/splash/Img_ChrSkinPic_ClukaySSR04.webp",
     "code": "ClukaySSR04",
     "rarity": "SSR",
-    "entry": null,
-    "label": "皮肤 04",
+    "entry": "c_ClukaySSR0104",
+    "label": "克鲁凯 ·4",
     "size": [
      378,
      750
-    ]
+    ],
+    "entry_label": "克鲁凯 ·4"
    },
    {
     "source": "Img_ChrSkinPic_ClukaySSR05",
     "file": "/splash/Img_ChrSkinPic_ClukaySSR05.webp",
     "code": "ClukaySSR05",
     "rarity": "SSR",
-    "entry": null,
-    "label": "皮肤 05",
+    "entry": "c_ClukaySSR0105",
+    "label": "克鲁凯 ·5",
     "size": [
      380,
      752
-    ]
+    ],
+    "entry_label": "克鲁凯 ·5"
    }
   ]
  },
@@ -671,12 +718,13 @@
    "file": "/splash/Img_ChrSkinPic_SakuraSSR.webp",
    "code": "SakuraSSR",
    "rarity": "SSR",
-   "entry": null,
+   "entry": "c_SakuraSSR01",
    "label": "默认",
    "size": [
     380,
     752
-   ]
+   ],
+   "entry_label": "樱"
   },
   "skins": [
    {
@@ -684,12 +732,13 @@
     "file": "/splash/Img_ChrSkinPic_SakuraSSR01.webp",
     "code": "SakuraSSR01",
     "rarity": "SSR",
-    "entry": "c_SakuraSSR01",
+    "entry": "c_SakuraSSR0101",
     "label": "樱",
     "size": [
      380,
      752
-    ]
+    ],
+    "entry_label": "樱"
    }
   ]
  },
@@ -700,12 +749,13 @@
    "file": "/splash/Img_ChrSkinPic_SuomiSSR.webp",
    "code": "SuomiSSR",
    "rarity": "SSR",
-   "entry": null,
+   "entry": "c_SuomiSSR01",
    "label": "默认",
    "size": [
     380,
     752
-   ]
+   ],
+   "entry_label": "索米"
   },
   "skins": [
    {
@@ -713,24 +763,26 @@
     "file": "/splash/Img_ChrSkinPic_SuomiSSR01.webp",
     "code": "SuomiSSR01",
     "rarity": "SSR",
-    "entry": "c_SuomiSSR01",
+    "entry": "c_SuomiSSR0101",
     "label": "索米",
     "size": [
      380,
      752
-    ]
+    ],
+    "entry_label": "索米"
    },
    {
     "source": "Img_ChrSkinPic_SuomiSSR02",
     "file": "/splash/Img_ChrSkinPic_SuomiSSR02.webp",
     "code": "SuomiSSR02",
     "rarity": "SSR",
-    "entry": null,
-    "label": "皮肤 02",
+    "entry": "c_SuomiSSR0102",
+    "label": "索米 ·2",
     "size": [
      380,
      752
-    ]
+    ],
+    "entry_label": "索米 ·2"
    }
   ]
  },
@@ -741,12 +793,13 @@
    "file": "/splash/Img_ChrSkinPic_SoppoSSR.webp",
    "code": "SoppoSSR",
    "rarity": "SSR",
-   "entry": null,
+   "entry": "c_SoppoSSR01",
    "label": "默认",
    "size": [
     378,
     750
-   ]
+   ],
+   "entry_label": "索波"
   },
   "skins": [
    {
@@ -754,12 +807,13 @@
     "file": "/splash/Img_ChrSkinPic_SoppoSSR01.webp",
     "code": "SoppoSSR01",
     "rarity": "SSR",
-    "entry": "c_SoppoSSR01",
+    "entry": "c_SoppoSSR0101",
     "label": "索波",
     "size": [
      378,
      750
-    ]
+    ],
+    "entry_label": "索波"
    }
   ]
  },
@@ -770,12 +824,13 @@
    "file": "/splash/Img_ChrSkinPic_BastiSSR.webp",
    "code": "BastiSSR",
    "rarity": "SSR",
-   "entry": null,
+   "entry": "c_BastiSSR01",
    "label": "默认",
    "size": [
     380,
     752
-   ]
+   ],
+   "entry_label": "巴斯提"
   },
   "skins": [
    {
@@ -783,12 +838,13 @@
     "file": "/splash/Img_ChrSkinPic_BastiSSR01.webp",
     "code": "BastiSSR01",
     "rarity": "SSR",
-    "entry": "c_BastiSSR01",
+    "entry": "c_BastiSSR0101",
     "label": "巴斯提",
     "size": [
      380,
      752
-    ]
+    ],
+    "entry_label": "巴斯提"
    }
   ]
  },
@@ -799,12 +855,13 @@
    "file": "/splash/Img_ChrSkinPic_JiangyuSSR.webp",
    "code": "JiangyuSSR",
    "rarity": "SSR",
-   "entry": null,
+   "entry": "c_JiangyuSSR01",
    "label": "默认",
    "size": [
     380,
     752
-   ]
+   ],
+   "entry_label": "绛雨"
   },
   "skins": [
    {
@@ -812,12 +869,13 @@
     "file": "/splash/Img_ChrSkinPic_JiangyuSSR01.webp",
     "code": "JiangyuSSR01",
     "rarity": "SSR",
-    "entry": "c_JiangyuSSR01",
+    "entry": "c_JiangyuSSR0101",
     "label": "绛雨",
     "size": [
      380,
      752
-    ]
+    ],
+    "entry_label": "绛雨"
    }
   ]
  },
@@ -828,12 +886,13 @@
    "file": "/splash/Img_ChrSkinPic_HelenSSR.webp",
    "code": "HelenSSR",
    "rarity": "SSR",
-   "entry": null,
+   "entry": "c_HelenSSR01",
    "label": "默认",
    "size": [
     380,
     752
-   ]
+   ],
+   "entry_label": "海伦"
   },
   "skins": [
    {
@@ -841,24 +900,26 @@
     "file": "/splash/Img_ChrSkinPic_HelenSSR01.webp",
     "code": "HelenSSR01",
     "rarity": "SSR",
-    "entry": "c_HelenSSR01",
+    "entry": "c_HelenSSR0101",
     "label": "海伦",
     "size": [
      380,
      752
-    ]
+    ],
+    "entry_label": "海伦"
    },
    {
     "source": "Img_ChrSkinPic_HelenSSR02",
     "file": "/splash/Img_ChrSkinPic_HelenSSR02.webp",
     "code": "HelenSSR02",
     "rarity": "SSR",
-    "entry": null,
-    "label": "皮肤 02",
+    "entry": "c_HelenSSR0102",
+    "label": "海伦 ·2",
     "size": [
      378,
      750
-    ]
+    ],
+    "entry_label": "海伦 ·2"
    }
   ]
  },
@@ -869,12 +930,13 @@
    "file": "/splash/Img_ChrSkinPic_BiyocaSSR.webp",
    "code": "BiyocaSSR",
    "rarity": "SSR",
-   "entry": null,
+   "entry": "c_BiyocaSSR01",
    "label": "默认",
    "size": [
     380,
     752
-   ]
+   ],
+   "entry_label": "比约卡"
   },
   "skins": [
    {
@@ -882,12 +944,13 @@
     "file": "/splash/Img_ChrSkinPic_BiyocaSSR01.webp",
     "code": "BiyocaSSR01",
     "rarity": "SSR",
-    "entry": "c_BiyocaSSR01",
+    "entry": "c_BiyocaSSR0101",
     "label": "比约卡",
     "size": [
      380,
      752
-    ]
+    ],
+    "entry_label": "比约卡"
    }
   ]
  },
@@ -898,12 +961,13 @@
    "file": "/splash/Img_ChrSkinPic_KoledaSSR.webp",
    "code": "KoledaSSR",
    "rarity": "SSR",
-   "entry": null,
+   "entry": "c_KoledaSSR01",
    "label": "默认",
    "size": [
     380,
     752
-   ]
+   ],
+   "entry_label": "科莱达"
   },
   "skins": [
    {
@@ -911,12 +975,13 @@
     "file": "/splash/Img_ChrSkinPic_KoledaSSR01.webp",
     "code": "KoledaSSR01",
     "rarity": "SSR",
-    "entry": "c_KoledaSSR01",
+    "entry": "c_KoledaSSR0101",
     "label": "科莱达",
     "size": [
      378,
      750
-    ]
+    ],
+    "entry_label": "科莱达"
    }
   ]
  },
@@ -927,12 +992,13 @@
    "file": "/splash/Img_ChrSkinPic_LiushihSSR.webp",
    "code": "LiushihSSR",
    "rarity": "SSR",
-   "entry": null,
+   "entry": "c_LiushihSSR01",
    "label": "默认",
    "size": [
     378,
     750
-   ]
+   ],
+   "entry_label": "LiushihSSR01"
   },
   "skins": [
    {
@@ -940,12 +1006,13 @@
     "file": "/splash/Img_ChrSkinPic_LiushihSSR01.webp",
     "code": "LiushihSSR01",
     "rarity": "SSR",
-    "entry": "c_LiushihSSR01",
-    "label": "LiushihSSR01",
+    "entry": "c_LiushihSSR0101",
+    "label": "LiushihSSR0101",
     "size": [
      380,
      752
-    ]
+    ],
+    "entry_label": "LiushihSSR0101"
    }
   ]
  },
@@ -956,12 +1023,13 @@
    "file": "/splash/Img_ChrSkinPic_MacqiatoSSR.webp",
    "code": "MacqiatoSSR",
    "rarity": "SSR",
-   "entry": null,
+   "entry": "c_MacqiatoSSR01",
    "label": "默认",
    "size": [
     380,
     752
-   ]
+   ],
+   "entry_label": "玛奇朵"
   },
   "skins": [
    {
@@ -969,36 +1037,39 @@
     "file": "/splash/Img_ChrSkinPic_MacqiatoSSR01.webp",
     "code": "MacqiatoSSR01",
     "rarity": "SSR",
-    "entry": "c_MacqiatoSSR01",
+    "entry": "c_MacqiatoSSR0101",
     "label": "玛奇朵",
     "size": [
      380,
      752
-    ]
+    ],
+    "entry_label": "玛奇朵"
    },
    {
     "source": "Img_ChrSkinPic_MacqiatoSSR02",
     "file": "/splash/Img_ChrSkinPic_MacqiatoSSR02.webp",
     "code": "MacqiatoSSR02",
     "rarity": "SSR",
-    "entry": null,
-    "label": "皮肤 02",
+    "entry": "c_MacqiatoSSR0102",
+    "label": "玛奇朵 ·2",
     "size": [
      380,
      752
-    ]
+    ],
+    "entry_label": "玛奇朵 ·2"
    },
    {
     "source": "Img_ChrSkinPic_MacqiatoSSR03",
     "file": "/splash/Img_ChrSkinPic_MacqiatoSSR03.webp",
     "code": "MacqiatoSSR03",
     "rarity": "SSR",
-    "entry": null,
-    "label": "皮肤 03",
+    "entry": "c_MacqiatoSSR0103",
+    "label": "玛奇朵 ·3",
     "size": [
      380,
      752
-    ]
+    ],
+    "entry_label": "玛奇朵 ·3"
    }
   ]
  },
@@ -1009,12 +1080,13 @@
    "file": "/splash/Img_ChrSkinPic_AlvaSSR.webp",
    "code": "AlvaSSR",
    "rarity": "SSR",
-   "entry": null,
+   "entry": "c_AlvaSSR01",
    "label": "默认",
    "size": [
     380,
     752
-   ]
+   ],
+   "entry_label": "阿尔瓦"
   },
   "skins": [
    {
@@ -1022,24 +1094,26 @@
     "file": "/splash/Img_ChrSkinPic_AlvaSSR01.webp",
     "code": "AlvaSSR01",
     "rarity": "SSR",
-    "entry": "c_AlvaSSR01",
+    "entry": "c_AlvaSSR0101",
     "label": "阿尔瓦",
     "size": [
      380,
      752
-    ]
+    ],
+    "entry_label": "阿尔瓦"
    },
    {
     "source": "Img_ChrSkinPic_AlvaSSR02",
     "file": "/splash/Img_ChrSkinPic_AlvaSSR02.webp",
     "code": "AlvaSSR02",
     "rarity": "SSR",
-    "entry": null,
-    "label": "皮肤 02",
+    "entry": "c_AlvaSSR0102",
+    "label": "阿尔瓦 ·2",
     "size": [
      378,
      750
-    ]
+    ],
+    "entry_label": "阿尔瓦 ·2"
    }
   ]
  },
@@ -1050,12 +1124,13 @@
    "file": "/splash/Img_ChrSkinPic_QiongjiuSSR.webp",
    "code": "QiongjiuSSR",
    "rarity": "SSR",
-   "entry": null,
+   "entry": "c_QiongjiuSSR01",
    "label": "默认",
    "size": [
     380,
     752
-   ]
+   ],
+   "entry_label": "琼玖"
   },
   "skins": [
    {
@@ -1063,12 +1138,13 @@
     "file": "/splash/Img_ChrSkinPic_QiongjiuSSR01.webp",
     "code": "QiongjiuSSR01",
     "rarity": "SSR",
-    "entry": "c_QiongjiuSSR01",
+    "entry": "c_QiongjiuSSR0101",
     "label": "琼玖",
     "size": [
      380,
      752
-    ]
+    ],
+    "entry_label": "琼玖"
    }
   ]
  },
@@ -1095,12 +1171,13 @@
    "file": "/splash/Img_ChrSkinPic_SextansSSR.webp",
    "code": "SextansSSR",
    "rarity": "SSR",
-   "entry": null,
+   "entry": "c_SextansSSR01",
    "label": "默认",
    "size": [
     378,
     750
-   ]
+   ],
+   "entry_label": "六分仪"
   },
   "skins": [
    {
@@ -1108,12 +1185,13 @@
     "file": "/splash/Img_ChrSkinPic_SextansSSR01.webp",
     "code": "SextansSSR01",
     "rarity": "SSR",
-    "entry": "c_SextansSSR01",
+    "entry": "c_SextansSSR0101",
     "label": "六分仪",
     "size": [
      378,
      750
-    ]
+    ],
+    "entry_label": "六分仪"
    }
   ]
  },
@@ -1124,12 +1202,13 @@
    "file": "/splash/Img_ChrSkinPic_DusevnyjSSR.webp",
    "code": "DusevnyjSSR",
    "rarity": "SSR",
-   "entry": null,
+   "entry": "c_DusevnyjSSR01",
    "label": "默认",
    "size": [
     380,
     752
-   ]
+   ],
+   "entry_label": "杜舍夫内"
   },
   "skins": [
    {
@@ -1137,12 +1216,13 @@
     "file": "/splash/Img_ChrSkinPic_DusevnyjSSR01.webp",
     "code": "DusevnyjSSR01",
     "rarity": "SSR",
-    "entry": "c_DusevnyjSSR01",
+    "entry": "c_DusevnyjSSR0101",
     "label": "杜舍夫内",
     "size": [
      378,
      750
-    ]
+    ],
+    "entry_label": "杜舍夫内"
    }
   ]
  },
@@ -1153,12 +1233,13 @@
    "file": "/splash/Img_ChrSkinPic_IglaSSR.webp",
    "code": "IglaSSR",
    "rarity": "SSR",
-   "entry": null,
+   "entry": "c_IglaSSR01",
    "label": "默认",
    "size": [
     380,
     752
-   ]
+   ],
+   "entry_label": "伊格拉"
   },
   "skins": [
    {
@@ -1166,12 +1247,13 @@
     "file": "/splash/Img_ChrSkinPic_IglaSSR01.webp",
     "code": "IglaSSR01",
     "rarity": "SSR",
-    "entry": "c_IglaSSR01",
+    "entry": "c_IglaSSR0101",
     "label": "伊格拉",
     "size": [
      380,
      752
-    ]
+    ],
+    "entry_label": "伊格拉"
    }
   ]
  },
@@ -1182,12 +1264,13 @@
    "file": "/splash/Img_ChrSkinPic_VectorSSR.webp",
    "code": "VectorSSR",
    "rarity": "SSR",
-   "entry": null,
+   "entry": "c_VectorSSR01",
    "label": "默认",
    "size": [
     380,
     752
-   ]
+   ],
+   "entry_label": "维克托"
   },
   "skins": [
    {
@@ -1195,24 +1278,26 @@
     "file": "/splash/Img_ChrSkinPic_VectorSSR01.webp",
     "code": "VectorSSR01",
     "rarity": "SSR",
-    "entry": "c_VectorSSR01",
+    "entry": "c_VectorSSR0101",
     "label": "维克托",
     "size": [
      380,
      752
-    ]
+    ],
+    "entry_label": "维克托"
    },
    {
     "source": "Img_ChrSkinPic_VectorSSR02",
     "file": "/splash/Img_ChrSkinPic_VectorSSR02.webp",
     "code": "VectorSSR02",
     "rarity": "SSR",
-    "entry": null,
-    "label": "皮肤 02",
+    "entry": "c_VectorSSR0102",
+    "label": "维克托 ·2",
     "size": [
      380,
      752
-    ]
+    ],
+    "entry_label": "维克托 ·2"
    }
   ]
  },
@@ -1223,12 +1308,13 @@
    "file": "/splash/Img_ChrSkinPic_MitylSSR.webp",
    "code": "MitylSSR",
    "rarity": "SSR",
-   "entry": null,
+   "entry": "c_MitylSSR01",
    "label": "默认",
    "size": [
     380,
     752
-   ]
+   ],
+   "entry_label": "米蒂尔"
   },
   "skins": [
    {
@@ -1236,12 +1322,13 @@
     "file": "/splash/Img_ChrSkinPic_MitylSSR01.webp",
     "code": "MitylSSR01",
     "rarity": "SSR",
-    "entry": "c_MitylSSR01",
+    "entry": "c_MitylSSR0101",
     "label": "米蒂尔",
     "size": [
      380,
      752
-    ]
+    ],
+    "entry_label": "米蒂尔"
    }
   ]
  },
@@ -1252,12 +1339,13 @@
    "file": "/splash/Img_ChrSkinPic_FayeSSR.webp",
    "code": "FayeSSR",
    "rarity": "SSR",
-   "entry": null,
+   "entry": "c_FayeSSR01",
    "label": "默认",
    "size": [
     380,
     752
-   ]
+   ],
+   "entry_label": "菲"
   },
   "skins": [
    {
@@ -1265,12 +1353,13 @@
     "file": "/splash/Img_ChrSkinPic_FayeSSR01.webp",
     "code": "FayeSSR01",
     "rarity": "SSR",
-    "entry": "c_FayeSSR01",
+    "entry": "c_FayeSSR0101",
     "label": "菲",
     "size": [
      380,
      752
-    ]
+    ],
+    "entry_label": "菲"
    }
   ]
  },
@@ -1281,12 +1370,13 @@
    "file": "/splash/Img_ChrSkinPic_LindSSR.webp",
    "code": "LindSSR",
    "rarity": "SSR",
-   "entry": null,
+   "entry": "c_LindSSR01",
    "label": "默认",
    "size": [
     380,
     752
-   ]
+   ],
+   "entry_label": "琳德"
   },
   "skins": [
    {
@@ -1294,12 +1384,13 @@
     "file": "/splash/Img_ChrSkinPic_LindSSR01.webp",
     "code": "LindSSR01",
     "rarity": "SSR",
-    "entry": "c_LindSSR01",
+    "entry": "c_LindSSR0101",
     "label": "琳德",
     "size": [
      380,
      752
-    ]
+    ],
+    "entry_label": "琳德"
    }
   ]
  },
@@ -1310,12 +1401,13 @@
    "file": "/splash/Img_ChrSkinPic_UllridSSR.webp",
    "code": "UllridSSR",
    "rarity": "SSR",
-   "entry": null,
+   "entry": "c_UllridSSR01",
    "label": "默认",
    "size": [
     380,
     752
-   ]
+   ],
+   "entry_label": "乌尔丽德"
   },
   "skins": []
  },
@@ -1326,12 +1418,13 @@
    "file": "/splash/Img_ChrSkinPic_FlorenceSSR.webp",
    "code": "FlorenceSSR",
    "rarity": "SSR",
-   "entry": null,
+   "entry": "c_FlorenceSSR01",
    "label": "默认",
    "size": [
     380,
     752
-   ]
+   ],
+   "entry_label": "弗洛伦斯"
   },
   "skins": [
    {
@@ -1339,24 +1432,26 @@
     "file": "/splash/Img_ChrSkinPic_FlorenceSSR01.webp",
     "code": "FlorenceSSR01",
     "rarity": "SSR",
-    "entry": "c_FlorenceSSR01",
+    "entry": "c_FlorenceSSR0101",
     "label": "弗洛伦斯",
     "size": [
      380,
      752
-    ]
+    ],
+    "entry_label": "弗洛伦斯"
    },
    {
     "source": "Img_ChrSkinPic_FlorenceSSR02",
     "file": "/splash/Img_ChrSkinPic_FlorenceSSR02.webp",
     "code": "FlorenceSSR02",
     "rarity": "SSR",
-    "entry": null,
-    "label": "皮肤 02",
+    "entry": "c_FlorenceSSR0102",
+    "label": "弗洛伦斯 ·2",
     "size": [
      380,
      752
-    ]
+    ],
+    "entry_label": "弗洛伦斯 ·2"
    }
   ]
  },
@@ -1367,12 +1462,13 @@
    "file": "/splash/Img_ChrSkinPic_VepleySSR.webp",
    "code": "VepleySSR",
    "rarity": "SSR",
-   "entry": null,
+   "entry": "c_VepleySSR01",
    "label": "默认",
    "size": [
     380,
     752
-   ]
+   ],
+   "entry_label": "维普蕾"
   },
   "skins": [
    {
@@ -1380,24 +1476,26 @@
     "file": "/splash/Img_ChrSkinPic_VepleySSR01.webp",
     "code": "VepleySSR01",
     "rarity": "SSR",
-    "entry": "c_VepleySSR01",
+    "entry": "c_VepleySSR0101",
     "label": "维普蕾",
     "size": [
      380,
      752
-    ]
+    ],
+    "entry_label": "维普蕾"
    },
    {
     "source": "Img_ChrSkinPic_VepleySSR02",
     "file": "/splash/Img_ChrSkinPic_VepleySSR02.webp",
     "code": "VepleySSR02",
     "rarity": "SSR",
-    "entry": null,
-    "label": "皮肤 02",
+    "entry": "c_VepleySSR0102",
+    "label": "维普蕾 ·2",
     "size": [
      380,
      752
-    ]
+    ],
+    "entry_label": "维普蕾 ·2"
    }
   ]
  },
@@ -1408,12 +1506,13 @@
    "file": "/splash/Img_ChrSkinPic_CheyanneSSR.webp",
    "code": "CheyanneSSR",
    "rarity": "SSR",
-   "entry": null,
+   "entry": "c_CheyanneSSR01",
    "label": "默认",
    "size": [
     380,
     752
-   ]
+   ],
+   "entry_label": "夏安"
   },
   "skins": [
    {
@@ -1421,12 +1520,13 @@
     "file": "/splash/Img_ChrSkinPic_CheyanneSSR01.webp",
     "code": "CheyanneSSR01",
     "rarity": "SSR",
-    "entry": "c_CheyanneSSR01",
+    "entry": "c_CheyanneSSR0101",
     "label": "夏安",
     "size": [
      380,
      752
-    ]
+    ],
+    "entry_label": "夏安"
    }
   ]
  },
@@ -1437,12 +1537,13 @@
    "file": "/splash/Img_ChrSkinPic_CharolicSR.webp",
    "code": "CharolicSR",
    "rarity": "SR",
-   "entry": null,
+   "entry": "c_CharolicSR01",
    "label": "默认",
    "size": [
     380,
     752
-   ]
+   ],
+   "entry_label": "CharolicSR01"
   },
   "skins": [
    {
@@ -1450,24 +1551,26 @@
     "file": "/splash/Img_ChrSkinPic_CharolicSR01.webp",
     "code": "CharolicSR01",
     "rarity": "SR",
-    "entry": "c_CharolicSR01",
-    "label": "CharolicSR01",
+    "entry": "c_CharolicSR0101",
+    "label": "CharolicSR0101",
     "size": [
      380,
      752
-    ]
+    ],
+    "entry_label": "CharolicSR0101"
    },
    {
     "source": "Img_ChrSkinPic_CharolicSR03",
     "file": "/splash/Img_ChrSkinPic_CharolicSR03.webp",
     "code": "CharolicSR03",
     "rarity": "SR",
-    "entry": null,
-    "label": "皮肤 03",
+    "entry": "c_CharolicSR0103",
+    "label": "CharolicSR0103",
     "size": [
      380,
      752
-    ]
+    ],
+    "entry_label": "CharolicSR0103"
    }
   ]
  },
@@ -1478,12 +1581,13 @@
    "file": "/splash/Img_ChrSkinPic_TololoSSR.webp",
    "code": "TololoSSR",
    "rarity": "SSR",
-   "entry": null,
+   "entry": "c_TololoSSR01",
    "label": "默认",
    "size": [
     380,
     752
-   ]
+   ],
+   "entry_label": "托洛洛"
   },
   "skins": [
    {
@@ -1491,24 +1595,26 @@
     "file": "/splash/Img_ChrSkinPic_TololoSSR01.webp",
     "code": "TololoSSR01",
     "rarity": "SSR",
-    "entry": "c_TololoSSR01",
+    "entry": "c_TololoSSR0101",
     "label": "托洛洛",
     "size": [
      380,
      752
-    ]
+    ],
+    "entry_label": "托洛洛"
    },
    {
     "source": "Img_ChrSkinPic_TololoSSR02",
     "file": "/splash/Img_ChrSkinPic_TololoSSR02.webp",
     "code": "TololoSSR02",
     "rarity": "SSR",
-    "entry": null,
-    "label": "皮肤 02",
+    "entry": "c_TololoSSR0102",
+    "label": "托洛洛 ·2",
     "size": [
      380,
      752
-    ]
+    ],
+    "entry_label": "托洛洛 ·2"
    }
   ]
  },
@@ -1519,12 +1625,13 @@
    "file": "/splash/Img_ChrSkinPic_KseniaSR.webp",
    "code": "KseniaSR",
    "rarity": "SR",
-   "entry": null,
+   "entry": "c_KseniaSR01",
    "label": "默认",
    "size": [
     380,
     752
-   ]
+   ],
+   "entry_label": "克谢尼娅"
   },
   "skins": []
  },
@@ -1535,12 +1642,13 @@
    "file": "/splash/Img_ChrSkinPic_ColphneSR.webp",
    "code": "ColphneSR",
    "rarity": "SR",
-   "entry": null,
+   "entry": "c_ColphneSR01",
    "label": "默认",
    "size": [
     380,
     752
-   ]
+   ],
+   "entry_label": "科尔芙妮"
   },
   "skins": [
    {
@@ -1548,24 +1656,26 @@
     "file": "/splash/Img_ChrSkinPic_ColphneSR01.webp",
     "code": "ColphneSR01",
     "rarity": "SR",
-    "entry": "c_ColphneSR01",
+    "entry": "c_ColphneSR0101",
     "label": "科尔芙妮",
     "size": [
      380,
      752
-    ]
+    ],
+    "entry_label": "科尔芙妮"
    },
    {
     "source": "Img_ChrSkinPic_ColphneSR03",
     "file": "/splash/Img_ChrSkinPic_ColphneSR03.webp",
     "code": "ColphneSR03",
     "rarity": "SR",
-    "entry": null,
-    "label": "皮肤 03",
+    "entry": "c_ColphneSR0103",
+    "label": "科尔芙妮 ·3",
     "size": [
      380,
      752
-    ]
+    ],
+    "entry_label": "科尔芙妮 ·3"
    }
   ]
  },
@@ -1576,12 +1686,13 @@
    "file": "/splash/Img_ChrSkinPic_GrozaSR.webp",
    "code": "GrozaSR",
    "rarity": "SR",
-   "entry": null,
+   "entry": "c_GrozaSR01",
    "label": "默认",
    "size": [
     380,
     752
-   ]
+   ],
+   "entry_label": "格罗扎"
   },
   "skins": [
    {
@@ -1589,36 +1700,39 @@
     "file": "/splash/Img_ChrSkinPic_GrozaSR01.webp",
     "code": "GrozaSR01",
     "rarity": "SR",
-    "entry": "c_GrozaSR01",
-    "label": "格罗扎",
+    "entry": "c_GrozaSR0102",
+    "label": "格罗扎 ·2",
     "size": [
      380,
      752
-    ]
+    ],
+    "entry_label": "格罗扎 ·2"
    },
    {
     "source": "Img_ChrSkinPic_GrozaSR03",
     "file": "/splash/Img_ChrSkinPic_GrozaSR03.webp",
     "code": "GrozaSR03",
     "rarity": "SR",
-    "entry": null,
-    "label": "皮肤 03",
+    "entry": "c_GrozaSR0103",
+    "label": "格罗扎 ·3",
     "size": [
      380,
      752
-    ]
+    ],
+    "entry_label": "格罗扎 ·3"
    },
    {
     "source": "Img_ChrSkinPic_GrozaSR05",
     "file": "/splash/Img_ChrSkinPic_GrozaSR05.webp",
     "code": "GrozaSR05",
     "rarity": "SR",
-    "entry": null,
-    "label": "皮肤 05",
+    "entry": "c_GrozaSR0105",
+    "label": "格罗扎 ·5",
     "size": [
      380,
      752
-    ]
+    ],
+    "entry_label": "格罗扎 ·5"
    }
   ]
  },
@@ -1629,12 +1743,13 @@
    "file": "/splash/Img_ChrSkinPic_SpringfieldSSR.webp",
    "code": "SpringfieldSSR",
    "rarity": "SSR",
-   "entry": null,
+   "entry": "c_SpringfieldSSR01",
    "label": "默认",
    "size": [
     380,
     752
-   ]
+   ],
+   "entry_label": "春田"
   },
   "skins": [
    {
@@ -1642,36 +1757,39 @@
     "file": "/splash/Img_ChrSkinPic_SpringfieldSSR01.webp",
     "code": "SpringfieldSSR01",
     "rarity": "SSR",
-    "entry": "c_SpringfieldSSR01",
+    "entry": "c_SpringfieldSSR0101",
     "label": "春田",
     "size": [
      380,
      752
-    ]
+    ],
+    "entry_label": "春田"
    },
    {
     "source": "Img_ChrSkinPic_SpringfieldSSR02",
     "file": "/splash/Img_ChrSkinPic_SpringfieldSSR02.webp",
     "code": "SpringfieldSSR02",
     "rarity": "SSR",
-    "entry": null,
-    "label": "皮肤 02",
+    "entry": "c_SpringfieldSSR0102",
+    "label": "春田 ·2",
     "size": [
      380,
      752
-    ]
+    ],
+    "entry_label": "春田 ·2"
    },
    {
     "source": "Img_ChrSkinPic_SpringfieldSSR03",
     "file": "/splash/Img_ChrSkinPic_SpringfieldSSR03.webp",
     "code": "SpringfieldSSR03",
     "rarity": "SSR",
-    "entry": null,
-    "label": "皮肤 03",
+    "entry": "c_SpringfieldSSR0103",
+    "label": "春田 ·3",
     "size": [
      378,
      751
-    ]
+    ],
+    "entry_label": "春田 ·3"
    }
   ]
  },
@@ -1682,12 +1800,13 @@
    "file": "/splash/Img_ChrSkinPic_LeneSSR.webp",
    "code": "LeneSSR",
    "rarity": "SSR",
-   "entry": null,
+   "entry": "c_LeneSSR01",
    "label": "默认",
    "size": [
     380,
     752
-   ]
+   ],
+   "entry_label": "蕾恩"
   },
   "skins": [
    {
@@ -1695,12 +1814,13 @@
     "file": "/splash/Img_ChrSkinPic_LeneSSR01.webp",
     "code": "LeneSSR01",
     "rarity": "SSR",
-    "entry": "c_LeneSSR01",
+    "entry": "c_LeneSSR0101",
     "label": "蕾恩",
     "size": [
      380,
      752
-    ]
+    ],
+    "entry_label": "蕾恩"
    }
   ]
  },
@@ -1711,12 +1831,13 @@
    "file": "/splash/Img_ChrSkinPic_MishtySSR.webp",
    "code": "MishtySSR",
    "rarity": "SSR",
-   "entry": null,
+   "entry": "c_MishtySSR01",
    "label": "默认",
    "size": [
     380,
     752
-   ]
+   ],
+   "entry_label": "米什蒂"
   },
   "skins": []
  },
@@ -1727,12 +1848,13 @@
    "file": "/splash/Img_ChrSkinPic_RobellaSSR.webp",
    "code": "RobellaSSR",
    "rarity": "SSR",
-   "entry": null,
+   "entry": "c_RobellaSSR01",
    "label": "默认",
    "size": [
     380,
     752
-   ]
+   ],
+   "entry_label": "罗贝拉"
   },
   "skins": [
    {
@@ -1740,24 +1862,26 @@
     "file": "/splash/Img_ChrSkinPic_RobellaSSR01.webp",
     "code": "RobellaSSR01",
     "rarity": "SSR",
-    "entry": "c_RobellaSSR01",
+    "entry": "c_RobellaSSR0101",
     "label": "罗贝拉",
     "size": [
      380,
      752
-    ]
+    ],
+    "entry_label": "罗贝拉"
    },
    {
     "source": "Img_ChrSkinPic_RobellaSSR02",
     "file": "/splash/Img_ChrSkinPic_RobellaSSR02.webp",
     "code": "RobellaSSR02",
     "rarity": "SSR",
-    "entry": null,
+    "entry": "c_RobellaSSR0102",
     "label": "皮肤 02",
     "size": [
      380,
      752
-    ]
+    ],
+    "entry_label": "罗贝拉 ·2"
    }
   ]
  },
@@ -1768,12 +1892,13 @@
    "file": "/splash/Img_ChrSkinPic_DaiyanSSR.webp",
    "code": "DaiyanSSR",
    "rarity": "SSR",
-   "entry": null,
+   "entry": "c_DaiyanSSR01",
    "label": "默认",
    "size": [
     380,
     752
-   ]
+   ],
+   "entry_label": "黛烟"
   },
   "skins": [
    {
@@ -1781,12 +1906,13 @@
     "file": "/splash/Img_ChrSkinPic_DaiyanSSR03.webp",
     "code": "DaiyanSSR03",
     "rarity": "SSR",
-    "entry": null,
-    "label": "皮肤 03",
+    "entry": "c_DaiyanSSR0103",
+    "label": "黛烟 ·3",
     "size": [
      380,
      752
-    ]
+    ],
+    "entry_label": "黛烟 ·3"
    }
   ]
  },
@@ -1797,12 +1923,13 @@
    "file": "/splash/Img_ChrSkinPic_PeriSSR.webp",
    "code": "PeriSSR",
    "rarity": "SSR",
-   "entry": null,
+   "entry": "c_PeriSSR01",
    "label": "默认",
    "size": [
     380,
     752
-   ]
+   ],
+   "entry_label": "佩里"
   },
   "skins": [
    {
@@ -1810,12 +1937,13 @@
     "file": "/splash/Img_ChrSkinPic_PeriSSR01.webp",
     "code": "PeriSSR01",
     "rarity": "SSR",
-    "entry": "c_PeriSSR01",
+    "entry": "c_PeriSSR0101",
     "label": "佩里",
     "size": [
      380,
      752
-    ]
+    ],
+    "entry_label": "佩里"
    }
   ]
  },
@@ -1826,12 +1954,13 @@
    "file": "/splash/Img_ChrSkinPic_LittaraSR.webp",
    "code": "LittaraSR",
    "rarity": "SR",
-   "entry": null,
+   "entry": "c_LittaraSR01",
    "label": "默认",
    "size": [
     380,
     752
-   ]
+   ],
+   "entry_label": "莉塔拉"
   },
   "skins": []
  },
@@ -1842,12 +1971,13 @@
    "file": "/splash/Img_ChrSkinPic_NikketaSSR.webp",
    "code": "NikketaSSR",
    "rarity": "SSR",
-   "entry": null,
+   "entry": "c_NikketaSSR01",
    "label": "默认",
    "size": [
     380,
     752
-   ]
+   ],
+   "entry_label": "尼基塔"
   },
   "skins": [
    {
@@ -1855,36 +1985,39 @@
     "file": "/splash/Img_ChrSkinPic_NikketaSSR01.webp",
     "code": "NikketaSSR01",
     "rarity": "SSR",
-    "entry": "c_NikketaSSR01",
+    "entry": "c_NikketaSSR0101",
     "label": "尼基塔",
     "size": [
      380,
      752
-    ]
+    ],
+    "entry_label": "尼基塔"
    },
    {
     "source": "Img_ChrSkinPic_NikketaSSR02",
     "file": "/splash/Img_ChrSkinPic_NikketaSSR02.webp",
     "code": "NikketaSSR02",
     "rarity": "SSR",
-    "entry": null,
-    "label": "皮肤 02",
+    "entry": "c_NikketaSSR0102",
+    "label": "尼基塔 ·2",
     "size": [
      380,
      752
-    ]
+    ],
+    "entry_label": "尼基塔 ·2"
    },
    {
     "source": "Img_ChrSkinPic_NikketaSSR03",
     "file": "/splash/Img_ChrSkinPic_NikketaSSR03.webp",
     "code": "NikketaSSR03",
     "rarity": "SSR",
-    "entry": null,
-    "label": "皮肤 03",
+    "entry": "c_NikketaSSR0103",
+    "label": "尼基塔 ·3",
     "size": [
      378,
      750
-    ]
+    ],
+    "entry_label": "尼基塔 ·3"
    }
   ]
  },
@@ -1895,12 +2028,13 @@
    "file": "/splash/Img_ChrSkinPic_AndorisSSR.webp",
    "code": "AndorisSSR",
    "rarity": "SSR",
-   "entry": null,
+   "entry": "c_AndorisSSR01",
    "label": "默认",
    "size": [
     380,
     752
-   ]
+   ],
+   "entry_label": "安德里斯"
   },
   "skins": [
    {
@@ -1908,12 +2042,13 @@
     "file": "/splash/Img_ChrSkinPic_AndorisSSR01.webp",
     "code": "AndorisSSR01",
     "rarity": "SSR",
-    "entry": "c_AndorisSSR01",
+    "entry": "c_AndorisSSR0101",
     "label": "安德里斯",
     "size": [
      380,
      752
-    ]
+    ],
+    "entry_label": "安德里斯"
    }
   ]
  },
@@ -1924,12 +2059,13 @@
    "file": "/splash/Img_ChrSkinPic_AgentSSR.webp",
    "code": "AgentSSR",
    "rarity": "SSR",
-   "entry": null,
+   "entry": "c_AgentSSR01",
    "label": "默认",
    "size": [
     378,
     750
-   ]
+   ],
+   "entry_label": "特工"
   },
   "skins": [
    {
@@ -1937,12 +2073,13 @@
     "file": "/splash/Img_ChrSkinPic_AgentSSR01.webp",
     "code": "AgentSSR01",
     "rarity": "SSR",
-    "entry": "c_AgentSSR01",
+    "entry": "c_AgentSSR0101",
     "label": "特工",
     "size": [
      378,
      750
-    ]
+    ],
+    "entry_label": "特工"
    }
   ]
  },
@@ -1953,12 +2090,13 @@
    "file": "/splash/Img_ChrSkinPic_FaelynnSSR.webp",
    "code": "FaelynnSSR",
    "rarity": "SSR",
-   "entry": null,
+   "entry": "c_FaelynnSSR01",
    "label": "默认",
    "size": [
     378,
     750
-   ]
+   ],
+   "entry_label": "法琳"
   },
   "skins": [
    {
@@ -1966,12 +2104,13 @@
     "file": "/splash/Img_ChrSkinPic_FaelynnSSR01.webp",
     "code": "FaelynnSSR01",
     "rarity": "SSR",
-    "entry": "c_FaelynnSSR01",
+    "entry": "c_FaelynnSSR0101",
     "label": "法琳",
     "size": [
      378,
      750
-    ]
+    ],
+    "entry_label": "法琳"
    }
   ]
  },
@@ -1982,12 +2121,13 @@
    "file": "/splash/Img_ChrSkinPic_CeciliaSSR.webp",
    "code": "CeciliaSSR",
    "rarity": "SSR",
-   "entry": null,
+   "entry": "c_CeciliaSSR01",
    "label": "默认",
    "size": [
     378,
     750
-   ]
+   ],
+   "entry_label": "塞西莉亚"
   },
   "skins": [
    {
@@ -1995,12 +2135,13 @@
     "file": "/splash/Img_ChrSkinPic_CeciliaSSR01.webp",
     "code": "CeciliaSSR01",
     "rarity": "SSR",
-    "entry": "c_CeciliaSSR01",
+    "entry": "c_CeciliaSSR0101",
     "label": "塞西莉亚",
     "size": [
      378,
      750
-    ]
+    ],
+    "entry_label": "塞西莉亚"
    }
   ]
  },
@@ -2027,12 +2168,13 @@
    "file": "/splash/Img_ChrSkinPic_NemesisSR.webp",
    "code": "NemesisSR",
    "rarity": "SR",
-   "entry": null,
+   "entry": "c_NemesisSR01",
    "label": "默认",
    "size": [
     380,
     752
-   ]
+   ],
+   "entry_label": "涅墨西斯"
   },
   "skins": [
    {
@@ -2040,36 +2182,39 @@
     "file": "/splash/Img_ChrSkinPic_NemesisSR03.webp",
     "code": "NemesisSR03",
     "rarity": "SR",
-    "entry": null,
-    "label": "皮肤 03",
+    "entry": "c_NemesisSR0103",
+    "label": "涅墨西斯 ·3",
     "size": [
      380,
      752
-    ]
+    ],
+    "entry_label": "涅墨西斯 ·3"
    },
    {
     "source": "Img_ChrSkinPic_NemesisSR04",
     "file": "/splash/Img_ChrSkinPic_NemesisSR04.webp",
     "code": "NemesisSR04",
     "rarity": "SR",
-    "entry": null,
-    "label": "皮肤 04",
+    "entry": "c_NemesisSR0104",
+    "label": "涅墨西斯 ·4",
     "size": [
      380,
      752
-    ]
+    ],
+    "entry_label": "涅墨西斯 ·4"
    },
    {
     "source": "Img_ChrSkinPic_NemesisSR05",
     "file": "/splash/Img_ChrSkinPic_NemesisSR05.webp",
     "code": "NemesisSR05",
     "rarity": "SR",
-    "entry": null,
-    "label": "皮肤 05",
+    "entry": "c_NemesisSR0105",
+    "label": "涅墨西斯 ·5",
     "size": [
      380,
      752
-    ]
+    ],
+    "entry_label": "涅墨西斯 ·5"
    }
   ]
  },
@@ -2080,12 +2225,13 @@
    "file": "/splash/Img_ChrSkinPic_NemesisGnosisSSR.webp",
    "code": "NemesisGnosisSSR",
    "rarity": "SSR",
-   "entry": null,
+   "entry": "c_NemesisGnosisSSR01",
    "label": "默认",
    "size": [
     378,
     750
-   ]
+   ],
+   "entry_label": "涅墨西斯 · 灵知"
   },
   "skins": []
  },
@@ -2096,12 +2242,13 @@
    "file": "/splash/Img_ChrSkinPic_PapashaSSR.webp",
    "code": "PapashaSSR",
    "rarity": "SSR",
-   "entry": null,
+   "entry": "c_PapashaSSR01",
    "label": "默认",
    "size": [
     380,
     752
-   ]
+   ],
+   "entry_label": "帕帕莎"
   },
   "skins": []
  },
@@ -2112,12 +2259,13 @@
    "file": "/splash/Img_ChrSkinPic_CentaureissiSSR.webp",
    "code": "CentaureissiSSR",
    "rarity": "SSR",
-   "entry": null,
+   "entry": "c_CentaureissiSSR01",
    "label": "默认",
    "size": [
     380,
     752
-   ]
+   ],
+   "entry_label": "琴陶蕾西"
   },
   "skins": [
    {
@@ -2125,24 +2273,26 @@
     "file": "/splash/Img_ChrSkinPic_CentaureissiSSR01.webp",
     "code": "CentaureissiSSR01",
     "rarity": "SSR",
-    "entry": "c_CentaureissiSSR01",
+    "entry": "c_CentaureissiSSR0101",
     "label": "琴陶蕾西",
     "size": [
      380,
      752
-    ]
+    ],
+    "entry_label": "琴陶蕾西"
    },
    {
     "source": "Img_ChrSkinPic_CentaureissiSSR02",
     "file": "/splash/Img_ChrSkinPic_CentaureissiSSR02.webp",
     "code": "CentaureissiSSR02",
     "rarity": "SSR",
-    "entry": null,
-    "label": "皮肤 02",
+    "entry": "c_CentaureissiSSR0102",
+    "label": "琴陶蕾西 ·2",
     "size": [
      378,
      750
-    ]
+    ],
+    "entry_label": "琴陶蕾西 ·2"
    }
   ]
  },
@@ -2153,12 +2303,13 @@
    "file": "/splash/Img_ChrSkinPic_PerityaSSR.webp",
    "code": "PerityaSSR",
    "rarity": "SSR",
-   "entry": null,
+   "entry": "c_PerityaSSR01",
    "label": "默认",
    "size": [
     380,
     752
-   ]
+   ],
+   "entry_label": "佩里提亚"
   },
   "skins": [
    {
@@ -2166,24 +2317,26 @@
     "file": "/splash/Img_ChrSkinPic_PerityaSSR01.webp",
     "code": "PerityaSSR01",
     "rarity": "SSR",
-    "entry": "c_PerityaSSR01",
+    "entry": "c_PerityaSSR0101",
     "label": "佩里提亚",
     "size": [
      380,
      752
-    ]
+    ],
+    "entry_label": "佩里提亚"
    },
    {
     "source": "Img_ChrSkinPic_PerityaSSR02",
     "file": "/splash/Img_ChrSkinPic_PerityaSSR02.webp",
     "code": "PerityaSSR02",
     "rarity": "SSR",
-    "entry": null,
-    "label": "皮肤 02",
+    "entry": "c_PerityaSSR0102",
+    "label": "佩里提亚 ·2",
     "size": [
      380,
      752
-    ]
+    ],
+    "entry_label": "佩里提亚 ·2"
    }
   ]
  },
@@ -2194,12 +2347,13 @@
    "file": "/splash/Img_ChrSkinPic_EaglettaSSR.webp",
    "code": "EaglettaSSR",
    "rarity": "SSR",
-   "entry": null,
+   "entry": "c_EaglettaSSR01",
    "label": "默认",
    "size": [
     380,
     752
-   ]
+   ],
+   "entry_label": "伊格莱塔"
   },
   "skins": [
    {
@@ -2207,12 +2361,13 @@
     "file": "/splash/Img_ChrSkinPic_EaglettaSSR01.webp",
     "code": "EaglettaSSR01",
     "rarity": "SSR",
-    "entry": "c_EaglettaSSR01",
+    "entry": "c_EaglettaSSR0101",
     "label": "伊格莱塔",
     "size": [
      380,
      752
-    ]
+    ],
+    "entry_label": "伊格莱塔"
    }
   ]
  },
@@ -2223,12 +2378,13 @@
    "file": "/splash/Img_ChrSkinPic_SabrinaSSR.webp",
    "code": "SabrinaSSR",
    "rarity": "SSR",
-   "entry": null,
+   "entry": "c_SabrinaSSR01",
    "label": "默认",
    "size": [
     380,
     752
-   ]
+   ],
+   "entry_label": "萨布丽娜"
   },
   "skins": [
    {
@@ -2236,12 +2392,13 @@
     "file": "/splash/Img_ChrSkinPic_SabrinaSSR01.webp",
     "code": "SabrinaSSR01",
     "rarity": "SSR",
-    "entry": "c_SabrinaSSR01",
+    "entry": "c_SabrinaSSR0101",
     "label": "萨布丽娜",
     "size": [
      380,
      752
-    ]
+    ],
+    "entry_label": "萨布丽娜"
    }
   ]
  },
@@ -2268,12 +2425,13 @@
    "file": "/splash/Img_ChrSkinPic_BalthildeSSR.webp",
    "code": "BalthildeSSR",
    "rarity": "SSR",
-   "entry": null,
+   "entry": "c_BalthildeSSR01",
    "label": "默认",
    "size": [
     380,
     752
-   ]
+   ],
+   "entry_label": "巴希达"
   },
   "skins": []
  },
@@ -2284,12 +2442,13 @@
    "file": "/splash/Img_ChrSkinPic_HarpsySSR.webp",
    "code": "HarpsySSR",
    "rarity": "SSR",
-   "entry": null,
+   "entry": "c_HarpsySSR01",
    "label": "默认",
    "size": [
     380,
     752
-   ]
+   ],
+   "entry_label": "哈比"
   },
   "skins": []
  },
@@ -2300,12 +2459,13 @@
    "file": "/splash/Img_ChrSkinPic_AsteriaSSR.webp",
    "code": "AsteriaSSR",
    "rarity": "SSR",
-   "entry": null,
+   "entry": "c_AsteriaSSR01",
    "label": "默认",
    "size": [
     380,
     752
-   ]
+   ],
+   "entry_label": "阿斯特里亚"
   },
   "skins": [
    {
@@ -2313,12 +2473,13 @@
     "file": "/splash/Img_ChrSkinPic_AsteriaSSR01.webp",
     "code": "AsteriaSSR01",
     "rarity": "SSR",
-    "entry": "c_AsteriaSSR01",
+    "entry": "c_AsteriaSSR0101",
     "label": "阿斯特里亚",
     "size": [
      380,
      752
-    ]
+    ],
+    "entry_label": "阿斯特里亚"
    }
   ]
  },
@@ -2345,12 +2506,13 @@
    "file": "/splash/Img_ChrSkinPic_ColphneDoppelgaengerSSR.webp",
    "code": "ColphneDoppelgaengerSSR",
    "rarity": "SSR",
-   "entry": null,
+   "entry": "c_ColphneDoppelgaengerSSR01",
    "label": "默认",
    "size": [
     378,
     750
-   ]
+   ],
+   "entry_label": "科尔芙妮·二重身"
   },
   "skins": []
  },

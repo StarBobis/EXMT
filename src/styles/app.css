@@ -251,12 +251,18 @@ button {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 8px 2px;
+  height: 44px;
+  padding: 0 8px;
 }
 
+/* compact: the toggle uses exactly the same 40px box as the nav icons */
 .sidebar--collapsed .sidebar__head {
+  width: 40px;
+  height: 40px;
+  margin: 2px auto;
+  padding: 0;
+  gap: 0;
   justify-content: center;
-  padding: 6px 0 2px;
 }
 
 .nav-toggle {
@@ -268,6 +274,12 @@ button {
   border-radius: var(--radius-sm);
   color: var(--text-2);
   font-size: 16px;
+  line-height: 1;
+}
+
+.sidebar--collapsed .nav-toggle {
+  width: 40px;
+  height: 40px;
 }
 
 .nav-toggle:hover {
@@ -277,6 +289,17 @@ button {
 
 .nav-toggle:active {
   background: var(--fill-subtle-pressed);
+}
+
+/* WinUI 的 PaneToggleButton 不用外框表示焦点，改用浅色填充 */
+.nav-toggle:focus,
+.nav-toggle:focus-visible {
+  outline: none;
+}
+
+.nav-toggle:focus-visible {
+  background: var(--fill-selected);
+  color: var(--text-1);
 }
 
 .sidebar__label {
@@ -329,6 +352,16 @@ button {
 
 .nav-item.is-selected {
   background: var(--fill-selected);
+}
+
+/* NavigationView 不用外框表示焦点：鼠标点选时不该出现蓝框 */
+.nav-item:focus,
+.nav-item:focus-visible {
+  outline: none;
+}
+
+.nav-item:focus-visible {
+  background: var(--fill-subtle-hover);
 }
 
 .nav-item.is-selected::before {
@@ -414,9 +447,10 @@ button {
    ========================================================================== */
 
 .page {
-  max-width: 1080px;
-  padding: 20px 32px 40px;
-  margin: 0 auto;
+  max-width: none;
+  padding: 18px 24px 32px;
+  margin: 0;
+  min-width: 0;
   animation: page-in var(--dur) var(--ease);
 }
 
