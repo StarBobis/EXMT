@@ -29,6 +29,9 @@ Click(h, cx, cy): ClientToScreen(o) → SetCursorPos(o+c) → mouse_event down/u
 SetThreadDpiAwarenessContext((IntPtr)(-4));   // PER_MONITOR_AWARE_V2，之后再 GetWindowRect / CopyFromScreen
 ```
 
+**点击不生效也可能是这个**：`SetCursorPos` 同样被虚拟化，整个进程加一次 `SetProcessDPIAware()` 才能"传多少像素就点哪里"。
+症状是"截图明明在，点哪都没反应"——先量 `GetCursorPos` 回读，再查是不是 DPI 换算。
+
 `SetForegroundWindow` 之后 `Sleep(400)` 再抓图；整屏抓 `0,0,2560,1600` 能同时看到窗口四周留白，比只抓窗口更能说明"大小合不合适"。
 
 ## 2. 布局：两个"看起来是 bug，其实是 CSS"的坑
@@ -38,6 +41,7 @@ SetThreadDpiAwarenessContext((IntPtr)(-4));   // PER_MONITOR_AWARE_V2，之后�
 | 内容整体右移、右侧被窗口切掉 | `.page { max-width: 1080; margin: 0 auto }` | full-bleed：`max-width: none; margin: 0` |
 | 两栏（7:3）右栏跑到屏幕外 | `grid-template-columns: 7fr 3fr` 被左侧 min-content 顶宽 | `minmax(0, 7fr) minmax(0, 3fr)` + 子项 `min-width: 0` |
 | 卡片一排放不下、最后一张被切 | `repeat(auto-fill, minmax(96px, 124px))` 的**上限**比可用宽度大 | 用 `minmax(96px, 1fr)`，让轨道按容器均分 |
+| 立绘/海报卡片被"固定高度"压瘦，图缩在中间 | `height: 320px` + `width: 1fr`，卡不是图的比例，`object-fit:contain` 只能留白 | 卡片的 `aspect-ratio` 取**图片本身**的比例（380/752），宽度平分、高度由宽度算，`flex: 1 1 0` + `max-width` 封顶 |
 
 一句话：**任何 `1fr` / 百分比栅格，都要假设子元素会反抗，用 `minmax(0, …)` 兜住。**
 
@@ -89,11 +93,11 @@ button:focus-visible { background: var(--fill-subtle-hover); }   /* 只有键盘
 let scale = monitor.scale_factor();
 let (work_w, work_h) = (area.size.width as f64 / scale, area.size.height as f64 / scale);
 
-let mut w = work_w * 0.72;          // 宽度取工作区的 72%
-let mut h = w / (16.0 / 10.0);      // 宽屏比例；超宽屏时这条会被下面截断
-if h > work_h * 0.88 { h = work_h * 0.88; w = h * (16.0 / 10.0); }   // 先让高，别顶到任务栏
-if w < 920.0 { w = 920.0; h = w / (16.0 / 10.0); }                   // 下限跟 config 的
-if h < 600.0 { h = 600.0; w = h * (16.0 / 10.0); }                   // minWidth/minHeight 同步
+let mut w = work_w * (2.0 / 3.0);   // 宽度取工作区 2/3 —— 用户说的"占屏幕三分之二"
+let mut h = w / (16.0 / 9.0);       // 1920×1080 的比例；超宽屏时这条会被下面截断
+if h > work_h * 0.90 { h = work_h * 0.90; w = h * (16.0 / 9.0); }   // 先让高，别顶到任务栏
+if w < 920.0 { w = 920.0; h = w / (16.0 / 9.0); }                   // 下限跟 config 的
+if h < 600.0 { h = 600.0; w = h * (16.0 / 9.0); }                   // minWidth/minHeight 同步
 window.set_size(LogicalSize::new(w.min(work_w).round(), h.min(work_h).round()));
 ```
 
@@ -106,16 +110,18 @@ window.set_size(LogicalSize::new(w.min(work_w).round(), h.min(work_h).round()));
 3. **在 `setup` 里改，用户看不到跳变**：config 窗口在 setup 之前创建但还没进消息循环，第一帧就是新尺寸。
    保持 config 的 `width/height` 当兜底（拿不到 monitor 时用）。
 
-实测曲线（16:10，工作区已是扣掉任务栏的逻辑尺寸）：
+实测曲线（16:9 / 2 分之 3 宽，工作区已是扣掉任务栏的逻辑尺寸）：
 
 | 屏幕 | 工作区 | 窗口 |
 | --- | --- | --- |
-| 1366×768 @100% | 1366×728 | 984×615 |
-| 1920×1080 @100% | 1920×1040 | 1382×864 |
-| 2560×1600 @150% | 1707×1019 | 1229×768 |
-| 3440×1440 @100% | 3440×1400 | 1232 高封顶 → 1971×1232 |
+| 1366×768 @100% | 1366×728 | 下限 920 高 600 先兜底 → 1067×600 |
+| 1920×1080 @100% | 1920×1040 | 1280×720 |
+| 2560×1600 @150% | 1707×1019 | 1138×640（客户区实测 1707×960 物理） |
+| 3440×1440 @100% | 3440×1400 | 高 1260 封顶 → 2240×1260 |
 
-要换成 16:9 只改一个常量；要更"小一号"就调 `0.72`，别再去 config 写死数字。
+用户口径是"**比例 1920×1080、占屏幕约 2/3、居中**"——比例和占比都是常量，永远不写死分辨率；
+改口径只调 `WINDOW_ASPECT` / `WINDOW_WIDTH_SHARE` 两个常量。下限 920×600 会让小屏上看起来"不止 2/3"，
+那是可读性兜底，别再往下压。
 
 ## 9. 双语界面 + 用户可配置目录
 
@@ -271,6 +277,7 @@ async fn run_core(...) -> Result<CoreOutput, String> {
 - 之后所有预览/索引只读备份；设置页提供“重新备份 / 恢复原始模型 / 打开备份”，恢复 = 把备份覆盖回游戏目录。
 - 旧版本留下的 `%APPDATA%\<app>\backups\<hash>.bundle` 比游戏目录更可信（可能是 Mod 之前存的），备份时作为 `prefer` 源优先使用——能救回已被替换成 Mod 的包。
 - **排查“模型不对劲”先看 bundle 是否被替换**：比较目录内 mtime/size，或看 `%APPDATA%\<app>\mods\*.json`；本例“头发变成人偶”就是 `hair-basebody` 替换包导致的，不是渲染 bug。
+- 门禁的判据要**在启动时重算一次**：路径存在 localStorage 里，但 `gameStatus` 是内存里的，新进程里是 `unset` → 直接点模型页会误显示“先设置游戏路径”。在根组件 mount 时 `checkGamePath(stored)`，占位只留给真的没设置的情况。
 
 ### 10.3.8 Vue KeepAlive 与动态页面切换
 
