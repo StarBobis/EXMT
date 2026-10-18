@@ -9,6 +9,7 @@
 import { onBeforeUnmount, onMounted, ref, watch } from "vue";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
 import { t } from "../lib/i18n";
 import type { PreviewGeometry } from "../lib/preview";
 
@@ -16,6 +17,8 @@ const props = defineProps<{
   meshes: PreviewGeometry[];
   hidden: string[];
   selected: string[];
+  /** mesh name → `data:` URL of its diffuse texture */
+  maps: Record<string, string>;
   loading?: boolean;
 }>();
 
@@ -29,13 +32,15 @@ let controls: OrbitControls | null = null;
 let observer: ResizeObserver | null = null;
 let group: THREE.Group | null = null;
 let grid: THREE.GridHelper | null = null;
+let shadow: THREE.Mesh | null = null;
 let raf = 0;
 const built = new Map<string, THREE.Mesh>();
 /** 相机取景参数，供「重置视角」和缩放百分比复用。 */
 let framing: { center: THREE.Vector3; maxDim: number } | null = null;
 
-const COLOR_PICKED = 0x8fc9ff;
-const COLOR_IDLE = 0x5f6a78;
+const COLOR_PICKED = 0xffffff;
+const COLOR_IDLE = 0x6c737c;
+const textureLoader = new THREE.TextureLoader();
 
 function render() {
   if (!renderer || !scene || !camera) return;
@@ -91,7 +96,49 @@ function fit(all: PreviewGeometry[]) {
   grid.position.set(center.x, min.y, center.z);
   scene?.add(grid);
 
+  // 柔和接触阴影，让角色不是“浮”在网格上
+  if (shadow) {
+    scene?.remove(shadow);
+    shadow.geometry.dispose();
+    (shadow.material as THREE.Material).dispose();
+  }
+  const shadowSize = Math.max(maxDim * 1.6, 1);
+  shadow = new THREE.Mesh(
+    new THREE.PlaneGeometry(shadowSize, shadowSize),
+    new THREE.MeshBasicMaterial({
+      map: shadowTexture(),
+      transparent: true,
+      depthWrite: false,
+      opacity: 0.85,
+    }),
+  );
+  shadow.rotation.x = -Math.PI / 2;
+  shadow.position.set(center.x, min.y + 0.002, center.z);
+  scene?.add(shadow);
+
   resetView();
+}
+
+/** 径向渐变画出来的软阴影贴图（不需要阴影贴图开销）。 */
+let shadowMap: THREE.Texture | null = null;
+function shadowTexture(): THREE.Texture {
+  if (shadowMap) return shadowMap;
+  const size = 256;
+  const canvas = document.createElement("canvas");
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext("2d");
+  if (ctx) {
+    const gradient = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
+    gradient.addColorStop(0, "rgba(0,0,0,0.55)");
+    gradient.addColorStop(0.55, "rgba(0,0,0,0.22)");
+    gradient.addColorStop(1, "rgba(0,0,0,0)");
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, size, size);
+  }
+  shadowMap = new THREE.CanvasTexture(canvas);
+  shadowMap.colorSpace = THREE.SRGBColorSpace;
+  return shadowMap;
 }
 
 /** 把相机放回初始取景（双击 / 重置按钮）。 */
@@ -100,7 +147,8 @@ function resetView() {
   const { center, maxDim } = framing;
   const fov = (camera.fov * Math.PI) / 180;
   const distance = (maxDim / 2 / Math.tan(fov / 2)) * 1.35;
-  const direction = new THREE.Vector3(0.45, 0.28, 1).normalize();
+  // 从角色正前方略微偏右上方看（Unity 模型朝 -Z）
+  const direction = new THREE.Vector3(0.32, 0.2, -1).normalize();
 
   controls.target.copy(center);
   camera.position.copy(center).addScaledVector(direction, distance);
@@ -169,11 +217,20 @@ function build(all: PreviewGeometry[]) {
     if (!geo.normals) buffer.computeVertexNormals();
     buffer.computeBoundingSphere();
 
+    const url = props.maps[geo.name];
+    const map = url ? textureLoader.load(url, () => render()) : null;
+    if (map) {
+      map.colorSpace = THREE.SRGBColorSpace;
+      map.anisotropy = renderer?.capabilities.getMaxAnisotropy() ?? 4;
+    }
+
     const material = new THREE.MeshStandardMaterial({
       color: props.selected.includes(geo.name) ? COLOR_PICKED : COLOR_IDLE,
-      metalness: 0.12,
-      roughness: 0.7,
+      map,
+      metalness: 0.05,
+      roughness: 0.72,
       side: THREE.DoubleSide,
+      alphaTest: 0.35,
     });
     const mesh = new THREE.Mesh(buffer, material);
     mesh.name = geo.name;
@@ -191,13 +248,13 @@ function syncVisibility() {
   render();
 }
 
-/** 勾选的网格亮蓝，没勾的压成灰色——和列表里的勾选状态一致。 */
+/** 勾选的网格用原色贴图，没勾的压暗，列表和 3D 的选中状态一致。 */
 function syncColors() {
   for (const [name, mesh] of built) {
     const material = mesh.material as THREE.MeshStandardMaterial;
     const picked = props.selected.includes(name);
     material.color.setHex(picked ? COLOR_PICKED : COLOR_IDLE);
-    material.emissive.setHex(picked ? 0x0d2436 : 0x000000);
+    material.emissive.setHex(picked ? 0x0a1a26 : 0x000000);
   }
   render();
 }
@@ -209,6 +266,9 @@ onMounted(() => {
   renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   renderer.outputColorSpace = THREE.SRGBColorSpace;
+  // 影视调色：ACES 高光滚降，避免纯白过曝
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.2;
   renderer.domElement.className = "meshviewer__canvas";
   el.appendChild(renderer.domElement);
 
@@ -216,13 +276,26 @@ onMounted(() => {
   camera = new THREE.PerspectiveCamera(40, 1, 0.01, 1000);
   camera.position.set(0, 1, 3);
 
-  scene.add(new THREE.HemisphereLight(0xdfe9ff, 0x1a2230, 1.35));
-  const key = new THREE.DirectionalLight(0xffffff, 2.1);
-  key.position.set(3, 6, 4);
+  // 环境反射（PBR 需要）：给金属/粗糙面一点棚拍的层次
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+  scene.environmentIntensity = 0.75;
+  pmrem.dispose();
+
+  // 三点布光：主光（右前上，暖）/ 补光（左前，冷、弱）/ 轮廓光（后上，强）
+  const key = new THREE.DirectionalLight(0xfff0dc, 4.2);
+  key.position.set(3.0, 4.2, -3.0);
   scene.add(key);
-  const rim = new THREE.DirectionalLight(0x7fb8ff, 1.1);
-  rim.position.set(-4, 2, -5);
+  const fill = new THREE.DirectionalLight(0x9fc2ff, 1.8);
+  fill.position.set(-3.5, 1.6, -2.5);
+  scene.add(fill);
+  const rim = new THREE.DirectionalLight(0xdcecff, 4.5);
+  rim.position.set(-1.8, 3.2, 4.0);
   scene.add(rim);
+  const top = new THREE.DirectionalLight(0xffffff, 1.1);
+  top.position.set(0, 6, -0.4);
+  scene.add(top);
+  scene.add(new THREE.HemisphereLight(0xdfe9ff, 0x121820, 0.7));
 
   controls = new OrbitControls(camera, renderer.domElement);
   controls.enableDamping = true;
@@ -256,6 +329,7 @@ watch(
   () => props.meshes,
   (all) => build(all),
 );
+watch(() => props.maps, () => build(props.meshes), { deep: true });
 watch(() => props.hidden, syncVisibility, { deep: true });
 watch(() => props.selected, syncColors, { deep: true });
 

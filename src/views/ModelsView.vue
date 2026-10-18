@@ -150,6 +150,7 @@ const hidden = ref<string[]>([]);
 const pickedMeshes = ref<string[]>([]);
 const pickedTextures = ref<string[]>([]);
 const textures = ref<TextureEntry[]>([]);
+const maps = ref<Record<string, string>>({});
 const busy = ref("");
 const note = ref("");
 const cacheHint = ref("");
@@ -205,6 +206,7 @@ async function openStudio(entry: CatalogEntry) {
   pickedMeshes.value = [];
   pickedTextures.value = [];
   textures.value = [];
+  maps.value = {};
   note.value = "";
   cacheHint.value = "";
   status.value = null;
@@ -225,6 +227,7 @@ async function openStudio(entry: CatalogEntry) {
     meshes.value = data.meshes;
     geometries.value = data.geometry;
     textures.value = data.textures;
+    maps.value = data.maps;
     // 默认全不选：用户只勾自己要改的那几个，导出和回包都只动它们
     pickedMeshes.value = [];
     pickedTextures.value = [];
@@ -446,6 +449,7 @@ watch(
               :meshes="geometries"
               :hidden="hidden"
               :selected="pickedMeshes"
+              :maps="maps"
               :loading="!!busy"
             />
           </div>

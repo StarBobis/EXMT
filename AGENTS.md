@@ -129,6 +129,7 @@ bun run check     # 见 §6
 | 2026-10-19 | 默认全选会导出用户没改的东西 | 模型/贴图**默认全不勾**；勾选 = 只导出这一批。模型行：复选框（导出）+ 眼睛（只切显示）；贴图卡：选中加边框+勾，未选压暗。工作空间写之前先清空 `meshes/` `textures/`，保证目录内容严格等于这次勾选 |
 | 2026-10-19 | 3D 视图滚轮不能缩放 | three 的 `enableDamping` 必须**逐帧 `controls.update()`**（rAF），否则阻尼/缩放不结算；WebView2 的 `deltaY` 单位不统一，滚轮**自己处理**（`exp(-delta/400)` 指数步进）并关掉 `enableZoom` 防止双重缩放；另外补 `＋/－`、重置视角、双击复位、百分比提示 |
 | 2026-10-19 | 线框模式试过但没生效 | `material.wireframe = true` + `needsUpdate` 后画面不变（three 版本相关），**已删除不留半套**；要再试就换 `WireframeGeometry` / `LineSegments` |
+| 2026-10-19 | 3D 预览是灰模，而且灯光平 | `_d` / `_da` 是 diffuse：网格名去掉 `_lodN` 再加 `_d`/`_da` 就是它的贴图（`cloth4` 只有 `_da`，`cloth3` 没有就保持灰）；核心新增 `maps` 命令解 1024px 贴图并缓存 `diffuse.json`。灯光用 ACES + RoomEnvironment + 三点布光（暖主光 / 冷补光 / 强轮廓光）+ 软接触阴影，别再用一盏平行光打天下 |
 | 2026-10-18 | 为什么没有 docs/skill 更新 | 本文件 §1 RSI 循环 |
 
 ---

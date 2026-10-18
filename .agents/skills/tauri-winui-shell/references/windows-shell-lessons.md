@@ -255,6 +255,14 @@ async fn run_core(...) -> Result<CoreOutput, String> {
 - 除了滚轮，给一组 `＋/－` 和「重置视角」按钮（`resetView()` 用保存的 `center/maxDim` 重新算距离），双击画布也复位；左下角写一行操作提示 + 当前缩放百分比，用户一眼知道怎么用。
 - 线框切换别用 `material.wireframe`（换 three 版本后实测无效），要线框就建 `WireframeGeometry` + `LineSegments`，或者干脆不做。
 
+### 10.3.6 贴图上身 + 影视布光
+
+- 贴图命名规律：网格 `c_X_slg_cloth1_lod0` 的 diffuse 就是 `c_X_slg_cloth1_d`；有 alpha 的用 `_da`。去掉 `_lodN` 再加后缀，命中率最高；没命中的网格保持纯色，别硬套错贴图。
+- 解码走核心命令（一次一个皮肤、按 bundle 只解析一次），缩到 1024px 就够预览，结果按皮肤缓存成 JSON；别在渲染线程里解 BC。
+- 灯光别用一盏平行光：`ACESFilmicToneMapping` + `RoomEnvironment`（PMREM）打底，再加暖主光 / 冷补光 / 强轮廓光 / 顶光，角色立刻有体积。
+- 角色脚下加一张径向渐变的透明平面当接触阴影（`CanvasTexture` + `MeshBasicMaterial{depthWrite:false}`），比开 shadow map 便宜且不会锯齿。
+- `TextureLoader` 默认 `flipY=true`，正好对上 Unity 的 v 轴；如果贴图上下颠倒才改 `flipY`，别先动 UV。
+
 ### 10.4 导出成"工作空间"而不是一堆文件
 
 ```

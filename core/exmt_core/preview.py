@@ -226,6 +226,47 @@ def geoset(spec: dict) -> dict:
 # --------------------------------------------------------------------------- #
 # textures
 # --------------------------------------------------------------------------- #
+def diffuse_maps(bundles: dict, pairs: list, size: int = 1024) -> dict:
+    """Full-resolution diffuse maps for the meshes that have one.
+
+    `pairs` is `[{"mesh": …, "texture": …, "bundle": …}]`; every bundle is parsed
+    once. Images larger than `size` are downscaled so the preview stays light.
+    """
+    from PIL import Image
+
+    from . import textures as T
+    from .sf import open_bundle
+
+    opened = {}
+    out = []
+    for pair in pairs:
+        mesh = pair.get("mesh", "")
+        name = pair.get("texture", "")
+        bundle_hash = pair.get("bundle", "")
+        try:
+            bundle = opened.get(bundle_hash)
+            if bundle is None:
+                bundle = open_bundle(bundles[bundle_hash])
+                opened[bundle_hash] = bundle
+            img = T.decode_texture(bundle, name)
+            width, height = img.size
+            if max(width, height) > size:
+                img = img.copy()
+                img.thumbnail((size, size), Image.LANCZOS)
+            buf = io.BytesIO()
+            img.save(buf, "PNG")
+            out.append({
+                "mesh": mesh,
+                "texture": name,
+                "width": int(width),
+                "height": int(height),
+                "png": base64.b64encode(buf.getvalue()).decode("ascii"),
+            })
+        except Exception as exc:  # noqa: BLE001 - one broken map must not sink the rest
+            out.append({"mesh": mesh, "texture": name, "error": str(exc)[:200]})
+    return {"maps": out}
+
+
 def thumbs(bundle_path: str, names: list, size: int = 192) -> list:
     """Downscaled PNGs (base64) for the texture grid, one bundle load."""
     from PIL import Image

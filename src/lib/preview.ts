@@ -157,6 +157,8 @@ export interface SkinData {
   meshes: SkinMesh[];
   geometry: PreviewGeometry[];
   textures: TextureEntry[];
+  /** mesh name → `data:` URL of its diffuse (`_d` / `_da`) texture */
+  maps: Record<string, string>;
   cached: boolean;
   builtAt: string | null;
 }
@@ -232,8 +234,66 @@ async function geosetRaw(skinKey: string, meshes: SkinMesh[]): Promise<{ meshes:
   return (await runJson(["geoset", specPath])) as { meshes: any[] };
 }
 
-async function thumbsFor(textures: TextureEntry[]): Promise<TextureEntry[]> {
-  const byBundle = new Map<string, TextureEntry[]>();
+/**
+ * `c_X_slg_cloth1_lod0` → `c_X_slg_cloth1_d` (or `_da`, the alpha variant).
+ * Falls back to the longest shared stem so `emitter_slg_lod0` still finds
+ * `emitter_slg_d`.
+ */
+export function diffuseNameFor(mesh: string, names: string[]): string | null {
+  const stem = mesh.replace(/_lod\d+$/i, "");
+  const all = new Set(names);
+  for (const suffix of ["_d", "_da", "_dif"]) {
+    const candidate = `${stem}${suffix}`;
+    if (all.has(candidate)) return candidate;
+  }
+  let best: string | null = null;
+  let bestLength = 0;
+  for (const name of names) {
+    const m = /^(.*?)_(d|da|dif)$/i.exec(name);
+    if (!m) continue;
+    const textureStem = m[1];
+    if (!(stem.startsWith(textureStem) || textureStem.startsWith(stem))) continue;
+    const shared = Math.min(stem.length, textureStem.length);
+    if (shared > bestLength) {
+      bestLength = shared;
+      best = name;
+    }
+  }
+  return best;
+}
+
+async function buildDiffuseMaps(
+  skinKey: string,
+  meshes: SkinMesh[],
+  textures: TextureEntry[],
+): Promise<Record<string, string>> {
+  const byName = new Map(textures.map((tex) => [tex.name, tex]));
+  const names = textures.map((tex) => tex.name);
+  const pairs: { mesh: string; texture: string; bundle: string }[] = [];
+  for (const mesh of meshes) {
+    const texture = diffuseNameFor(mesh.name, names);
+    if (!texture) continue;
+    const entry = byName.get(texture);
+    if (!entry) continue;
+    pairs.push({ mesh: mesh.name, texture, bundle: entry.bundle });
+  }
+  if (!pairs.length) return {};
+
+  const bundles: Record<string, string> = {};
+  for (const pair of pairs) bundles[pair.bundle] = bundlePathOf(pair.bundle);
+  const specPath = await join(cacheFolder.value, `maps-${skinKey}.json`);
+  await writeTextFile(specPath, JSON.stringify({ bundles, maps: pairs }));
+  const data = (await runJson(["maps", specPath, "1024"])) as {
+    maps?: { mesh: string; png?: string }[];
+  };
+  const out: Record<string, string> = {};
+  for (const item of data.maps ?? []) {
+    if (item.png) out[item.mesh] = `data:image/png;base64,${item.png}`;
+  }
+  return out;
+}
+
+async function thumbsFor(textures: TextureEntry[]): Promise<TextureEntry[]> {  const byBundle = new Map<string, TextureEntry[]>();
   for (const tex of textures) {
     const group = byBundle.get(tex.bundle);
     if (group) group.push(tex);
@@ -286,11 +346,17 @@ export async function loadSkin(
     const raw = await readJson<{ meshes: any[] }>(await join(dir, "geometry.json"));
     const thumbs = await readJson<TextureEntry[]>(await join(dir, "thumbs.json"));
     if (meshes && raw && thumbs) {
+      let maps = await readJson<Record<string, string>>(await join(dir, "diffuse.json"));
+      if (!maps && meshes.length && texs.length) {
+        maps = await buildDiffuseMaps(key, meshes, texs);
+        await writeJson(await join(dir, "diffuse.json"), maps).catch(() => undefined);
+      }
       const data: SkinData = {
         key,
         meshes,
         geometry: decodeSet(raw),
         textures: thumbs,
+        maps: maps ?? {},
         cached: true,
         builtAt: meta.built_at,
       };
@@ -311,6 +377,7 @@ export async function loadSkin(
 
   onPhase?.("textures");
   const thumbs = await thumbsFor(texs);
+  const maps = await buildDiffuseMaps(key, meshes, texs);
 
   const builtAt = new Date().toISOString();
   await mkdir(dir, { recursive: true }).catch(() => undefined);
@@ -318,6 +385,7 @@ export async function loadSkin(
     writeJson(await join(dir, "meshes.json"), meshes),
     writeJson(await join(dir, "geometry.json"), raw),
     writeJson(await join(dir, "thumbs.json"), thumbs),
+    writeJson(await join(dir, "diffuse.json"), maps),
     writeJson(await join(dir, "meta.json"), {
       version: SKIN_CACHE_VERSION,
       key,
@@ -326,10 +394,19 @@ export async function loadSkin(
     }),
   ]).catch(() => undefined);
 
-  const data: SkinData = { key, meshes, geometry: decodeSet(raw), textures: thumbs, cached: false, builtAt };
+  const data: SkinData = {
+    key,
+    meshes,
+    geometry: decodeSet(raw),
+    textures: thumbs,
+    maps,
+    cached: false,
+    builtAt,
+  };
   remember(data);
   return data;
 }
+
 const meshCache = new Map<string, SkinMesh[]>();
 
 /** All meshes across the entry's bundles; unreadable bundles are skipped. */

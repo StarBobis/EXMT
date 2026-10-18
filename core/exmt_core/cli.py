@@ -12,6 +12,7 @@ Commands
     geo       <bundle> <mesh>                   preview geometry as JSON (base64 f32)
     geoset    <spec.json>                       every mesh of one skin in one call
     thumbs    <bundle> <size> <texture...>      downscaled PNGs for the texture grid
+maps      <spec.json> [size]                diffuse maps for the mesh preview
     workspace <outdir> <spec.json>              meshes + textures + manifest for Blender
 """
 
@@ -301,6 +302,17 @@ def cmd_thumbs(args):
     return 0
 
 
+def cmd_maps(args):
+    """maps <spec.json> [size] - diffuse maps for the meshes that have one."""
+    from . import preview
+
+    with open(args[0], encoding="utf-8") as fh:
+        spec = json.load(fh)
+    size = int(args[1]) if len(args) > 1 else 1024
+    print(json.dumps(preview.diffuse_maps(spec.get("bundles", {}), spec.get("maps", []), size)))
+    return 0
+
+
 def cmd_workspace(args):
     """workspace <outdir> <spec.json> - export meshes + textures for Blender."""
     from . import preview
@@ -335,6 +347,7 @@ def main(argv=None):
         "geo": cmd_geo,
         "geoset": cmd_geoset,
         "thumbs": cmd_thumbs,
+        "maps": cmd_maps,
         "workspace": cmd_workspace,
     }
     if cmd not in table:

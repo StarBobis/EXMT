@@ -103,6 +103,10 @@
 | 3D 滚轮缩放原来不生效：`enableDamping` 的相机必须在 `requestAnimationFrame` 里逐帧 `controls.update()`；另外 WebView2 的 `wheel.deltaY` 单位/步长不统一，交给 OrbitControls 会“滚了没反应” → 关掉 `enableZoom`，自己按 `exp(-delta/400)` 指数步进 dolly | `MeshViewer.vue` 的 `tick()` / `onWheel()`；UIA 点 `＋`×2 → 144%、`－` → 120%、重置 → 100% |
 | 视图工具：右上角重置、右侧 `＋/－`、双击复位、左下角「滚轮缩放 · 拖拽旋转 · 双击复位 · 百分比」 | 截图 `viewer-final.png` |
 | 线框模式（`material.wireframe` + `needsUpdate`）实测画面不变，已删除；要再做需换 `WireframeGeometry`/`LineSegments` | 对比图 `wire-compare.png` 平均差 0.67/255（等于没变） |
+| `_d`/`_da` 是 diffuse：网格名去掉 `_lodN` 再加 `_d`/`_da`。Alva 默认皮肤 7 个网格里 body/hair/cloth1/cloth2/emitter 命中 `_d`，cloth4 只有 `_da`，cloth3 没有贴图（保持灰） | `diffuseNameFor()`；核心 `maps` 输出 mesh→texture 对应表 |
+| `maps` 命令一次解整个皮肤的 diffuse（上限 1024px，PNG base64），按 bundle 只解析一次；Alva 7 张 → `diffuse.json` 5.39 MB，缓存进皮肤目录 | `C:\EXMTCacheFolder\skins\c_AlvaSSR01\diffuse.json`（5389692 B） |
+| 预览光照：ACES Filmic（曝光 1.2）+ `RoomEnvironment` 环境反射（0.75）+ 三点布光（暖主光 4.2 / 冷补光 1.8 / 轮廓光 4.5 / 顶光 1.1 / 半球 0.7）+ 径向渐变软接触阴影 | `MeshViewer.vue`；截图 `light1.png` |
+| 贴图朝向无需翻转：`TextureLoader` 默认 `flipY=true`，Unity 的 v 轴向上，实测外套/腰带/靴子图案位置正确 | 截图 `tex-zoom.png` |
 
 
 ---
