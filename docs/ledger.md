@@ -19,6 +19,7 @@
 | G6 | VitePress 2 文档站 + 替换模型图文教程 | ✅ 完成 | `bun run build` 通过，9 步带截图 |
 | G7 | 导出流程只保留自定义格式 | ✅ 完成 | glTF 代码/命令/按钮全部删除 |
 | G8 | 设置页：中/英双语 + 全局缓存文件夹 | ✅ 完成 | 语言切换立即生效并跨重启保持；缓存默认 `C:\EXMTCacheFolder`，可改、可在资源管理器中打开 |
+| G9 | 模型工作台：3D 预览 + 贴图墙 + 工作空间导出 | ✅ 完成 | 选立绘卡片 → 只看该皮肤的网格/贴图；three.js 预览可旋转缩放；「开始制作」导出 `<cache>\workspace\<皮肤>\`，Blender 插件一键导入（见 §2.6） |
 
 ---
 
@@ -74,6 +75,21 @@
 | 「打开」用 `@tauri-apps/plugin-opener` 的 `openPath`，capabilities 必须给 `opener:allow-open-path` + path scope `{path:"**"}`；只给 `open-url` 会静默失败 | 实测资源管理器打开 `C:\EXMTCacheFolder`（空目录）|
 | 目录选择器标题是自绘的，跟随 i18n（本机系统按钮仍是中文，那是 Windows 自己的文案） | 英文界面下弹窗标题 "Choose a cache folder" |
 | 该机器 shell 是 High Mandatory（管理员），所以 `C:\EXMTCacheFolder` 能建；非管理员机器可能被拒绝 → 设置页会红字报错而不是静默失败 | `whoami /groups` = S-1-16-12288；`useCacheFolder()` 先 mkdir 成功才落盘 |
+
+### 2.6 模型工作台（3D 预览 / 贴图 / 工作空间）
+
+| 事实 | 证据 |
+| --- | --- |
+| 网格与贴图**不在同一个 bundle**：mesh bundle 只有 `Mesh`+`AssetBundle`（抽样 30 个全部无 Texture2D），贴图在独立的 Texture2D bundle；skin prefab 引用的 material cab 有 2/3 不在本机 9613 个 bundle 里 | 470d/872f/287d 等逐个 `open_bundle` 统计类型；`proto3.py` 扫 60 个 bundle |
+| 因此按「皮肤前缀」用**贴图名索引**反查 bundle：扫全部 bundle 的 node0（≤512 KiB 才可能是贴图包），14 进程 **9.4 s** 得到 31 869 个贴图名 / 5 027 个贴图包，缓存为 `texindex.json`（2.5 MB） | `python -m exmt_core texindex <AB> <cache>\texindex.json` → `{"bundles":9613,"textures":31869,"seconds":9.4}` |
+| 扫描只解 node0，不解 `.resS`；node0 > 512 KiB 的多为 mesh 包，直接跳过 → 全量 50 GB 不必读 | `max_sf_for_index`，`_peek_texture_names` |
+| 皮肤 = catalog `entry.parts` 里的网格；**同一个 bundle 里常混着别的皮肤/变体的网格**（如 `c_AlvaSSR01_` 的布料在 Alva 默认皮肤的 bundle 里，但不属于它） | `c_AlvaSSR01.parts = {hair, body}`，其 parts 所在包是 `cddc7a5b`，不是 `entry.bundle` |
+| 3D 预览：`geo` 把 pos/normal/uv/index 以 base64 float32 返回（18 k 顶点 ≈ 1.1 MB / 2.3 s），Unity 左手系在核心层镜像 z 并翻转三角形绕序，three.js 直接显示 | `python -m exmt_core geo <bundle> <mesh>`；实测 Vepley cloth 18 194 顶点 |
+| 贴图缩略图：一次 `thumbs` 调用加载一次 bundle（`decode_texture` 现在接受 `Bundle` 实例），每张 2 s 左右；PNG（base64）直接进 `<img>` | `python -m exmt_core thumbs <bundle> 160 <name...>` |
+| 工作空间：`<cache>\workspace\<皮肤id>\{meshes/*.exmtmesh, textures/*.png, workspace.json}`，并把 `current.json` 指向它；Blender 插件读 `current.json` 一键导入 | 实测 Alva：2 网格 + 5 贴图；Blender headless 导入后 2 mesh、1 armature、材质带 BaseColor+Normal |
+| Blender 导入会**共用第一副骨架**（后面网格的 armature 删掉、改绑到第一副），否则十个网格十副重叠骨架 | `EXMT_OT_import_workspace`；实测 body 与 hair 都挂在 `hair_arm` |
+| 贴图索引的 bundle 名带 `.bundle` 后缀，传给核心前必须去掉，否则路径变成 `xxx.bundle.bundle`（曾导致贴图 0 张且错误被“无贴图”覆盖） | `bundlePathOf()` 与 `texturesFor()` 都做了 `replace(/\.bundle$/)` |
+
 
 ---
 

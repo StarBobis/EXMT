@@ -15,13 +15,17 @@ FORMATS = {
 }
 
 
-def decode_texture(bundle_path: str, name: str):
-    """Return a PIL.Image for the named texture (mip 0, upright)."""
+def decode_texture(bundle, name: str):
+    """Return a PIL.Image for the named texture (mip 0, upright).
+
+    `bundle` is either a path or an already-open :class:`sf.Bundle`, so callers
+    that decode many textures from one bundle pay the parse cost once.
+    """
     import numpy as np
     import texture2ddecoder
     from PIL import Image
 
-    b = Bundle(bundle_path)
+    b = bundle if isinstance(bundle, Bundle) else Bundle(bundle)
     info = texture_info(b, name)
     payload = texture_payload(b, info)
     fmt = int(info["format"])

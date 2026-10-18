@@ -158,3 +158,62 @@ export function t(key: MessageKey, params?: Record<string, string | number>) {
 `app.ps1 shot` 里的 `Place()` 会 `SetWindowPos` 到 1680×1050，量到的尺寸/布局就不是打开时的样子。
 自己做点击/截图脚本时：`SetThreadDpiAwarenessContext(-4)` → `ClientToScreen(css×scale)` → `SetCursorPos` + `mouse_event`，**不动窗口**；
 原生文件夹对话框用 `WM_COMMAND + IDCANCEL(2)` 关闭，`FindWindow` 有时找不到（用 EnumWindows 按标题抓句柄）。
+
+## 10. 把游戏资源做成 Blender 工作空间（Unity → three.js → .exmtmesh）
+
+这一节是"桌面工具里预览 + 导出游戏资产"的可复用套路，跟具体游戏无关。
+
+### 10.1 先分清"资源在哪个包"
+
+Unity 的 AssetBundle 常常把**网格、贴图、材质拆到不同 bundle**，网格包里的 PPtr 还引用着没下载的 material 包。
+所以别写"从网格包读贴图"这种代码，先抽样统计：
+
+```python
+b = open_bundle(path)
+types = {}
+for o in b.objects(): types[o.type.name] = types.get(o.type.name, 0) + 1
+# {'Mesh': 31, 'AssetBundle': 1}  → 贴图不在这
+```
+
+结论：**按资源名前缀建反查索引**才是稳的（贴图名 `c_<Skin>_…` 与网格名同前缀）。
+
+### 10.2 索引要快，只解"第一层"
+
+贴图包的 SerializedFile（node0）很小；mesh 包很大。先读 64 KiB 头、解 blocksInfo，**node0 > 512 KiB 直接跳过**，
+再按 block 表读够 node0 就停，`.resS` 一个字节都不用碰。14 个进程扫 9 613 个包 = **9.4 s**（单进程 445 s）。
+
+```python
+off, size, flags, cab = info.nodes[0]
+if flags != 4 or size > 512 * 1024: return []
+# 只解到 off+size，别解整个文件
+```
+
+> 另一个坑：`peek_name()` 比 `read_typetree()` 快一个数量级，批量取名字只用前者。
+
+### 10.3 预览数据怎么传
+
+- 几何：`positions/normals/uvs` 用 base64(float32)、索引 base64(uint32) 走一次 JSON。18 k 顶点 ≈ 1.1 MB，够快。
+- 坐标：Unity 左手系 → three.js 右手系，**在核心层镜像 z 并翻转三角形绕序**，前端什么都不用改。
+- 贴图：核心直接返回 base64 PNG（缩略图 160 px），`<img :src="'data:image/png;base64,'+png">`，省掉自定义协议和临时目录。
+- 相机：按 `bounds` 的**最大边**算距离 `d = maxDim/2/tan(fov/2)*1.3`，别用包围球半径硬套，否则模型不是被裁就是缩成一点。
+
+### 10.4 导出成"工作空间"而不是一堆文件
+
+```
+<cache>\workspace\<皮肤>\meshes\*.exmtmesh
+<cache>\workspace\<皮肤>\textures\*.png
+<cache>\workspace\<皮肤>\workspace.json     # 清单：文件、网格名、来源 bundle
+<cache>\workspace\current.json              # 指针：{"dir": …}
+```
+
+Blender 端只读 `current.json` → 目录 → `workspace.json`，就能"一键导入当前工作空间"，用户不用记路径。
+导入时注意：
+
+- **骨架只留一副**：每个网格单独导入会各建一副重叠骨架；后续网格改绑到第一副，删掉新骨架。
+- 材质按名字配：`c_X_slg_cloth1_d` 对应网格 `c_X_slg_cloth_lod0`（part token 匹配），`_d/_n` 分别接 BaseColor/Normal。
+- 纹理色彩空间：`_d` = sRGB，`_n`/`_rmo` = Non-Color，否则法线会发灰。
+
+### 10.5 两个"看起来像 bug"的坑
+
+1. **索引里存的文件名带 `.bundle`**，拼路径前必须 `replace(/\.bundle$/i, "")`，否则变成 `x.bundle.bundle`，所有贴图静默失败。
+2. 失败信息别被"空状态"覆盖：先记下第一个错误，`empty` 文案只在**没有错误**时显示，否则永远查不到原因。

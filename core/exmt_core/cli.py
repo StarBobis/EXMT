@@ -6,6 +6,12 @@ Commands
     extract   <bundle> <mesh> <out.exmtmesh>    export one mesh (+ bones/weights)
     extract-all <bundle> <outdir>               export every mesh in a bundle
     pack      <bundle> <mesh> <in.exmtmesh> <out.bundle>
+
+    texindex  <bundleDir> <out.json>            index which bundle holds which texture
+    skinfo    <bundle>                          meshes of one bundle as JSON
+    geo       <bundle> <mesh>                   preview geometry as JSON (base64 f32)
+    thumbs    <bundle> <size> <texture...>      downscaled PNGs for the texture grid
+    workspace <outdir> <spec.json>              meshes + textures + manifest for Blender
 """
 
 from __future__ import annotations
@@ -250,6 +256,51 @@ def cmd_set_texture(args):
     return 0
 
 
+def cmd_texindex(args):
+    """texindex <bundleDir> <out.json> - which bundle holds which Texture2D."""
+    from . import preview
+
+    summary = preview.build_texindex(args[0], args[1])
+    print(json.dumps(summary))
+    return 0
+
+
+def cmd_skinfo(args):
+    """skinfo <bundle> - meshes of one bundle (name / verts / tris)."""
+    from . import preview
+
+    print(json.dumps({"meshes": preview.list_meshes(args[0])}))
+    return 0
+
+
+def cmd_geo(args):
+    """geo <bundle> <mesh> - positions/normals/uvs/indices for the 3D preview."""
+    from . import preview
+
+    print(json.dumps(preview.geometry(args[0], args[1])))
+    return 0
+
+
+def cmd_thumbs(args):
+    """thumbs <bundle> <size> <texture...> - base64 PNGs for the texture grid."""
+    from . import preview
+
+    bundle, size, names = args[0], int(args[1]), args[2:]
+    print(json.dumps({"textures": preview.thumbs(bundle, names, size)}))
+    return 0
+
+
+def cmd_workspace(args):
+    """workspace <outdir> <spec.json> - export meshes + textures for Blender."""
+    from . import preview
+
+    outdir, spec_path = args
+    with open(spec_path, encoding="utf-8") as fh:
+        spec = json.load(fh)
+    print(json.dumps(preview.make_workspace(outdir, spec)))
+    return 0
+
+
 def main(argv=None):
     argv = list(sys.argv[1:] if argv is None else argv)
     if not argv:
@@ -268,7 +319,11 @@ def main(argv=None):
         "retarget": cmd_retarget,
         "copy-texture": cmd_copy_texture,
         "set-texture": cmd_set_texture,
-    
+        "texindex": cmd_texindex,
+        "skinfo": cmd_skinfo,
+        "geo": cmd_geo,
+        "thumbs": cmd_thumbs,
+        "workspace": cmd_workspace,
     }
     if cmd not in table:
         print("unknown command", cmd)

@@ -13,7 +13,7 @@
 | --- | --- | --- |
 | `src/` | 前端（Vue 3 + TS + Vite）；视图 `src/views/`，样式 `src/styles/` | `bun run dev` |
 | `src-tauri/` | Rust 外壳（Tauri 2），命令 `run_core` / `show_main_window` | `bun run tauri dev` |
-| `core/exmt_core/` | Python 核心：`bundle.py` `sf.py` `mesh.py` `interchange.py` `textures.py` `bc1.py` `retarget.py` `subdivide.py` `cli.py` | `python -m exmt_core <cmd>`（cwd 必须在 `core`） |
+| `core/exmt_core/` | Python 核心：`bundle.py` `sf.py` `mesh.py` `interchange.py` `textures.py` `preview.py` `bc1.py` `retarget.py` `subdivide.py` `cli.py` | `python -m exmt_core <cmd>`（cwd 必须在 `core`） |
 | `C:\Dev\EXMTBlender\` | Blender 插件：导入/导出 `.exmtmesh`、传权重 | Blender → 偏好设置 → 安装 `__init__.py` |
 | `C:\Dev\EXMTDoc\` | VitePress 2 文档站（**独立 git 仓库**） | `bun run build` / `bun run preview` |
 | `docs/` | **台账**：结论 + 证据 + 未决问题 | — |
@@ -119,6 +119,7 @@ bun run check     # 见 §6
 | 2026-10-18 | glTF 导出删掉 | 只用自定义格式，见 §2.5 |
 | 2026-10-18 | 立绘要长方形大卡片、按角色选皮肤 | 卡牌视图：左角色圆角方块，右立绘胶片条（缺图也占位），点立绘即选皮肤 |
 | 2026-10-18 | 设置页要 7:3，右侧图标/版本/简介/按钮 | 见 `SettingsView.vue`：左设置、右 about 卡（sticky），外链集中 `LINKS` |
+| 2026-10-18 | 模型页网格/贴图要按「选中的立绘皮肤」，不是它所在 bundle 的全部内容 | 网格只取 catalog `entry.parts`（缺失时回退到皮肤前缀 `c_<Skin>_`，**绝不回退成整个 bundle**）；贴图按皮肤前缀取，再限定到这些 part 的 token。首页「开始制作」只导出这份清单 |
 | 2026-10-18 | 为什么没有 docs/skill 更新 | 本文件 §1 RSI 循环 |
 
 ---

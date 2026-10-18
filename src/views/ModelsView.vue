@@ -1,19 +1,21 @@
 <script setup lang="ts">
-import { computed, ref } from "vue";
-import { open, save } from "@tauri-apps/plugin-dialog";
-import { basename, join } from "@tauri-apps/api/path";
-import { runCore } from "../lib/core";
+import { computed, ref, watch } from "vue";
+import { t } from "../lib/i18n";
+import MeshViewer from "../components/MeshViewer.vue";
+import { isTauri } from "../lib/tauri";
 import {
-  bundlePath,
-  cacheDir,
-  ensureBackup,
-  installBundle,
-  restoreBackup,
-  writeMod,
-} from "../lib/modbox";
+  ensureTexIndex,
+  loadGeometry,
+  loadMeshes,
+  loadThumbs,
+  makeWorkspace,
+  texturesFor,
+  type GeometryData,
+  type SkinMesh,
+  type TextureEntry,
+} from "../lib/preview";
 import catalogData from "../data/catalog.json";
 import artData from "../data/art.json";
-import { t } from "../lib/i18n";
 
 interface CatalogEntry {
   id: string;
@@ -91,9 +93,6 @@ const characters = computed<Character[]>(() => {
 const query = ref("");
 const selectedChar = ref<Character | null>(characters.value[0] ?? null);
 const selected = ref<CatalogEntry | null>(selectedChar.value?.portraitEntry ?? null);
-const busy = ref("");
-const status = ref<{ kind: "info" | "ok" | "err"; text: string } | null>(null);
-let statusTimer: number | undefined;
 
 const filtered = computed(() => {
   const q = query.value.trim().toLowerCase();
@@ -135,171 +134,174 @@ const artCards = computed(() => {
   return cards;
 });
 
-const parts = computed(() => Object.entries(selected.value?.parts ?? {}));
-
 function label(entry: CatalogEntry) {
   return entry.display || entry.name;
-}
-
-function push(kind: "info" | "ok" | "err", text: string) {
-  status.value = { kind, text };
-  window.clearTimeout(statusTimer);
-  if (kind !== "info") statusTimer = window.setTimeout(() => (status.value = null), 6000);
 }
 
 function portraitUrl(entry: CatalogEntry) {
   return `portraits/${entry.id}.png`;
 }
 
-async function exportAllParts(entry: CatalogEntry) {
-  busy.value = entry.id;
+// ------------------------------------------------------------------------- //
+// studio: meshes + three.js preview + textures + workspace export
+// ------------------------------------------------------------------------- //
+const meshes = ref<SkinMesh[]>([]);
+const activeMesh = ref<SkinMesh | null>(null);
+const geometry = ref<GeometryData | null>(null);
+const textures = ref<TextureEntry[]>([]);
+const busy = ref("");
+const note = ref("");
+const status = ref<{ kind: "info" | "ok" | "err"; text: string } | null>(null);
+let token = 0;
+/** `c_AlvaSSR01` — the asset-name prefix shared by this skin's meshes and textures. */
+let skinKey = "";
+
+/** The skin's own prefix, taken from its parts (falls back to the catalog name). */
+function skinKeyOf(entry: CatalogEntry) {
+  const first = Object.values(entry.parts ?? {})[0];
+  const m = first ? /^(c_[^_]+)_/.exec(first) : null;
+  return m ? m[1] : `c_${entry.name}`;
+}
+
+function shortName(name: string) {
+  const prefix = skinKey ? `${skinKey}_` : "";
+  return prefix && name.startsWith(prefix) ? name.slice(prefix.length) : name;
+}
+
+function compact(n: number) {
+  if (n >= 10000) return `${(n / 1000).toFixed(1)}k`;
+  if (n >= 1000) return `${(n / 1000).toFixed(2)}k`;
+  return String(n);
+}
+
+async function showMesh(mesh: SkinMesh) {
+  const mine = token;
+  activeMesh.value = mesh;
+  geometry.value = null;
+  busy.value = t("models.studio.loading");
   try {
-    const dir = await open({ title: t("models.dialog.exportAll"), directory: true });
-    if (!dir) return;
-    push("info", t("models.status.exportAll"));
-    const res = await runCore(["extract-all", bundlePath(entry.bundle), dir as string]);
-    if (res.code !== 0) throw new Error(res.stderr || res.stdout);
-    const lines = res.stdout.trim().split("\n").filter(Boolean).length;
-    push("ok", t("models.status.exportedAll", { name: label(entry), n: lines, dir: String(dir) }));
+    const geo = await loadGeometry(mesh.bundle, mesh.name);
+    if (mine === token) geometry.value = geo;
   } catch (e) {
-    push("err", String(e));
+    if (mine === token) note.value = String(e);
   } finally {
-    busy.value = "";
+    if (mine === token) busy.value = "";
   }
 }
 
-async function exportPart(entry: CatalogEntry) {
-  busy.value = entry.id;
-  try {
-    const part = entry.parts.cloth || entry.parts.body || Object.values(entry.parts)[0];
-    const out = await save({
-      title: t("models.dialog.exportOne"),
-      defaultPath: `${part}.exmtmesh`,
-      filters: [{ name: "EXMT Mesh", extensions: ["exmtmesh"] }],
-    });
-    if (!out) return;
-    const res = await runCore(["extract", bundlePath(entry.bundle), part, out]);
-    if (res.code !== 0) throw new Error(res.stderr || res.stdout);
-    push("ok", res.stdout.trim() || t("models.status.exportedOne", { path: String(out) }));
-  } catch (e) {
-    push("err", String(e));
-  } finally {
-    busy.value = "";
+async function openStudio(entry: CatalogEntry) {
+  const mine = ++token;
+  skinKey = skinKeyOf(entry);
+  meshes.value = [];
+  activeMesh.value = null;
+  geometry.value = null;
+  textures.value = [];
+  note.value = "";
+  status.value = null;
+  if (!isTauri) {
+    note.value = t("models.studio.browser");
+    return;
   }
-}
 
-async function installMod(entry: CatalogEntry, target: string) {
-  busy.value = entry.id;
+  busy.value = t("models.studio.loading");
   try {
-    const file = await open({
-      title: t("models.dialog.install", { target }),
-      multiple: false,
-      filters: [{ name: "EXMT Mesh", extensions: ["exmtmesh"] }],
-    });
-    if (!file) return;
-    // the same mesh can live in several bundles; patch every copy so the game
-    // picks up the change whichever one it loads
-    const bundles = entry.part_bundles?.[target]?.length
-      ? entry.part_bundles[target]
-      : [entry.bundle];
-    const mesh = entry.parts[target] ?? target;
-    for (const hash of bundles) {
-      push("info", t("models.status.packing", { target, hash: hash.slice(0, 8) }));
-      await ensureBackup(hash);
-      const tmp = await join(await cacheDir(), `${entry.id}-${target}-${hash.slice(0, 8)}.bundle`);
-      const res = await runCore(["pack", bundlePath(hash), mesh, file as string, tmp]);
-      if (res.code !== 0) throw new Error(res.stderr || res.stdout);
-      await installBundle(hash, tmp);
+    const prefix = `${skinKey}_`;
+    const parts = Object.entries(entry.parts ?? {});
+    const pool = new Map<string, SkinMesh>();
+    const add = (list: SkinMesh[]) => {
+      for (const mesh of list) if (!pool.has(mesh.name)) pool.set(mesh.name, mesh);
+    };
+
+    // The catalog already knows which meshes make up this skin; the bundle is
+    // only asked for their vertex counts (and for parts stored in other bundles).
+    add(await loadMeshes([entry.bundle]));
+    if (mine !== token) return;
+    for (const [part, meshName] of parts) {
+      if (pool.has(meshName)) continue;
+      add(await loadMeshes(entry.part_bundles?.[part] ?? []));
+      if (mine !== token) return;
     }
-    await writeMod({
-      id: `${entry.id}-${target}`,
-      preset: entry.id,
-      character: label(entry),
-      mesh,
-      bundle: bundles.join(","),
-      source: file as string,
-      installed_at: new Date().toISOString(),
-      kind: "mesh",
-    });
-    push("ok", t("models.status.installed", { name: label(entry), target, n: bundles.length }));
-  } catch (e) {
-    push("err", String(e));
-  } finally {
-    busy.value = "";
-  }
-}
 
-async function applyHide(entry: CatalogEntry, part: string) {
-  busy.value = entry.id;
-  try {
-    const bundles = entry.part_bundles?.[part]?.length
-      ? entry.part_bundles[part]
-      : [entry.bundle];
-    const mesh = entry.parts[part] ?? part;
-    for (const hash of bundles) {
-      push("info", t("models.status.hiding", { part, hash: hash.slice(0, 8) }));
-      await ensureBackup(hash);
-      const tmp = await join(await cacheDir(), `${entry.id}-${part}-hidden-${hash.slice(0, 8)}.bundle`);
-      const res = await runCore(["hide-mesh", bundlePath(hash), mesh, tmp]);
-      if (res.code !== 0) throw new Error(res.stderr || res.stdout);
-      await installBundle(hash, tmp);
+    let list = parts.map(([, name]) => pool.get(name)).filter((m): m is SkinMesh => !!m);
+    if (!list.length) {
+      // no catalog parts for this entry: fall back to the skin's own meshes
+      list = [...pool.values()].filter((m) => m.name.startsWith(prefix));
     }
-    await writeMod({
-      id: `${entry.id}-${part}-hidden`,
-      preset: entry.id,
-      character: label(entry),
-      mesh,
-      bundle: bundles.join(","),
-      installed_at: new Date().toISOString(),
-      kind: "hidden",
-    });
-    push("ok", t("models.status.hidden", { name: label(entry), part }));
+    meshes.value = list;
+    if (!list.length) note.value = t("models.studio.noMesh");
+    else await showMesh(list[0]);
+    if (mine !== token) return;
+
+    busy.value = t("models.studio.indexing");
+    const index = await ensureTexIndex();
+    if (mine !== token) return;
+    const found = texturesFor(index, skinKey);
+
+    // Keep only the textures that belong to the parts we are showing, so the
+    // workspace does not collect a whole character's texture folder.
+    const tokens = new Set<string>();
+    for (const mesh of list) {
+      const match = /_slg_(.+?)_lod\d+/.exec(mesh.name) ?? /_(.+?)_lod\d+/.exec(mesh.name);
+      if (match) tokens.add(match[1].replace(/\d+$/, ""));
+    }
+    const scoped = [...tokens].length
+      ? found.filter((tex) => [...tokens].some((token) => tex.name.includes(`_${token}`)))
+      : [];
+    const chosen = scoped.length ? scoped : found;
+
+    const byBundle = new Map<string, TextureEntry[]>();
+    for (const tex of chosen) {
+      const group = byBundle.get(tex.bundle);
+      if (group) group.push(tex);
+      else byBundle.set(tex.bundle, [tex]);
+    }
+    const loaded: TextureEntry[] = [];
+    let firstError = "";
+    for (const [hash, items] of byBundle) {
+      try {
+        const thumbs = await loadThumbs(hash, items.map((i) => i.name));
+        if (mine !== token) return;
+        loaded.push(...thumbs);
+      } catch (e) {
+        firstError ||= String(e);
+        loaded.push(...items);
+      }
+    }
+    textures.value = loaded.sort((a, b) => a.name.localeCompare(b.name));
+    if (!found.length) note.value = t("models.studio.noTex");
+    else if (firstError) note.value = firstError;
   } catch (e) {
-    push("err", String(e));
+    if (mine === token) note.value = String(e);
+  } finally {
+    if (mine === token) busy.value = "";
+  }
+}
+
+async function startMaking() {
+  const entry = selected.value;
+  if (!entry || !meshes.value.length) return;
+  busy.value = t("models.making");
+  status.value = null;
+  try {
+    const result = await makeWorkspace(entry, label(entry), meshes.value, textures.value);
+    status.value = {
+      kind: "ok",
+      text: t("models.made", { meshes: result.meshes, textures: result.textures, dir: result.dir }),
+    };
+  } catch (e) {
+    status.value = { kind: "err", text: String(e) };
   } finally {
     busy.value = "";
   }
 }
 
-async function importBundle(entry: CatalogEntry) {
-  busy.value = entry.id;
-  try {
-    const file = await open({
-      title: t("models.dialog.bundle"),
-      multiple: false,
-      filters: [{ name: "UnityFS Bundle", extensions: ["bundle"] }],
-    });
-    if (!file) return;
-    await ensureBackup(entry.bundle);
-    await installBundle(entry.bundle, file as string);
-    await writeMod({
-      id: `${entry.id}-bundle`,
-      preset: entry.id,
-      character: label(entry),
-      bundle: entry.bundle,
-      source: file as string,
-      installed_at: new Date().toISOString(),
-      kind: "bundle",
-    });
-    push("ok", t("models.status.bundleInstalled", { file: await basename(file as string) }));
-  } catch (e) {
-    push("err", String(e));
-  } finally {
-    busy.value = "";
-  }
-}
-
-async function restore(entry: CatalogEntry) {
-  busy.value = entry.id;
-  try {
-    await restoreBackup(entry.bundle);
-    push("ok", t("models.status.restored", { name: label(entry) }));
-  } catch (e) {
-    push("err", String(e));
-  } finally {
-    busy.value = "";
-  }
-}
+watch(
+  selected,
+  (entry) => {
+    if (entry) void openStudio(entry);
+  },
+  { immediate: true },
+);
 </script>
 
 <template>
@@ -315,9 +317,7 @@ async function restore(entry: CatalogEntry) {
       </div>
     </header>
 
-    <!-- 卡牌视图：圆角方块选角色 -->
     <div class="models">
-      <!-- 卡牌视图：圆角方块选角色 -->
       <aside class="models__list">
         <div class="roster">
           <button
@@ -357,138 +357,126 @@ async function restore(entry: CatalogEntry) {
       <div class="models__detail">
         <!-- 选中角色的立绘：默认立绘 + 各皮肤立绘 -->
         <section v-if="selectedChar" class="artboard">
-      <div class="artboard__head">
-        <h3 class="artboard__title">{{ selectedChar.display }}</h3>
-        <span class="chip">
-          {{ t("models.artboard", { art: artCards.filter((c) => c.art).length, skins: selectedChar.entries.length }) }}
-        </span>
-      </div>
-
-      <div v-if="artCards.length" class="artrow">
-        <button
-          v-for="card in artCards"
-          :key="card.entry.id"
-          class="artrow__item"
-          :class="{
-            'artrow__item--active': selected?.id === card.entry.id,
-            'artrow__item--empty': !card.art,
-          }"
-          type="button"
-          :title="card.art ? card.art.label : t('models.titleNoArt', { name: label(card.entry) })"
-          @click="selected = card.entry"
-        >
-          <img
-            v-if="card.art"
-            class="artrow__img"
-            :src="card.art.file"
-            :alt="card.art.label"
-            loading="lazy"
-          />
-          <div v-else class="artrow__placeholder">
-            <img
-              v-if="card.entry.portrait"
-              class="artrow__head"
-              :src="portraitUrl(card.entry)"
-              :alt="label(card.entry)"
-              loading="lazy"
-            />
-            <span v-else class="artrow__initial">{{ label(card.entry).slice(0, 1) }}</span>
-            <span class="artrow__nopic">{{ t("models.noArt") }}</span>
-          </div>
-
-          <div class="artrow__label">
-            <span class="artrow__name">{{ card.art ? card.art.label : label(card.entry) }}</span>
-            <span class="artrow__code mono">
-              {{ card.art ? card.art.entry_label || card.art.code : card.entry.variant }}
+          <div class="artboard__head">
+            <h3 class="artboard__title">{{ selectedChar.display }}</h3>
+            <span class="chip">
+              {{ t("models.artboard", { art: artCards.filter((c) => c.art).length, skins: selectedChar.entries.length }) }}
             </span>
           </div>
-        </button>
-      </div>
-      <p v-else class="artboard__empty">{{ t("models.noArtHint") }}</p>
-    </section>
 
-    <article v-if="selected" class="card" style="margin-top: 14px">
-      <div class="model-head">
-        <div class="feature__icon">
-          <span class="glyph">&#xE8F1;</span>
-        </div>
-        <div style="flex: 1 1 auto; min-width: 0">
-          <h3 class="card__title">{{ label(selected) }}</h3>
-          <p class="card__desc">{{ selected.id }}</p>
-        </div>
-        <span class="chip mono">{{ selected.bundle.slice(0, 12) }}…</span>
-      </div>
-
-      <div class="kv" style="margin: 16px 0 4px">
-        <div class="kv__k">bundle</div>
-        <div class="kv__v mono">{{ selected.bundle }}</div>
-        <div class="kv__k">{{ t("models.parts") }}</div>
-        <div class="kv__v mono">{{ parts.map(([k]) => k).join(" · ") }}</div>
-      </div>
-
-      <div class="parts">
-        <div v-for="[key, mesh] in parts" :key="key" class="parts__row">
-          <span class="parts__key">{{ key }}</span>
-          <span class="parts__mesh mono">{{ mesh }}</span>
-          <div class="parts__actions">
+          <div v-if="artCards.length" class="artrow">
             <button
-              class="btn"
+              v-for="card in artCards"
+              :key="card.entry.id"
+              class="artrow__item"
+              :class="{
+                'artrow__item--active': selected?.id === card.entry.id,
+                'artrow__item--empty': !card.art,
+              }"
               type="button"
-              :disabled="busy === selected.id"
-              @click="installMod(selected, key)"
+              :title="card.art ? card.art.label : t('models.titleNoArt', { name: label(card.entry) })"
+              @click="selected = card.entry"
             >
-              {{ t("models.replace") }}
-            </button>
-            <button
-              class="btn"
-              type="button"
-              :title="t('models.hideTitle')"
-              :disabled="busy === selected.id"
-              @click="applyHide(selected, key)"
-            >
-              {{ t("models.hide") }}
+              <img
+                v-if="card.art"
+                class="artrow__img"
+                :src="card.art.file"
+                :alt="card.art.label"
+                loading="lazy"
+              />
+              <div v-else class="artrow__placeholder">
+                <img
+                  v-if="card.entry.portrait"
+                  class="artrow__head"
+                  :src="portraitUrl(card.entry)"
+                  :alt="label(card.entry)"
+                  loading="lazy"
+                />
+                <span v-else class="artrow__initial">{{ label(card.entry).slice(0, 1) }}</span>
+                <span class="artrow__nopic">{{ t("models.noArt") }}</span>
+              </div>
+
+              <div class="artrow__label">
+                <span class="artrow__name">{{ card.art ? card.art.label : label(card.entry) }}</span>
+                <span class="artrow__code mono">
+                  {{ card.art ? card.art.entry_label || card.art.code : card.entry.variant }}
+                </span>
+              </div>
             </button>
           </div>
+          <p v-else class="artboard__empty">{{ t("models.noArtHint") }}</p>
+        </section>
+
+        <!-- 工作台：网格 / 3D 预览 / 贴图 -->
+        <div class="studio__actions">
+          <button
+            class="btn btn--accent"
+            type="button"
+            :disabled="!!busy || !meshes.length"
+            @click="startMaking"
+          >
+            <span class="glyph">&#xE768;</span>
+            {{ t("models.make") }}
+          </button>
+          <span class="studio__hint">{{ busy || note }}</span>
         </div>
-      </div>
-      <div class="model-actions">
-        <button
-          class="btn btn--accent"
-          type="button"
-          :disabled="busy === selected.id"
-          @click="exportAllParts(selected)"
-        >
-          <span class="glyph">&#xE896;</span>
-          {{ t("models.exportAll") }}
-        </button>
-        <button
-          class="btn"
-          type="button"
-          :disabled="busy === selected.id"
-          @click="exportPart(selected)"
-        >
-          {{ t("models.exportOne") }}
-        </button>
-        <button
-          class="btn"
-          type="button"
-          :disabled="busy === selected.id"
-          @click="importBundle(selected)"
-        >
-          {{ t("models.installBundle") }}
-        </button>
-        <button class="btn" type="button" :disabled="busy === selected.id" @click="restore(selected)">
-          <span class="glyph">&#xE777;</span>
-          {{ t("models.restore") }}
-        </button>
-        <span v-if="busy === selected.id" class="status">
-          <span class="status__dot status__dot--warn" />{{ t("models.working") }}
-        </span>
-      </div>
-      <p v-if="status" class="status-line" :class="'status-line--' + status.kind">
-        {{ status.kind === "ok" ? "✓" : status.kind === "err" ? "✗" : "·" }} {{ status.text }}
-      </p>
-    </article>
+        <p v-if="status" class="status-line" :class="'status-line--' + status.kind">
+          {{ status.kind === "ok" ? "✓" : status.kind === "err" ? "✗" : "·" }} {{ status.text }}
+        </p>
+
+        <section class="studio">
+          <div class="studio__meshes">
+            <div class="studio__head">
+              <span>{{ t("models.studio.meshes") }}</span>
+              <span class="chip">{{ meshes.length }}</span>
+            </div>
+            <div class="meshline-list">
+              <button
+                v-for="mesh in meshes"
+                :key="mesh.name"
+                type="button"
+                class="meshline"
+                :class="{ 'meshline--active': activeMesh?.name === mesh.name }"
+                :title="mesh.name"
+                @click="showMesh(mesh)"
+              >
+                <span class="meshline__name mono">{{ shortName(mesh.name) }}</span>
+                <span class="meshline__meta">
+                  {{ t("models.studio.verts", { n: compact(mesh.verts), m: compact(mesh.tris) }) }}
+                </span>
+              </button>
+              <p v-if="!meshes.length && !busy" class="studio__empty">
+                {{ t("models.studio.noMesh") }}
+              </p>
+            </div>
+          </div>
+
+          <div class="studio__viewer">
+            <MeshViewer :geometry="geometry" :loading="!!busy" />
+          </div>
+
+          <div class="studio__textures">
+            <div class="studio__head">
+              <span>{{ t("models.studio.textures") }}</span>
+              <span class="chip">{{ textures.length }}</span>
+            </div>
+            <div class="texgrid">
+              <figure v-for="tex in textures" :key="tex.name" class="texcard" :title="tex.name">
+                <img
+                  v-if="tex.png"
+                  class="texcard__img"
+                  :src="`data:image/png;base64,${tex.png}`"
+                  :alt="tex.name"
+                />
+                <div v-else class="texcard__ph">?</div>
+                <div class="texcard__caption mono">{{ shortName(tex.name) }}</div>
+              </figure>
+              <p v-if="!textures.length && !busy" class="studio__empty">
+                {{ t("models.studio.noTex") }}
+              </p>
+            </div>
+          </div>
+        </section>
       </div>
     </div>
   </section>
@@ -498,7 +486,7 @@ async function restore(entry: CatalogEntry) {
 /* ---------- 卡牌视图 + 详情 双栏 ---------- */
 .models {
   display: grid;
-  grid-template-columns: 300px minmax(0, 1fr);
+  grid-template-columns: 260px minmax(0, 1fr);
   gap: 14px;
   align-items: start;
   min-width: 0;
@@ -518,7 +506,7 @@ async function restore(entry: CatalogEntry) {
 
 .roster {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(78px, 1fr));
   align-items: start;
   gap: 8px;
 }
@@ -546,8 +534,8 @@ async function restore(entry: CatalogEntry) {
 }
 
 .roster__avatar {
-  width: 56px;
-  height: 56px;
+  width: 52px;
+  height: 52px;
   border-radius: 14px;
   overflow: hidden;
   background: linear-gradient(160deg, #24334a, #101724);
@@ -564,7 +552,7 @@ async function restore(entry: CatalogEntry) {
 }
 
 .roster__ph {
-  font-size: 22px;
+  font-size: 20px;
   font-weight: 600;
   opacity: 0.75;
 }
@@ -584,7 +572,7 @@ async function restore(entry: CatalogEntry) {
 
 /* ---------- 立绘卡片 ---------- */
 .artboard {
-  margin-top: 12px;
+  margin-top: 2px;
 }
 
 .artboard__head {
@@ -608,14 +596,16 @@ async function restore(entry: CatalogEntry) {
 
 .artrow {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(74px, 1fr));
   justify-content: start;
   gap: 8px;
+  max-width: 100%;
 }
 
 .artrow__item {
   position: relative;
   aspect-ratio: 505 / 1000;
+  max-height: 178px;
   padding: 0;
   border: 1px solid var(--stroke, rgba(255, 255, 255, 0.08));
   border-radius: 12px;
@@ -660,7 +650,7 @@ async function restore(entry: CatalogEntry) {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding-bottom: 34px;
+  padding-bottom: 30px;
 }
 
 .artrow__head {
@@ -673,7 +663,7 @@ async function restore(entry: CatalogEntry) {
 }
 
 .artrow__initial {
-  font-size: 34px;
+  font-size: 30px;
   font-weight: 600;
   opacity: 0.4;
 }
@@ -693,12 +683,12 @@ async function restore(entry: CatalogEntry) {
   display: flex;
   flex-direction: column;
   gap: 1px;
-  padding: 16px 8px 7px;
+  padding: 14px 7px 6px;
   background: linear-gradient(to top, rgba(6, 10, 18, 0.94), rgba(6, 10, 18, 0.6) 55%, transparent);
 }
 
 .artrow__name {
-  font-size: 11px;
+  font-size: 10.5px;
   font-weight: 600;
   color: #eef4ff;
   overflow: hidden;
@@ -707,58 +697,172 @@ async function restore(entry: CatalogEntry) {
 }
 
 .artrow__code {
-  font-size: 8.5px;
+  font-size: 8px;
   color: rgba(214, 230, 255, 0.6);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.skinchips {
+/* ---------- 工作台 ---------- */
+.studio {
+  display: grid;
+  grid-template-columns: 172px minmax(0, 1fr);
+  grid-template-rows: 264px auto;
+  gap: 12px;
+  margin-top: 10px;
+  min-width: 0;
+}
+
+.studio__head {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+.studio__meshes,
+.studio__textures {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.studio__meshes {
+  grid-row: 1 / span 2;
+}
+
+.meshline-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 100%;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.meshline {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  padding: 6px 8px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: rgba(255, 255, 255, 0.03);
+  text-align: left;
+  cursor: pointer;
+  transition: 120ms ease;
+}
+
+.meshline:hover {
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.meshline--active {
+  border-color: var(--accent, #4cc2ff);
+  background: rgba(76, 194, 255, 0.12);
+}
+
+.meshline__name {
+  font-size: 11px;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.meshline__meta {
+  font-size: 9.5px;
+  opacity: 0.5;
+}
+
+.studio__viewer {
+  height: 264px;
+  min-width: 0;
+}
+
+.texgrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
   gap: 6px;
+  max-height: 150px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.texcard {
+  margin: 0;
+  border: 1px solid var(--stroke, rgba(255, 255, 255, 0.08));
+  border-radius: 8px;
+  overflow: hidden;
+  background:
+    repeating-conic-gradient(rgba(255, 255, 255, 0.05) 0% 25%, transparent 0% 50%) 0 0 / 12px 12px,
+    rgba(255, 255, 255, 0.02);
+}
+
+.texcard__img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: contain;
+}
+
+.texcard__ph {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  aspect-ratio: 1;
+  font-size: 16px;
+  opacity: 0.35;
+}
+
+.texcard__caption {
+  font-size: 8.5px;
+  padding: 3px 5px;
+  opacity: 0.65;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.studio__empty {
+  margin: 4px 0 0;
+  font-size: 11px;
+  opacity: 0.55;
+  line-height: 16px;
+}
+
+.studio__actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
   margin-top: 12px;
 }
 
-.skinchips__hint {
-  font-size: 11px;
-  opacity: 0.55;
-  margin-right: 2px;
-}
-
-.skinchips__item {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 3px 9px;
-  border-radius: 999px;
-  border: 1px solid var(--stroke, rgba(255, 255, 255, 0.1));
-  background: rgba(255, 255, 255, 0.04);
-  font-size: 11px;
-  color: inherit;
-  cursor: pointer;
-}
-
-.skinchips__item--active {
-  border-color: var(--accent, #4cc2ff);
-  background: rgba(76, 194, 255, 0.14);
-}
-
-.skinchips__item .mono {
-  font-size: 9px;
-  opacity: 0.55;
+.studio__hint {
+  font-size: 11.5px;
+  color: var(--text-2);
+  opacity: 0.8;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .status-line {
-  margin: 12px 0 0;
+  margin: 10px 0 0;
   font-size: 12px;
   line-height: 18px;
   padding: 8px 10px;
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid var(--stroke, rgba(255, 255, 255, 0.08));
+  word-break: break-all;
 }
 
 .status-line--ok {
@@ -769,42 +873,18 @@ async function restore(entry: CatalogEntry) {
   color: #ff9b9b;
 }
 
-.parts {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin-top: 12px;
-}
+@media (max-width: 1120px) {
+  .studio {
+    grid-template-columns: 150px minmax(0, 1fr);
+    grid-template-rows: 240px auto;
+  }
 
-.parts__row {
-  display: grid;
-  grid-template-columns: 62px minmax(0, 1fr);
-  grid-template-areas: "key mesh" "actions actions";
-  align-items: center;
-  gap: 4px 12px;
-  padding: 8px 10px;
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.03);
-}
+  .studio__viewer {
+    height: 240px;
+  }
 
-.parts__actions {
-  grid-area: actions;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-
-.parts__key {
-  grid-area: key;
-  font-size: 12px;
-  opacity: 0.7;
-}
-
-.parts__mesh {
-  grid-area: mesh;
-  font-size: 12px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  .texgrid {
+    max-height: 120px;
+  }
 }
 </style>
