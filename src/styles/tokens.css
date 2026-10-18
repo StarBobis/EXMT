@@ -32,6 +32,7 @@
   --caption-height: 32px;
   --caption-width: 46px;
   --sidebar-width: 272px;
+--sidebar-compact-width: 48px;
 
   /* Light palette */
   --bg-top: #f7f7f7;

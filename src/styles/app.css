@@ -238,15 +238,64 @@ button {
   border-right: 1px solid var(--stroke);
   backdrop-filter: blur(12px);
   overflow: hidden auto;
+  transition: flex-basis var(--dur) var(--ease), width var(--dur) var(--ease);
+}
+
+/* NavigationView compact mode */
+.sidebar--collapsed {
+  flex-basis: var(--sidebar-compact-width);
+  width: var(--sidebar-compact-width);
+}
+
+.sidebar__head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px 2px;
+}
+
+.sidebar--collapsed .sidebar__head {
+  justify-content: center;
+  padding: 6px 0 2px;
+}
+
+.nav-toggle {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  flex: 0 0 auto;
+  border-radius: var(--radius-sm);
+  color: var(--text-2);
+  font-size: 16px;
+}
+
+.nav-toggle:hover {
+  background: var(--fill-subtle-hover);
+  color: var(--text-1);
+}
+
+.nav-toggle:active {
+  background: var(--fill-subtle-pressed);
 }
 
 .sidebar__label {
-  padding: 12px 20px 6px;
+  padding: 0 6px;
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--text-3);
+  white-space: nowrap;
+  opacity: 1;
+  transition: opacity var(--dur-fast) var(--ease);
+}
+
+.sidebar--collapsed .sidebar__label {
+  opacity: 0;
+  width: 0;
+  padding: 0;
+  overflow: hidden;
 }
 
 .nav-list {
@@ -313,6 +362,29 @@ button {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  opacity: 1;
+  transition: opacity var(--dur-fast) var(--ease);
+}
+
+/* compact pane: icons only, centred, still 40px tall like NavigationView */
+.sidebar--collapsed .nav-item {
+  width: 40px;
+  margin: 2px auto;
+  padding: 0;
+  gap: 0;
+  justify-content: center;
+}
+
+.sidebar--collapsed .nav-item__label {
+  opacity: 0;
+  width: 0;
+  flex: 0 0 0;
+  overflow: hidden;
+}
+
+.sidebar--collapsed .sidebar__footer {
+  margin: 0;
+  padding-top: 6px;
 }
 
 .nav-item__hint {

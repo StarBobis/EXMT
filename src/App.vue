@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, ref, watch } from "vue";
 import TitleBar from "./components/TitleBar.vue";
 import SideBar from "./components/SideBar.vue";
 import HomeView from "./views/HomeView.vue";
@@ -10,7 +10,12 @@ import LogsView from "./views/LogsView.vue";
 import SettingsView from "./views/SettingsView.vue";
 import type { ViewKey } from "./lib/nav";
 
+const STORAGE_KEY = "exmt.nav.collapsed";
+
 const current = ref<ViewKey>("home");
+const collapsed = ref(localStorage.getItem(STORAGE_KEY) === "1");
+
+watch(collapsed, (v) => localStorage.setItem(STORAGE_KEY, v ? "1" : "0"));
 
 const views = {
   home: HomeView,
@@ -28,7 +33,12 @@ const currentView = computed(() => views[current.value]);
   <div class="app">
     <TitleBar title="EXMT Modbox" badge="预览" />
     <div class="app__body">
-      <SideBar :selected="current" @select="current = $event" />
+      <SideBar
+        :selected="current"
+        :collapsed="collapsed"
+        @select="current = $event"
+        @toggle="collapsed = !collapsed"
+      />
       <main class="app__content">
         <component :is="currentView" :key="current" />
       </main>
