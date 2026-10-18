@@ -27,7 +27,14 @@
    "portrait": {
     "bundle": "9d5e9b62aa891bb0a2d55389c5e73106",
     "texture": "Avatar_Head_AgentDorm"
-   }
+   },
+   "splash": "/splash/c_AgentDorm.webp",
+   "splash_source": "Avatar_Bust_AgentDorm",
+   "splash_size": [
+    512,
+    512
+   ],
+   "splash_kind": "bust"
   },
   {
    "id": "c_AgentSSR01",
@@ -50,7 +57,14 @@
    "portrait": {
     "bundle": "9d5e9b62aa891bb0a2d55389c5e73106",
     "texture": "Avatar_Head_AgentSSR01"
-   }
+   },
+   "splash": "/splash/c_AgentSSR01.webp",
+   "splash_source": "Img_ChrSkinPic_AgentSSR01",
+   "splash_size": [
+    378,
+    750
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_AgentSSR0101",
@@ -69,7 +83,14 @@
    "portrait": {
     "bundle": "9d5e9b62aa891bb0a2d55389c5e73106",
     "texture": "Avatar_Head_AgentSSR"
-   }
+   },
+   "splash": "/splash/c_AgentSSR0101.webp",
+   "splash_source": "Img_ChrSkinPic_AgentSSR01",
+   "splash_size": [
+    378,
+    750
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_AlvaDorm",
@@ -96,7 +117,14 @@
    "portrait": {
     "bundle": "6991487f3b03e4e5930472937acb2b10",
     "texture": "Avatar_Head_AlvaSSR"
-   }
+   },
+   "splash": "/splash/c_AlvaDorm.webp",
+   "splash_source": "Avatar_Bust_AlvaDorm",
+   "splash_size": [
+    512,
+    512
+   ],
+   "splash_kind": "bust"
   },
   {
    "id": "c_AlvaSSR01",
@@ -119,7 +147,14 @@
    "portrait": {
     "bundle": "6991487f3b03e4e5930472937acb2b10",
     "texture": "Avatar_Head_AlvaSSR01"
-   }
+   },
+   "splash": "/splash/c_AlvaSSR01.webp",
+   "splash_source": "Img_ChrSkinPic_AlvaSSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_AlvaSSR0101",
@@ -138,7 +173,14 @@
    "portrait": {
     "bundle": "6991487f3b03e4e5930472937acb2b10",
     "texture": "Avatar_Head_AlvaSSR"
-   }
+   },
+   "splash": "/splash/c_AlvaSSR0101.webp",
+   "splash_source": "Img_ChrSkinPic_AlvaSSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_AlvaSSR0102",
@@ -161,7 +203,14 @@
    "portrait": {
     "bundle": "6991487f3b03e4e5930472937acb2b10",
     "texture": "Avatar_Head_AlvaSSR"
-   }
+   },
+   "splash": "/splash/c_AlvaSSR0102.webp",
+   "splash_source": "Img_ChrSkinPic_AlvaSSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_AndorisDorm",
@@ -188,7 +237,14 @@
    "portrait": {
     "bundle": "3341a4089881c3e1b5fa7f585ec76470",
     "texture": "Avatar_Head_AndorisSSR"
-   }
+   },
+   "splash": "/splash/c_AndorisDorm.webp",
+   "splash_source": "Avatar_Bust_AndorisDorm",
+   "splash_size": [
+    512,
+    512
+   ],
+   "splash_kind": "bust"
   },
   {
    "id": "c_AndorisSR01",
@@ -230,7 +286,14 @@
    "portrait": {
     "bundle": "7654a9a6eea84eb45ea1b4ddd2241c25",
     "texture": "Avatar_Head_AndorisSSR01"
-   }
+   },
+   "splash": "/splash/c_AndorisSSR01.webp",
+   "splash_source": "Img_ChrSkinPic_AndorisSSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_AndorisSSR0101",
@@ -253,7 +316,14 @@
    "portrait": {
     "bundle": "3341a4089881c3e1b5fa7f585ec76470",
     "texture": "Avatar_Head_AndorisSSR"
-   }
+   },
+   "splash": "/splash/c_AndorisSSR0101.webp",
+   "splash_source": "Img_ChrSkinPic_AndorisSSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_AsteriaDorm",
@@ -280,7 +350,14 @@
    "portrait": {
     "bundle": "a3861f795bd5e3a36f3f703e8c30213f",
     "texture": "Avatar_Head_AsteriaDorm"
-   }
+   },
+   "splash": "/splash/c_AsteriaDorm.webp",
+   "splash_source": "Avatar_Bust_AsteriaDorm",
+   "splash_size": [
+    512,
+    512
+   ],
+   "splash_kind": "bust"
   },
   {
    "id": "c_AsteriaSSR01",
@@ -304,7 +381,14 @@
    "portrait": {
     "bundle": "a3861f795bd5e3a36f3f703e8c30213f",
     "texture": "Avatar_Head_AsteriaSSR01"
-   }
+   },
+   "splash": "/splash/c_AsteriaSSR01.webp",
+   "splash_source": "Img_ChrSkinPic_AsteriaSSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_AsteriaSSR0101",
@@ -327,7 +411,14 @@
    "portrait": {
     "bundle": "a3861f795bd5e3a36f3f703e8c30213f",
     "texture": "Avatar_Head_AsteriaSSR"
-   }
+   },
+   "splash": "/splash/c_AsteriaSSR0101.webp",
+   "splash_source": "Img_ChrSkinPic_AsteriaSSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_BalthildeDorm",
@@ -350,7 +441,14 @@
    "portrait": {
     "bundle": "13abb558e8ebe9f748953750cc11d55f",
     "texture": "Avatar_Head_BalthildeSSR"
-   }
+   },
+   "splash": "/splash/c_BalthildeDorm.webp",
+   "splash_source": "Avatar_Bust_BalthildeDorm",
+   "splash_size": [
+    512,
+    512
+   ],
+   "splash_kind": "bust"
   },
   {
    "id": "c_BalthildeSSR01",
@@ -373,7 +471,14 @@
    "portrait": {
     "bundle": "13abb558e8ebe9f748953750cc11d55f",
     "texture": "Avatar_Head_BalthildeSSR"
-   }
+   },
+   "splash": "/splash/c_BalthildeSSR01.webp",
+   "splash_source": "Img_ChrSkinPic_BalthildeSSR",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_BastiDorm",
@@ -396,7 +501,14 @@
    "portrait": {
     "bundle": "7305451c9eb0738fc1340639600f76e8",
     "texture": "Avatar_Head_BastiSSR"
-   }
+   },
+   "splash": "/splash/c_BastiDorm.webp",
+   "splash_source": "Avatar_Bust_BastiDorm",
+   "splash_size": [
+    512,
+    512
+   ],
+   "splash_kind": "bust"
   },
   {
    "id": "c_BastiSSR01",
@@ -424,7 +536,14 @@
    "portrait": {
     "bundle": "7305451c9eb0738fc1340639600f76e8",
     "texture": "Avatar_Head_BastiSSR01"
-   }
+   },
+   "splash": "/splash/c_BastiSSR01.webp",
+   "splash_source": "Img_ChrSkinPic_BastiSSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_BastiSSR0101",
@@ -447,7 +566,14 @@
    "portrait": {
     "bundle": "7305451c9eb0738fc1340639600f76e8",
     "texture": "Avatar_Head_BastiSSR"
-   }
+   },
+   "splash": "/splash/c_BastiSSR0101.webp",
+   "splash_source": "Img_ChrSkinPic_BastiSSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_BiyocaDorm",
@@ -470,7 +596,14 @@
    "portrait": {
     "bundle": "0a7e616dd18cf82cf49b6edb868f0a68",
     "texture": "Avatar_Head_BiyocaSSR"
-   }
+   },
+   "splash": "/splash/c_BiyocaDorm.webp",
+   "splash_source": "Avatar_Bust_BiyocaDorm",
+   "splash_size": [
+    512,
+    512
+   ],
+   "splash_kind": "bust"
   },
   {
    "id": "c_BiyocaSSR01",
@@ -493,7 +626,14 @@
    "portrait": {
     "bundle": "0a7e616dd18cf82cf49b6edb868f0a68",
     "texture": "Avatar_Head_BiyocaSSR01"
-   }
+   },
+   "splash": "/splash/c_BiyocaSSR01.webp",
+   "splash_source": "Img_ChrSkinPic_BiyocaSSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_BiyocaSSR0101",
@@ -520,7 +660,14 @@
    "portrait": {
     "bundle": "0a7e616dd18cf82cf49b6edb868f0a68",
     "texture": "Avatar_Head_BiyocaSSR"
-   }
+   },
+   "splash": "/splash/c_BiyocaSSR0101.webp",
+   "splash_source": "Img_ChrSkinPic_BiyocaSSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_CeciliaDorm",
@@ -547,7 +694,14 @@
    "portrait": {
     "bundle": "96046eb3911cd145f6affc8035e5565f",
     "texture": "Avatar_Head_CeciliaDorm"
-   }
+   },
+   "splash": "/splash/c_CeciliaDorm.webp",
+   "splash_source": "Avatar_Bust_CeciliaDorm",
+   "splash_size": [
+    512,
+    512
+   ],
+   "splash_kind": "bust"
   },
   {
    "id": "c_CeciliaSSR01",
@@ -570,7 +724,14 @@
    "portrait": {
     "bundle": "96046eb3911cd145f6affc8035e5565f",
     "texture": "Avatar_Head_CeciliaSSR01"
-   }
+   },
+   "splash": "/splash/c_CeciliaSSR01.webp",
+   "splash_source": "Img_ChrSkinPic_CeciliaSSR01",
+   "splash_size": [
+    378,
+    750
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_CeciliaSSR0101",
@@ -593,7 +754,14 @@
    "portrait": {
     "bundle": "96046eb3911cd145f6affc8035e5565f",
     "texture": "Avatar_Head_CeciliaSSR"
-   }
+   },
+   "splash": "/splash/c_CeciliaSSR0101.webp",
+   "splash_source": "Img_ChrSkinPic_CeciliaSSR01",
+   "splash_size": [
+    378,
+    750
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_CentaureissiDorm",
@@ -616,7 +784,14 @@
    "portrait": {
     "bundle": "85d6be07690c0e9a9c496f1ad611bb5e",
     "texture": "Avatar_Head_CentaureissiSSR"
-   }
+   },
+   "splash": "/splash/c_CentaureissiDorm.webp",
+   "splash_source": "Avatar_Bust_CentaureissiDorm",
+   "splash_size": [
+    512,
+    512
+   ],
+   "splash_kind": "bust"
   },
   {
    "id": "c_CentaureissiSSR01",
@@ -639,7 +814,14 @@
    "portrait": {
     "bundle": "564c30fe97d3ecb879678c6d8b1776ba",
     "texture": "Avatar_Head_CentaureissiSSR01"
-   }
+   },
+   "splash": "/splash/c_CentaureissiSSR01.webp",
+   "splash_source": "Img_ChrSkinPic_CentaureissiSSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_CentaureissiSSR0101",
@@ -662,7 +844,14 @@
    "portrait": {
     "bundle": "85d6be07690c0e9a9c496f1ad611bb5e",
     "texture": "Avatar_Head_CentaureissiSSR"
-   }
+   },
+   "splash": "/splash/c_CentaureissiSSR0101.webp",
+   "splash_source": "Img_ChrSkinPic_CentaureissiSSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_CentaureissiSSR0102",
@@ -685,7 +874,14 @@
    "portrait": {
     "bundle": "85d6be07690c0e9a9c496f1ad611bb5e",
     "texture": "Avatar_Head_CentaureissiSSR"
-   }
+   },
+   "splash": "/splash/c_CentaureissiSSR0102.webp",
+   "splash_source": "Img_ChrSkinPic_CentaureissiSSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_CharolicDorm",
@@ -708,7 +904,14 @@
    "portrait": {
     "bundle": "47e2948d4c471d00bcb6f817f244d176",
     "texture": "Avatar_Head_CharolicSR"
-   }
+   },
+   "splash": "/splash/c_CharolicDorm.webp",
+   "splash_source": "Avatar_Bust_CharolicDorm",
+   "splash_size": [
+    512,
+    512
+   ],
+   "splash_kind": "bust"
   },
   {
    "id": "c_CharolicSR01",
@@ -737,7 +940,14 @@
    "portrait": {
     "bundle": "47e2948d4c471d00bcb6f817f244d176",
     "texture": "Avatar_Head_CharolicSR01"
-   }
+   },
+   "splash": "/splash/c_CharolicSR01.webp",
+   "splash_source": "Img_ChrSkinPic_CharolicSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_CharolicSR0101",
@@ -760,7 +970,14 @@
    "portrait": {
     "bundle": "47e2948d4c471d00bcb6f817f244d176",
     "texture": "Avatar_Head_CharolicSR"
-   }
+   },
+   "splash": "/splash/c_CharolicSR0101.webp",
+   "splash_source": "Img_ChrSkinPic_CharolicSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_CharolicSR0103",
@@ -783,7 +1000,14 @@
    "portrait": {
     "bundle": "47e2948d4c471d00bcb6f817f244d176",
     "texture": "Avatar_Head_CharolicSR"
-   }
+   },
+   "splash": "/splash/c_CharolicSR0103.webp",
+   "splash_source": "Img_ChrSkinPic_CharolicSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_CheetaDorm",
@@ -806,7 +1030,14 @@
    "portrait": {
     "bundle": "6a9197179e0bb0d7894240dea83cb332",
     "texture": "Avatar_Head_CheetaSR"
-   }
+   },
+   "splash": "/splash/c_CheetaDorm.webp",
+   "splash_source": "Avatar_Bust_CheetaDorm",
+   "splash_size": [
+    512,
+    512
+   ],
+   "splash_kind": "bust"
   },
   {
    "id": "c_CheetaSR01",
@@ -833,7 +1064,14 @@
    "portrait": {
     "bundle": "3d0e3f1908a04b0336839bd48f5ae97b",
     "texture": "Avatar_Head_CheetaSR01"
-   }
+   },
+   "splash": "/splash/c_CheetaSR01.webp",
+   "splash_source": "Img_ChrSkinPic_CheetaSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_CheetaSR0101",
@@ -860,7 +1098,14 @@
    "portrait": {
     "bundle": "6a9197179e0bb0d7894240dea83cb332",
     "texture": "Avatar_Head_CheetaSR"
-   }
+   },
+   "splash": "/splash/c_CheetaSR0101.webp",
+   "splash_source": "Img_ChrSkinPic_CheetaSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_CheyanneDorm",
@@ -887,7 +1132,14 @@
    "portrait": {
     "bundle": "74c690ddb0bd33552eebec4904c9d849",
     "texture": "Avatar_Head_CheyanneSSR"
-   }
+   },
+   "splash": "/splash/c_CheyanneDorm.webp",
+   "splash_source": "Avatar_Bust_CheyanneDorm",
+   "splash_size": [
+    512,
+    512
+   ],
+   "splash_kind": "bust"
   },
   {
    "id": "c_CheyanneSSR01",
@@ -910,7 +1162,14 @@
    "portrait": {
     "bundle": "74c690ddb0bd33552eebec4904c9d849",
     "texture": "Avatar_Head_CheyanneSSR01"
-   }
+   },
+   "splash": "/splash/c_CheyanneSSR01.webp",
+   "splash_source": "Img_ChrSkinPic_CheyanneSSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_CheyanneSSR0101",
@@ -933,7 +1192,14 @@
    "portrait": {
     "bundle": "74c690ddb0bd33552eebec4904c9d849",
     "texture": "Avatar_Head_CheyanneSSR"
-   }
+   },
+   "splash": "/splash/c_CheyanneSSR0101.webp",
+   "splash_source": "Img_ChrSkinPic_CheyanneSSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_ClukayDorm",
@@ -956,7 +1222,14 @@
    "portrait": {
     "bundle": "00db9bc6c41c1d1067a767de09b1d010",
     "texture": "Avatar_Head_ClukaySSR"
-   }
+   },
+   "splash": "/splash/c_ClukayDorm.webp",
+   "splash_source": "Avatar_Bust_ClukayDorm",
+   "splash_size": [
+    512,
+    512
+   ],
+   "splash_kind": "bust"
   },
   {
    "id": "c_ClukaySSR01",
@@ -975,7 +1248,14 @@
    "portrait": {
     "bundle": "00db9bc6c41c1d1067a767de09b1d010",
     "texture": "Avatar_Head_ClukaySSR01"
-   }
+   },
+   "splash": "/splash/c_ClukaySSR01.webp",
+   "splash_source": "Img_ChrSkinPic_ClukaySSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_ClukaySSR0101",
@@ -998,7 +1278,14 @@
    "portrait": {
     "bundle": "00db9bc6c41c1d1067a767de09b1d010",
     "texture": "Avatar_Head_ClukaySSR"
-   }
+   },
+   "splash": "/splash/c_ClukaySSR0101.webp",
+   "splash_source": "Img_ChrSkinPic_ClukaySSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_ClukaySSR0102",
@@ -1021,7 +1308,14 @@
    "portrait": {
     "bundle": "00db9bc6c41c1d1067a767de09b1d010",
     "texture": "Avatar_Head_ClukaySSR"
-   }
+   },
+   "splash": "/splash/c_ClukaySSR0102.webp",
+   "splash_source": "Img_ChrSkinPic_ClukaySSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_ClukaySSR0103",
@@ -1044,7 +1338,14 @@
    "portrait": {
     "bundle": "00db9bc6c41c1d1067a767de09b1d010",
     "texture": "Avatar_Head_ClukaySSR"
-   }
+   },
+   "splash": "/splash/c_ClukaySSR0103.webp",
+   "splash_source": "Img_ChrSkinPic_ClukaySSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_ClukaySSR0104",
@@ -1067,7 +1368,14 @@
    "portrait": {
     "bundle": "00db9bc6c41c1d1067a767de09b1d010",
     "texture": "Avatar_Head_ClukaySSR"
-   }
+   },
+   "splash": "/splash/c_ClukaySSR0104.webp",
+   "splash_source": "Img_ChrSkinPic_ClukaySSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_ClukaySSR0105",
@@ -1090,7 +1398,14 @@
    "portrait": {
     "bundle": "00db9bc6c41c1d1067a767de09b1d010",
     "texture": "Avatar_Head_ClukaySSR"
-   }
+   },
+   "splash": "/splash/c_ClukaySSR0105.webp",
+   "splash_source": "Img_ChrSkinPic_ClukaySSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_ColphneDoppelgaengerDorm",
@@ -1117,7 +1432,14 @@
    "portrait": {
     "bundle": "9d5e9b62aa891bb0a2d55389c5e73106",
     "texture": "Avatar_Head_ColphneDoppelgaengerDorm"
-   }
+   },
+   "splash": "/splash/c_ColphneDoppelgaengerDorm.webp",
+   "splash_source": "Avatar_Bust_ColphneDoppelgaengerDorm",
+   "splash_size": [
+    512,
+    512
+   ],
+   "splash_kind": "bust"
   },
   {
    "id": "c_ColphneDoppelgaengerSSR01",
@@ -1143,7 +1465,14 @@
    "portrait": {
     "bundle": "9d5e9b62aa891bb0a2d55389c5e73106",
     "texture": "Avatar_Head_ColphneDoppelgaengerSSR"
-   }
+   },
+   "splash": "/splash/c_ColphneDoppelgaengerSSR01.webp",
+   "splash_source": "Img_ChrSkinPic_ColphneDoppelgaengerSSR",
+   "splash_size": [
+    378,
+    750
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_ColphneDorm",
@@ -1170,7 +1499,14 @@
    "portrait": {
     "bundle": "9d5e9b62aa891bb0a2d55389c5e73106",
     "texture": "Avatar_Head_ColphneDoppelgaengerDorm"
-   }
+   },
+   "splash": "/splash/c_ColphneDorm.webp",
+   "splash_source": "Avatar_Bust_ColphneDorm",
+   "splash_size": [
+    512,
+    512
+   ],
+   "splash_kind": "bust"
   },
   {
    "id": "c_ColphneSR01",
@@ -1197,7 +1533,14 @@
    "portrait": {
     "bundle": "f5ac049ab609ca55e46985fc8aa17dd9",
     "texture": "Avatar_Head_ColphneSR01"
-   }
+   },
+   "splash": "/splash/c_ColphneSR01.webp",
+   "splash_source": "Img_ChrSkinPic_ColphneSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_ColphneSR0101",
@@ -1216,7 +1559,14 @@
    "portrait": {
     "bundle": "83a30022f0c08f8e25ea3512f25d20b8",
     "texture": "Avatar_Head_ColphneSR"
-   }
+   },
+   "splash": "/splash/c_ColphneSR0101.webp",
+   "splash_source": "Img_ChrSkinPic_ColphneSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_ColphneSR0103",
@@ -1239,7 +1589,14 @@
    "portrait": {
     "bundle": "83a30022f0c08f8e25ea3512f25d20b8",
     "texture": "Avatar_Head_ColphneSR"
-   }
+   },
+   "splash": "/splash/c_ColphneSR0103.webp",
+   "splash_source": "Img_ChrSkinPic_ColphneSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_CommanderFemale",
@@ -1398,7 +1755,14 @@
    "portrait": {
     "bundle": "ac4046528ab10b13ed55a761929045f1",
     "texture": "Avatar_Head_DaiyanSSR"
-   }
+   },
+   "splash": "/splash/c_DaiyanDorm.webp",
+   "splash_source": "Avatar_Bust_DaiyanDorm",
+   "splash_size": [
+    512,
+    512
+   ],
+   "splash_kind": "bust"
   },
   {
    "id": "c_DaiyanSSR01",
@@ -1421,7 +1785,14 @@
    "portrait": {
     "bundle": "ac4046528ab10b13ed55a761929045f1",
     "texture": "Avatar_Head_DaiyanSSR"
-   }
+   },
+   "splash": "/splash/c_DaiyanSSR01.webp",
+   "splash_source": "Img_ChrSkinPic_DaiyanSSR",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_DaiyanSSR0103",
@@ -1444,7 +1815,14 @@
    "portrait": {
     "bundle": "ac4046528ab10b13ed55a761929045f1",
     "texture": "Avatar_Head_DaiyanSSR"
-   }
+   },
+   "splash": "/splash/c_DaiyanSSR0103.webp",
+   "splash_source": "Img_ChrSkinPic_DaiyanSSR",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_DusevnyjDorm",
@@ -1463,7 +1841,14 @@
    "portrait": {
     "bundle": "26df298580b99bff02b4598130646ffe",
     "texture": "Avatar_Head_DusevnyjSSR"
-   }
+   },
+   "splash": "/splash/c_DusevnyjDorm.webp",
+   "splash_source": "Avatar_Bust_DusevnyjDorm",
+   "splash_size": [
+    512,
+    512
+   ],
+   "splash_kind": "bust"
   },
   {
    "id": "c_DusevnyjSSR01",
@@ -1483,7 +1868,14 @@
    "portrait": {
     "bundle": "928ea116b676c43d28ff34484a87410e",
     "texture": "Avatar_Head_DusevnyjSSR01"
-   }
+   },
+   "splash": "/splash/c_DusevnyjSSR01.webp",
+   "splash_source": "Img_ChrSkinPic_DusevnyjSSR01",
+   "splash_size": [
+    378,
+    750
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_DusevnyjSSR0101",
@@ -1510,7 +1902,14 @@
    "portrait": {
     "bundle": "26df298580b99bff02b4598130646ffe",
     "texture": "Avatar_Head_DusevnyjSSR"
-   }
+   },
+   "splash": "/splash/c_DusevnyjSSR0101.webp",
+   "splash_source": "Img_ChrSkinPic_DusevnyjSSR01",
+   "splash_size": [
+    378,
+    750
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_EaglettaDorm",
@@ -1537,7 +1936,14 @@
    "portrait": {
     "bundle": "75f924133fd86dae7adeb678177a467a",
     "texture": "Avatar_Head_EaglettaDorm"
-   }
+   },
+   "splash": "/splash/c_EaglettaDorm.webp",
+   "splash_source": "Avatar_Bust_EaglettaDorm",
+   "splash_size": [
+    512,
+    512
+   ],
+   "splash_kind": "bust"
   },
   {
    "id": "c_EaglettaSSR01",
@@ -1560,7 +1966,14 @@
    "portrait": {
     "bundle": "75f924133fd86dae7adeb678177a467a",
     "texture": "Avatar_Head_EaglettaSSR01"
-   }
+   },
+   "splash": "/splash/c_EaglettaSSR01.webp",
+   "splash_source": "Img_ChrSkinPic_EaglettaSSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_EaglettaSSR0101",
@@ -1583,7 +1996,14 @@
    "portrait": {
     "bundle": "75f924133fd86dae7adeb678177a467a",
     "texture": "Avatar_Head_EaglettaSSR"
-   }
+   },
+   "splash": "/splash/c_EaglettaSSR0101.webp",
+   "splash_source": "Img_ChrSkinPic_EaglettaSSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_FaelynnDorm",
@@ -1610,7 +2030,14 @@
    "portrait": {
     "bundle": "4ab81506fdd30b6cd127562042369663",
     "texture": "Avatar_Head_FaelynnDorm"
-   }
+   },
+   "splash": "/splash/c_FaelynnDorm.webp",
+   "splash_source": "Avatar_Bust_FaelynnDorm",
+   "splash_size": [
+    512,
+    512
+   ],
+   "splash_kind": "bust"
   },
   {
    "id": "c_FaelynnSSR01",
@@ -1633,7 +2060,14 @@
    "portrait": {
     "bundle": "4ab81506fdd30b6cd127562042369663",
     "texture": "Avatar_Head_FaelynnSSR01"
-   }
+   },
+   "splash": "/splash/c_FaelynnSSR01.webp",
+   "splash_source": "Img_ChrSkinPic_FaelynnSSR01",
+   "splash_size": [
+    378,
+    750
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_FaelynnSSR0101",
@@ -1660,7 +2094,14 @@
    "portrait": {
     "bundle": "4ab81506fdd30b6cd127562042369663",
     "texture": "Avatar_Head_FaelynnSSR"
-   }
+   },
+   "splash": "/splash/c_FaelynnSSR0101.webp",
+   "splash_source": "Img_ChrSkinPic_FaelynnSSR01",
+   "splash_size": [
+    378,
+    750
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_FayeDorm",
@@ -1710,7 +2151,14 @@
    "portrait": {
     "bundle": "595d03624cd0d70fbb971d0b0e4f5dba",
     "texture": "Avatar_Head_FayeSSR01"
-   }
+   },
+   "splash": "/splash/c_FayeSSR01.webp",
+   "splash_source": "Img_ChrSkinPic_FayeSSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_FayeSSR0101",
@@ -1729,7 +2177,14 @@
    "portrait": {
     "bundle": "a2a045477098220324b104e935847feb",
     "texture": "Avatar_Head_FayeSSR"
-   }
+   },
+   "splash": "/splash/c_FayeSSR0101.webp",
+   "splash_source": "Img_ChrSkinPic_FayeSSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_FlorenceDorm",
@@ -1756,7 +2211,14 @@
    "portrait": {
     "bundle": "7e8266a93e12a2a98583340f6b9ccf0b",
     "texture": "Avatar_Head_FlorenceSSR"
-   }
+   },
+   "splash": "/splash/c_FlorenceDorm.webp",
+   "splash_source": "Avatar_Bust_FlorenceDorm",
+   "splash_size": [
+    512,
+    512
+   ],
+   "splash_kind": "bust"
   },
   {
    "id": "c_FlorenceSSR01",
@@ -1779,7 +2241,14 @@
    "portrait": {
     "bundle": "7e8266a93e12a2a98583340f6b9ccf0b",
     "texture": "Avatar_Head_FlorenceSSR01"
-   }
+   },
+   "splash": "/splash/c_FlorenceSSR01.webp",
+   "splash_source": "Img_ChrSkinPic_FlorenceSSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_FlorenceSSR0101",
@@ -1806,7 +2275,14 @@
    "portrait": {
     "bundle": "7e8266a93e12a2a98583340f6b9ccf0b",
     "texture": "Avatar_Head_FlorenceSSR"
-   }
+   },
+   "splash": "/splash/c_FlorenceSSR0101.webp",
+   "splash_source": "Img_ChrSkinPic_FlorenceSSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_FlorenceSSR0102",
@@ -1837,7 +2313,14 @@
    "portrait": {
     "bundle": "7e8266a93e12a2a98583340f6b9ccf0b",
     "texture": "Avatar_Head_FlorenceSSR"
-   }
+   },
+   "splash": "/splash/c_FlorenceSSR0102.webp",
+   "splash_source": "Img_ChrSkinPic_FlorenceSSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_GrozaDorm",
@@ -1864,7 +2347,14 @@
    "portrait": {
     "bundle": "602c4b304f2e415ed249baf32c2f645a",
     "texture": "Avatar_Head_GrozaSR"
-   }
+   },
+   "splash": "/splash/c_GrozaDorm.webp",
+   "splash_source": "Avatar_Bust_GrozaDorm",
+   "splash_size": [
+    512,
+    512
+   ],
+   "splash_kind": "bust"
   },
   {
    "id": "c_GrozaR01",
@@ -1925,7 +2415,14 @@
    "portrait": {
     "bundle": "602c4b304f2e415ed249baf32c2f645a",
     "texture": "Avatar_Head_GrozaSR01"
-   }
+   },
+   "splash": "/splash/c_GrozaSR01.webp",
+   "splash_source": "Img_ChrSkinPic_GrozaSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_GrozaSR0102",
@@ -1946,7 +2443,14 @@
    "portrait": {
     "bundle": "602c4b304f2e415ed249baf32c2f645a",
     "texture": "Avatar_Head_GrozaSR"
-   }
+   },
+   "splash": "/splash/c_GrozaSR0102.webp",
+   "splash_source": "Img_ChrSkinPic_GrozaSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_GrozaSR0103",
@@ -1969,7 +2473,14 @@
    "portrait": {
     "bundle": "602c4b304f2e415ed249baf32c2f645a",
     "texture": "Avatar_Head_GrozaSR"
-   }
+   },
+   "splash": "/splash/c_GrozaSR0103.webp",
+   "splash_source": "Img_ChrSkinPic_GrozaSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_GrozaSR0105",
@@ -1996,7 +2507,14 @@
    "portrait": {
     "bundle": "602c4b304f2e415ed249baf32c2f645a",
     "texture": "Avatar_Head_GrozaSR"
-   }
+   },
+   "splash": "/splash/c_GrozaSR0105.webp",
+   "splash_source": "Img_ChrSkinPic_GrozaSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_HarpsyDorm",
@@ -2019,7 +2537,14 @@
    "portrait": {
     "bundle": "66532fe4c9e4bdc91a269f89f03e4bd3",
     "texture": "Avatar_Head_HarpsySSR"
-   }
+   },
+   "splash": "/splash/c_HarpsyDorm.webp",
+   "splash_source": "Avatar_Bust_HarpsyDorm",
+   "splash_size": [
+    512,
+    512
+   ],
+   "splash_kind": "bust"
   },
   {
    "id": "c_HarpsySSR01",
@@ -2039,7 +2564,14 @@
    "portrait": {
     "bundle": "66532fe4c9e4bdc91a269f89f03e4bd3",
     "texture": "Avatar_Head_HarpsySSR"
-   }
+   },
+   "splash": "/splash/c_HarpsySSR01.webp",
+   "splash_source": "Img_ChrSkinPic_HarpsySSR",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_Helena",
@@ -2059,7 +2591,14 @@
      "555cc03f9977970c3be07b2895fd1bf5"
     ]
    },
-   "portrait": null
+   "portrait": null,
+   "splash": "/splash/c_Helena.webp",
+   "splash_source": "Avatar_Half_Helena",
+   "splash_size": [
+    512,
+    512
+   ],
+   "splash_kind": "half"
   },
   {
    "id": "c_Helena01",
@@ -2076,7 +2615,14 @@
      "fc71d5eba9fa4881b555f249c96d793e"
     ]
    },
-   "portrait": null
+   "portrait": null,
+   "splash": "/splash/c_Helena01.webp",
+   "splash_source": "Avatar_Half_Helena",
+   "splash_size": [
+    512,
+    512
+   ],
+   "splash_kind": "half"
   },
   {
    "id": "c_HelenDorm",
@@ -2103,7 +2649,14 @@
    "portrait": {
     "bundle": "ee9251885b156fca5d308660ef35c798",
     "texture": "Avatar_Head_HelenSSR"
-   }
+   },
+   "splash": "/splash/c_HelenDorm.webp",
+   "splash_source": "Avatar_Bust_HelenDorm",
+   "splash_size": [
+    512,
+    512
+   ],
+   "splash_kind": "bust"
   },
   {
    "id": "c_HelenSSR01",
@@ -2127,7 +2680,14 @@
    "portrait": {
     "bundle": "ee9251885b156fca5d308660ef35c798",
     "texture": "Avatar_Head_HelenSSR01"
-   }
+   },
+   "splash": "/splash/c_HelenSSR01.webp",
+   "splash_source": "Img_ChrSkinPic_HelenSSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_HelenSSR0101",
@@ -2150,7 +2710,14 @@
    "portrait": {
     "bundle": "ee9251885b156fca5d308660ef35c798",
     "texture": "Avatar_Head_HelenSSR"
-   }
+   },
+   "splash": "/splash/c_HelenSSR0101.webp",
+   "splash_source": "Img_ChrSkinPic_HelenSSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_HelenSSR0102",
@@ -2173,7 +2740,14 @@
    "portrait": {
     "bundle": "ee9251885b156fca5d308660ef35c798",
     "texture": "Avatar_Head_HelenSSR"
-   }
+   },
+   "splash": "/splash/c_HelenSSR0102.webp",
+   "splash_source": "Img_ChrSkinPic_HelenSSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_IglaDorm",
@@ -2203,7 +2777,14 @@
    "portrait": {
     "bundle": "9d5e9b62aa891bb0a2d55389c5e73106",
     "texture": "Avatar_Head_IglaDorm"
-   }
+   },
+   "splash": "/splash/c_IglaDorm.webp",
+   "splash_source": "Avatar_Bust_IglaDorm",
+   "splash_size": [
+    512,
+    512
+   ],
+   "splash_kind": "bust"
   },
   {
    "id": "c_IglaSSR01",
@@ -2228,7 +2809,14 @@
    "portrait": {
     "bundle": "9d5e9b62aa891bb0a2d55389c5e73106",
     "texture": "Avatar_Head_IglaSSR01"
-   }
+   },
+   "splash": "/splash/c_IglaSSR01.webp",
+   "splash_source": "Img_ChrSkinPic_IglaSSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_IglaSSR0101",
@@ -2253,7 +2841,14 @@
    "portrait": {
     "bundle": "9d5e9b62aa891bb0a2d55389c5e73106",
     "texture": "Avatar_Head_IglaSSR"
-   }
+   },
+   "splash": "/splash/c_IglaSSR0101.webp",
+   "splash_source": "Img_ChrSkinPic_IglaSSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_JiangyuDorm",
@@ -2276,7 +2871,14 @@
    "portrait": {
     "bundle": "7fb91b64f9b3009748eb09c695a494fc",
     "texture": "Avatar_Head_JiangyuSSR"
-   }
+   },
+   "splash": "/splash/c_JiangyuDorm.webp",
+   "splash_source": "Avatar_Bust_JiangyuDorm",
+   "splash_size": [
+    512,
+    512
+   ],
+   "splash_kind": "bust"
   },
   {
    "id": "c_JiangyuSSR01",
@@ -2299,7 +2901,14 @@
    "portrait": {
     "bundle": "290f1bb6a5768220b27726ceec41c82d",
     "texture": "Avatar_Head_JiangyuSSR01"
-   }
+   },
+   "splash": "/splash/c_JiangyuSSR01.webp",
+   "splash_source": "Img_ChrSkinPic_JiangyuSSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_JiangyuSSR0101",
@@ -2322,7 +2931,14 @@
    "portrait": {
     "bundle": "7fb91b64f9b3009748eb09c695a494fc",
     "texture": "Avatar_Head_JiangyuSSR"
-   }
+   },
+   "splash": "/splash/c_JiangyuSSR0101.webp",
+   "splash_source": "Img_ChrSkinPic_JiangyuSSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_KoledaDorm",
@@ -2349,7 +2965,14 @@
    "portrait": {
     "bundle": "a95075829fc19838084e42a69f31757c",
     "texture": "Avatar_Head_KoledaDorm"
-   }
+   },
+   "splash": "/splash/c_KoledaDorm.webp",
+   "splash_source": "Avatar_Bust_KoledaDorm",
+   "splash_size": [
+    512,
+    512
+   ],
+   "splash_kind": "bust"
   },
   {
    "id": "c_KoledaSSR01",
@@ -2372,7 +2995,14 @@
    "portrait": {
     "bundle": "a95075829fc19838084e42a69f31757c",
     "texture": "Avatar_Head_KoledaSSR01"
-   }
+   },
+   "splash": "/splash/c_KoledaSSR01.webp",
+   "splash_source": "Img_ChrSkinPic_KoledaSSR01",
+   "splash_size": [
+    378,
+    750
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_KoledaSSR0101",
@@ -2399,7 +3029,14 @@
    "portrait": {
     "bundle": "a95075829fc19838084e42a69f31757c",
     "texture": "Avatar_Head_KoledaSSR"
-   }
+   },
+   "splash": "/splash/c_KoledaSSR0101.webp",
+   "splash_source": "Img_ChrSkinPic_KoledaSSR01",
+   "splash_size": [
+    378,
+    750
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_KseniaDorm",
@@ -2449,7 +3086,14 @@
    "portrait": {
     "bundle": "114f88cf9d729491677e3a866fabd0e0",
     "texture": "Avatar_Head_KseniaSR"
-   }
+   },
+   "splash": "/splash/c_KseniaSR01.webp",
+   "splash_source": "Img_ChrSkinPic_KseniaSR",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_LeneDorm",
@@ -2472,7 +3116,14 @@
    "portrait": {
     "bundle": "1a9bbf49dcae336ab44c3a07a5fb0fbe",
     "texture": "Avatar_Head_LeneSSR"
-   }
+   },
+   "splash": "/splash/c_LeneDorm.webp",
+   "splash_source": "Avatar_Bust_LeneDorm",
+   "splash_size": [
+    512,
+    512
+   ],
+   "splash_kind": "bust"
   },
   {
    "id": "c_LeneSSR01",
@@ -2495,7 +3146,14 @@
    "portrait": {
     "bundle": "1a9bbf49dcae336ab44c3a07a5fb0fbe",
     "texture": "Avatar_Head_LeneSSR01"
-   }
+   },
+   "splash": "/splash/c_LeneSSR01.webp",
+   "splash_source": "Img_ChrSkinPic_LeneSSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_LeneSSR0101",
@@ -2518,7 +3176,14 @@
    "portrait": {
     "bundle": "1a9bbf49dcae336ab44c3a07a5fb0fbe",
     "texture": "Avatar_Head_LeneSSR"
-   }
+   },
+   "splash": "/splash/c_LeneSSR0101.webp",
+   "splash_source": "Img_ChrSkinPic_LeneSSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_LennaDorm",
@@ -2541,7 +3206,14 @@
    "portrait": {
     "bundle": "113e549e93accb6fa7b79de2a64be0af",
     "texture": "Avatar_Head_LennaSSR"
-   }
+   },
+   "splash": "/splash/c_LennaDorm.webp",
+   "splash_source": "Avatar_Bust_LennaDorm",
+   "splash_size": [
+    512,
+    512
+   ],
+   "splash_kind": "bust"
   },
   {
    "id": "c_LennaSSR01",
@@ -2564,7 +3236,14 @@
    "portrait": {
     "bundle": "e5e4eebe419b7519dd0464aac78451da",
     "texture": "Avatar_Head_LennaSSR01"
-   }
+   },
+   "splash": "/splash/c_LennaSSR01.webp",
+   "splash_source": "Img_ChrSkinPic_LennaSSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_LennaSSR0101",
@@ -2587,7 +3266,14 @@
    "portrait": {
     "bundle": "113e549e93accb6fa7b79de2a64be0af",
     "texture": "Avatar_Head_LennaSSR"
-   }
+   },
+   "splash": "/splash/c_LennaSSR0101.webp",
+   "splash_source": "Img_ChrSkinPic_LennaSSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_LennaSSR0105",
@@ -2610,7 +3296,14 @@
    "portrait": {
     "bundle": "113e549e93accb6fa7b79de2a64be0af",
     "texture": "Avatar_Head_LennaSSR"
-   }
+   },
+   "splash": "/splash/c_LennaSSR0105.webp",
+   "splash_source": "Img_ChrSkinPic_LennaSSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_LevaDorm",
@@ -2633,7 +3326,14 @@
    "portrait": {
     "bundle": "e0f4e2bf38ffa55da56cada3cc46a7d2",
     "texture": "Avatar_Head_LevaDorm"
-   }
+   },
+   "splash": "/splash/c_LevaDorm.webp",
+   "splash_source": "Avatar_Bust_LevaDorm",
+   "splash_size": [
+    512,
+    512
+   ],
+   "splash_kind": "bust"
   },
   {
    "id": "c_LevaSSR01",
@@ -2661,7 +3361,14 @@
    "portrait": {
     "bundle": "1463ff457c18e26bec8cd98d8c909561",
     "texture": "Avatar_Head_LevaSSR01"
-   }
+   },
+   "splash": "/splash/c_LevaSSR01.webp",
+   "splash_source": "Img_ChrSkinPic_LevaSSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_LevaSSR0101",
@@ -2680,7 +3387,14 @@
    "portrait": {
     "bundle": "1463ff457c18e26bec8cd98d8c909561",
     "texture": "Avatar_Head_LevaSSR"
-   }
+   },
+   "splash": "/splash/c_LevaSSR0101.webp",
+   "splash_source": "Img_ChrSkinPic_LevaSSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_LevaSSR0102",
@@ -2703,7 +3417,14 @@
    "portrait": {
     "bundle": "1463ff457c18e26bec8cd98d8c909561",
     "texture": "Avatar_Head_LevaSSR"
-   }
+   },
+   "splash": "/splash/c_LevaSSR0102.webp",
+   "splash_source": "Img_ChrSkinPic_LevaSSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_LevaSSR0103",
@@ -2726,7 +3447,14 @@
    "portrait": {
     "bundle": "1463ff457c18e26bec8cd98d8c909561",
     "texture": "Avatar_Head_LevaSSR"
-   }
+   },
+   "splash": "/splash/c_LevaSSR0103.webp",
+   "splash_source": "Img_ChrSkinPic_LevaSSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_LewisDorm",
@@ -2749,7 +3477,14 @@
    "portrait": {
     "bundle": "1357163629982d103d4f4805fa1f7f21",
     "texture": "Avatar_Head_LewisSSR"
-   }
+   },
+   "splash": "/splash/c_LewisDorm.webp",
+   "splash_source": "Avatar_Bust_LewisDorm",
+   "splash_size": [
+    512,
+    512
+   ],
+   "splash_kind": "bust"
   },
   {
    "id": "c_LewisSSR01",
@@ -2776,7 +3511,14 @@
    "portrait": {
     "bundle": "1357163629982d103d4f4805fa1f7f21",
     "texture": "Avatar_Head_LewisSSR01"
-   }
+   },
+   "splash": "/splash/c_LewisSSR01.webp",
+   "splash_source": "Img_ChrSkinPic_LewisSSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_LewisSSR0101",
@@ -2799,7 +3541,14 @@
    "portrait": {
     "bundle": "1357163629982d103d4f4805fa1f7f21",
     "texture": "Avatar_Head_LewisSSR"
-   }
+   },
+   "splash": "/splash/c_LewisSSR0101.webp",
+   "splash_source": "Img_ChrSkinPic_LewisSSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_LewisSSR0102",
@@ -2822,7 +3571,14 @@
    "portrait": {
     "bundle": "1357163629982d103d4f4805fa1f7f21",
     "texture": "Avatar_Head_LewisSSR"
-   }
+   },
+   "splash": "/splash/c_LewisSSR0102.webp",
+   "splash_source": "Img_ChrSkinPic_LewisSSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_LindDorm",
@@ -2845,7 +3601,14 @@
    "portrait": {
     "bundle": "7c4726474f7ea5e63492e17f7cd489e0",
     "texture": "Avatar_Head_LindSSR01"
-   }
+   },
+   "splash": "/splash/c_LindDorm.webp",
+   "splash_source": "Avatar_Bust_LindDorm",
+   "splash_size": [
+    512,
+    512
+   ],
+   "splash_kind": "bust"
   },
   {
    "id": "c_LindSSR01",
@@ -2864,7 +3627,14 @@
    "portrait": {
     "bundle": "7c4726474f7ea5e63492e17f7cd489e0",
     "texture": "Avatar_Head_LindSSR01"
-   }
+   },
+   "splash": "/splash/c_LindSSR01.webp",
+   "splash_source": "Img_ChrSkinPic_LindSSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_LindSSR0101",
@@ -2887,7 +3657,14 @@
    "portrait": {
     "bundle": "7c4726474f7ea5e63492e17f7cd489e0",
     "texture": "Avatar_Head_LindSSRUP"
-   }
+   },
+   "splash": "/splash/c_LindSSR0101.webp",
+   "splash_source": "Img_ChrSkinPic_LindSSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_LittaraDorm",
@@ -2941,7 +3718,14 @@
    "portrait": {
     "bundle": "6d422906a5bfc5a7e889ad78b8c65c9b",
     "texture": "Avatar_Head_LittaraSR"
-   }
+   },
+   "splash": "/splash/c_LittaraSR01.webp",
+   "splash_source": "Img_ChrSkinPic_LittaraSR",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_LiushihSSR01",
@@ -2966,7 +3750,14 @@
    "portrait": {
     "bundle": "0d167f7d6d46878524558cba0ba5bd9b",
     "texture": "Avatar_Head_LiushihSSR01"
-   }
+   },
+   "splash": "/splash/c_LiushihSSR01.webp",
+   "splash_source": "Img_ChrSkinPic_LiushihSSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_LiushihSSR0101",
@@ -2989,7 +3780,14 @@
    "portrait": {
     "bundle": "c28dd9ea19f297e8548865195e98b2ef",
     "texture": "Avatar_Head_LiushihSSR"
-   }
+   },
+   "splash": "/splash/c_LiushihSSR0101.webp",
+   "splash_source": "Img_ChrSkinPic_LiushihSSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_LoreleyDorm",
@@ -3016,7 +3814,14 @@
    "portrait": {
     "bundle": "666552ee14a303aa98524121f52d7867",
     "texture": "Avatar_Head_LoreleySSR"
-   }
+   },
+   "splash": "/splash/c_LoreleyDorm.webp",
+   "splash_source": "Avatar_Bust_LoreleyDorm",
+   "splash_size": [
+    512,
+    512
+   ],
+   "splash_kind": "bust"
   },
   {
    "id": "c_LoreleySSR01",
@@ -3039,7 +3844,14 @@
    "portrait": {
     "bundle": "666552ee14a303aa98524121f52d7867",
     "texture": "Avatar_Head_LoreleySSR01"
-   }
+   },
+   "splash": "/splash/c_LoreleySSR01.webp",
+   "splash_source": "Img_ChrSkinPic_LoreleySSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_LoreleySSR0101",
@@ -3062,7 +3874,14 @@
    "portrait": {
     "bundle": "666552ee14a303aa98524121f52d7867",
     "texture": "Avatar_Head_LoreleySSR"
-   }
+   },
+   "splash": "/splash/c_LoreleySSR0101.webp",
+   "splash_source": "Img_ChrSkinPic_LoreleySSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_LottaDorm",
@@ -3089,7 +3908,14 @@
    "portrait": {
     "bundle": "f2af9948c9e38c8ea63cc42457ccfcdf",
     "texture": "Avatar_Head_LottaSR"
-   }
+   },
+   "splash": "/splash/c_LottaDorm.webp",
+   "splash_source": "Avatar_Bust_LottaDorm",
+   "splash_size": [
+    512,
+    512
+   ],
+   "splash_kind": "bust"
   },
   {
    "id": "c_LottaSR01",
@@ -3109,7 +3935,14 @@
    "portrait": {
     "bundle": "b09840691aba928855c024315a90c677",
     "texture": "Avatar_Head_LottaSR01"
-   }
+   },
+   "splash": "/splash/c_LottaSR01.webp",
+   "splash_source": "Img_ChrSkinPic_LottaSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_LottaSR0101",
@@ -3132,7 +3965,14 @@
    "portrait": {
     "bundle": "f2af9948c9e38c8ea63cc42457ccfcdf",
     "texture": "Avatar_Head_LottaSR"
-   }
+   },
+   "splash": "/splash/c_LottaSR0101.webp",
+   "splash_source": "Img_ChrSkinPic_LottaSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_MacqiatoDorm",
@@ -3155,7 +3995,14 @@
    "portrait": {
     "bundle": "52a50f9406d079412c31e5a737753064",
     "texture": "Avatar_Head_MacqiatoSSR"
-   }
+   },
+   "splash": "/splash/c_MacqiatoDorm.webp",
+   "splash_source": "Avatar_Bust_MacqiatoDorm",
+   "splash_size": [
+    512,
+    512
+   ],
+   "splash_kind": "bust"
   },
   {
    "id": "c_MacqiatoSSR01",
@@ -3182,7 +4029,14 @@
    "portrait": {
     "bundle": "52a50f9406d079412c31e5a737753064",
     "texture": "Avatar_Head_MacqiatoSSR01"
-   }
+   },
+   "splash": "/splash/c_MacqiatoSSR01.webp",
+   "splash_source": "Img_ChrSkinPic_MacqiatoSSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_MacqiatoSSR0101",
@@ -3205,7 +4059,14 @@
    "portrait": {
     "bundle": "52a50f9406d079412c31e5a737753064",
     "texture": "Avatar_Head_MacqiatoSSR"
-   }
+   },
+   "splash": "/splash/c_MacqiatoSSR0101.webp",
+   "splash_source": "Img_ChrSkinPic_MacqiatoSSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_MacqiatoSSR0102",
@@ -3228,7 +4089,14 @@
    "portrait": {
     "bundle": "52a50f9406d079412c31e5a737753064",
     "texture": "Avatar_Head_MacqiatoSSR"
-   }
+   },
+   "splash": "/splash/c_MacqiatoSSR0102.webp",
+   "splash_source": "Img_ChrSkinPic_MacqiatoSSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_MacqiatoSSR0103",
@@ -3255,7 +4123,14 @@
    "portrait": {
     "bundle": "52a50f9406d079412c31e5a737753064",
     "texture": "Avatar_Head_MacqiatoSSR"
-   }
+   },
+   "splash": "/splash/c_MacqiatoSSR0103.webp",
+   "splash_source": "Img_ChrSkinPic_MacqiatoSSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_Mayling",
@@ -3286,7 +4161,14 @@
    "portrait": {
     "bundle": "9369ead21f8dea2a63b9173f6afcf406",
     "texture": "Avatar_Head_Mayling"
-   }
+   },
+   "splash": "/splash/c_Mayling.webp",
+   "splash_source": "Avatar_Half_Mayling",
+   "splash_size": [
+    512,
+    512
+   ],
+   "splash_kind": "half"
   },
   {
    "id": "c_MishtyDorm",
@@ -3313,7 +4195,14 @@
    "portrait": {
     "bundle": "cd82417af612cfb163c7f6ef04a5a845",
     "texture": "Avatar_Head_MishtySSRUP"
-   }
+   },
+   "splash": "/splash/c_MishtyDorm.webp",
+   "splash_source": "Avatar_Bust_MishtyDorm",
+   "splash_size": [
+    512,
+    512
+   ],
+   "splash_kind": "bust"
   },
   {
    "id": "c_MishtySSR01",
@@ -3332,7 +4221,14 @@
    "portrait": {
     "bundle": "cd82417af612cfb163c7f6ef04a5a845",
     "texture": "Avatar_Head_MishtySSRUP"
-   }
+   },
+   "splash": "/splash/c_MishtySSR01.webp",
+   "splash_source": "Img_ChrSkinPic_MishtySSR",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_MitylDorm",
@@ -3355,7 +4251,14 @@
    "portrait": {
     "bundle": "ba1fcef1e87a158a4fc2fa13f0992b6a",
     "texture": "Avatar_Head_MitylDorm"
-   }
+   },
+   "splash": "/splash/c_MitylDorm.webp",
+   "splash_source": "Avatar_Bust_MitylDorm",
+   "splash_size": [
+    512,
+    512
+   ],
+   "splash_kind": "bust"
   },
   {
    "id": "c_MitylSSR01",
@@ -3378,7 +4281,14 @@
    "portrait": {
     "bundle": "ba1fcef1e87a158a4fc2fa13f0992b6a",
     "texture": "Avatar_Head_MitylSSR01UP"
-   }
+   },
+   "splash": "/splash/c_MitylSSR01.webp",
+   "splash_source": "Img_ChrSkinPic_MitylSSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_MitylSSR0101",
@@ -3401,7 +4311,14 @@
    "portrait": {
     "bundle": "ba1fcef1e87a158a4fc2fa13f0992b6a",
     "texture": "Avatar_Head_MitylSSR"
-   }
+   },
+   "splash": "/splash/c_MitylSSR0101.webp",
+   "splash_source": "Img_ChrSkinPic_MitylSSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_MosinnagantDorm",
@@ -3424,7 +4341,14 @@
    "portrait": {
     "bundle": "a864abf3a3f5f0c84c0128811597ca9e",
     "texture": "Avatar_Head_MosinnagantSSR"
-   }
+   },
+   "splash": "/splash/c_MosinnagantDorm.webp",
+   "splash_source": "Avatar_Bust_MosinnagantDorm",
+   "splash_size": [
+    512,
+    512
+   ],
+   "splash_kind": "bust"
   },
   {
    "id": "c_MosinnagantSSR01",
@@ -3447,7 +4371,14 @@
    "portrait": {
     "bundle": "580872eaec4ef288389c302c1bb71674",
     "texture": "Avatar_Head_MosinnagantSSR01"
-   }
+   },
+   "splash": "/splash/c_MosinnagantSSR01.webp",
+   "splash_source": "Img_ChrSkinPic_MosinnagantSSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_MosinnagantSSR0101",
@@ -3466,7 +4397,14 @@
    "portrait": {
     "bundle": "a864abf3a3f5f0c84c0128811597ca9e",
     "texture": "Avatar_Head_MosinnagantSSR"
-   }
+   },
+   "splash": "/splash/c_MosinnagantSSR0101.webp",
+   "splash_source": "Img_ChrSkinPic_MosinnagantSSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_NagantDorm",
@@ -3489,7 +4427,14 @@
    "portrait": {
     "bundle": "c6ef77267441afb78772827ae80546e0",
     "texture": "Avatar_Head_NagantSR"
-   }
+   },
+   "splash": "/splash/c_NagantDorm.webp",
+   "splash_source": "Avatar_Bust_NagantDorm",
+   "splash_size": [
+    512,
+    512
+   ],
+   "splash_kind": "bust"
   },
   {
    "id": "c_NagantSR01",
@@ -3508,7 +4453,14 @@
    "portrait": {
     "bundle": "c6ef77267441afb78772827ae80546e0",
     "texture": "Avatar_Head_NagantSR"
-   }
+   },
+   "splash": "/splash/c_NagantSR01.webp",
+   "splash_source": "Img_ChrSkinPic_NagantSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_NagantSR0101",
@@ -3527,7 +4479,14 @@
    "portrait": {
     "bundle": "c6ef77267441afb78772827ae80546e0",
     "texture": "Avatar_Head_NagantSR"
-   }
+   },
+   "splash": "/splash/c_NagantSR0101.webp",
+   "splash_source": "Img_ChrSkinPic_NagantSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_NemesisDorm",
@@ -3554,7 +4513,14 @@
    "portrait": {
     "bundle": "b5a3f23e9c2e78eea1a786fc33748c87",
     "texture": "Avatar_Head_NemesisGnosisSSR"
-   }
+   },
+   "splash": "/splash/c_NemesisDorm.webp",
+   "splash_source": "Avatar_Bust_NemesisDorm",
+   "splash_size": [
+    512,
+    512
+   ],
+   "splash_kind": "bust"
   },
   {
    "id": "c_NemesisGnosisDorm",
@@ -3604,7 +4570,14 @@
    "portrait": {
     "bundle": "b5a3f23e9c2e78eea1a786fc33748c87",
     "texture": "Avatar_Head_NemesisGnosisSSR"
-   }
+   },
+   "splash": "/splash/c_NemesisGnosisSSR01.webp",
+   "splash_source": "Img_ChrSkinPic_NemesisGnosisSSR",
+   "splash_size": [
+    378,
+    750
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_NemesisSR01",
@@ -3628,7 +4601,14 @@
    "portrait": {
     "bundle": "a573462dd8602d5e272a472d8e9d4826",
     "texture": "Avatar_Head_NemesisSR"
-   }
+   },
+   "splash": "/splash/c_NemesisSR01.webp",
+   "splash_source": "Img_ChrSkinPic_NemesisSR",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_NemesisSR0103",
@@ -3651,7 +4631,14 @@
    "portrait": {
     "bundle": "a573462dd8602d5e272a472d8e9d4826",
     "texture": "Avatar_Head_NemesisSR"
-   }
+   },
+   "splash": "/splash/c_NemesisSR0103.webp",
+   "splash_source": "Img_ChrSkinPic_NemesisSR",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_NemesisSR0104",
@@ -3678,7 +4665,14 @@
    "portrait": {
     "bundle": "a573462dd8602d5e272a472d8e9d4826",
     "texture": "Avatar_Head_NemesisSR"
-   }
+   },
+   "splash": "/splash/c_NemesisSR0104.webp",
+   "splash_source": "Img_ChrSkinPic_NemesisSR",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_NemesisSR0105",
@@ -3697,7 +4691,14 @@
    "portrait": {
     "bundle": "a573462dd8602d5e272a472d8e9d4826",
     "texture": "Avatar_Head_NemesisSR"
-   }
+   },
+   "splash": "/splash/c_NemesisSR0105.webp",
+   "splash_source": "Img_ChrSkinPic_NemesisSR",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_NikketaDorm",
@@ -3720,7 +4721,14 @@
    "portrait": {
     "bundle": "8067d1e8814c80d5004922fab50cbab2",
     "texture": "Avatar_Head_NikketaSSR"
-   }
+   },
+   "splash": "/splash/c_NikketaDorm.webp",
+   "splash_source": "Avatar_Bust_NikketaDorm",
+   "splash_size": [
+    512,
+    512
+   ],
+   "splash_kind": "bust"
   },
   {
    "id": "c_NikketaSSR01",
@@ -3744,7 +4752,14 @@
    "portrait": {
     "bundle": "8067d1e8814c80d5004922fab50cbab2",
     "texture": "Avatar_Head_NikketaSSR01"
-   }
+   },
+   "splash": "/splash/c_NikketaSSR01.webp",
+   "splash_source": "Img_ChrSkinPic_NikketaSSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_NikketaSSR0101",
@@ -3771,7 +4786,14 @@
    "portrait": {
     "bundle": "8067d1e8814c80d5004922fab50cbab2",
     "texture": "Avatar_Head_NikketaSSR"
-   }
+   },
+   "splash": "/splash/c_NikketaSSR0101.webp",
+   "splash_source": "Img_ChrSkinPic_NikketaSSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_NikketaSSR0102",
@@ -3794,7 +4816,14 @@
    "portrait": {
     "bundle": "8067d1e8814c80d5004922fab50cbab2",
     "texture": "Avatar_Head_NikketaSSR"
-   }
+   },
+   "splash": "/splash/c_NikketaSSR0102.webp",
+   "splash_source": "Img_ChrSkinPic_NikketaSSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_NikketaSSR0103",
@@ -3817,7 +4846,14 @@
    "portrait": {
     "bundle": "8067d1e8814c80d5004922fab50cbab2",
     "texture": "Avatar_Head_NikketaSSR"
-   }
+   },
+   "splash": "/splash/c_NikketaSSR0103.webp",
+   "splash_source": "Img_ChrSkinPic_NikketaSSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_OTs14Dorm",
@@ -3867,7 +4903,14 @@
    "portrait": {
     "bundle": "193a87f82c1aed721e26e7b8a722008d",
     "texture": "Avatar_Head_OTs14SSR01"
-   }
+   },
+   "splash": "/splash/c_OTs14SSR01.webp",
+   "splash_source": "Img_ChrSkinPic_OTs14SSR01",
+   "splash_size": [
+    378,
+    750
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_OTs14SSR0101",
@@ -3890,7 +4933,14 @@
    "portrait": {
     "bundle": "193a87f82c1aed721e26e7b8a722008d",
     "texture": "Avatar_Head_OTs14SSR"
-   }
+   },
+   "splash": "/splash/c_OTs14SSR0101.webp",
+   "splash_source": "Img_ChrSkinPic_OTs14SSR01",
+   "splash_size": [
+    378,
+    750
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_OTs14SSR0102",
@@ -3910,7 +4960,14 @@
    "portrait": {
     "bundle": "193a87f82c1aed721e26e7b8a722008d",
     "texture": "Avatar_Head_OTs14SSR"
-   }
+   },
+   "splash": "/splash/c_OTs14SSR0102.webp",
+   "splash_source": "Img_ChrSkinPic_OTs14SSR01",
+   "splash_size": [
+    378,
+    750
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_PapashaDorm",
@@ -3941,7 +4998,14 @@
    "portrait": {
     "bundle": "801a3833d6ce80b745192baf90c5b679",
     "texture": "Avatar_Head_PapashaSSR"
-   }
+   },
+   "splash": "/splash/c_PapashaDorm.webp",
+   "splash_source": "Avatar_Bust_PapashaDorm",
+   "splash_size": [
+    512,
+    512
+   ],
+   "splash_kind": "bust"
   },
   {
    "id": "c_PapashaSSR01",
@@ -3968,7 +5032,14 @@
    "portrait": {
     "bundle": "801a3833d6ce80b745192baf90c5b679",
     "texture": "Avatar_Head_PapashaSSR"
-   }
+   },
+   "splash": "/splash/c_PapashaSSR01.webp",
+   "splash_source": "Img_ChrSkinPic_PapashaSSR",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_PeriDorm",
@@ -4018,7 +5089,14 @@
    "portrait": {
     "bundle": "cd4f7691bd5a6e4823996991fbe04b7b",
     "texture": "Avatar_Head_PeriSSR01"
-   }
+   },
+   "splash": "/splash/c_PeriSSR01.webp",
+   "splash_source": "Img_ChrSkinPic_PeriSSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_PeriSSR0101",
@@ -4041,7 +5119,14 @@
    "portrait": {
     "bundle": "2c3fa9ea40f5b3c1e5f289bdf1e9b750",
     "texture": "Avatar_Head_PeriSSR"
-   }
+   },
+   "splash": "/splash/c_PeriSSR0101.webp",
+   "splash_source": "Img_ChrSkinPic_PeriSSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_PerityaDorm",
@@ -4064,7 +5149,14 @@
    "portrait": {
     "bundle": "833cf217cd1f90f835e3b6619355ce0a",
     "texture": "Avatar_Head_PerityaSSR"
-   }
+   },
+   "splash": "/splash/c_PerityaDorm.webp",
+   "splash_source": "Avatar_Bust_PerityaDorm",
+   "splash_size": [
+    512,
+    512
+   ],
+   "splash_kind": "bust"
   },
   {
    "id": "c_PerityaSSR01",
@@ -4087,7 +5179,14 @@
    "portrait": {
     "bundle": "273d21e3e15b6707972e0f1121b32a67",
     "texture": "Avatar_Head_PerityaSSR01"
-   }
+   },
+   "splash": "/splash/c_PerityaSSR01.webp",
+   "splash_source": "Img_ChrSkinPic_PerityaSSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_PerityaSSR0101",
@@ -4114,7 +5213,14 @@
    "portrait": {
     "bundle": "833cf217cd1f90f835e3b6619355ce0a",
     "texture": "Avatar_Head_PerityaSSR"
-   }
+   },
+   "splash": "/splash/c_PerityaSSR0101.webp",
+   "splash_source": "Img_ChrSkinPic_PerityaSSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_PerityaSSR0102",
@@ -4137,7 +5243,14 @@
    "portrait": {
     "bundle": "833cf217cd1f90f835e3b6619355ce0a",
     "texture": "Avatar_Head_PerityaSSR"
-   }
+   },
+   "splash": "/splash/c_PerityaSSR0102.webp",
+   "splash_source": "Img_ChrSkinPic_PerityaSSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_PhaetusaDorm",
@@ -4160,7 +5273,14 @@
    "portrait": {
     "bundle": "44a5a27412bb0c35c135917080bfd5c3",
     "texture": "Avatar_Head_PhaetusaSSR"
-   }
+   },
+   "splash": "/splash/c_PhaetusaDorm.webp",
+   "splash_source": "Avatar_Bust_PhaetusaDorm",
+   "splash_size": [
+    512,
+    512
+   ],
+   "splash_kind": "bust"
   },
   {
    "id": "c_PhaetusaSSR0101",
@@ -4183,7 +5303,14 @@
    "portrait": {
     "bundle": "44a5a27412bb0c35c135917080bfd5c3",
     "texture": "Avatar_Head_PhaetusaSSR"
-   }
+   },
+   "splash": "/splash/c_PhaetusaSSR0101.webp",
+   "splash_source": "Img_ChrSkinPic_PhaetusaSSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_QiongjiuDorm",
@@ -4206,7 +5333,14 @@
    "portrait": {
     "bundle": "6ea1964eb171f7a0d1fdf30088892ef2",
     "texture": "Avatar_Head_QiongjiuSSR"
-   }
+   },
+   "splash": "/splash/c_QiongjiuDorm.webp",
+   "splash_source": "Avatar_Bust_QiongjiuDorm",
+   "splash_size": [
+    512,
+    512
+   ],
+   "splash_kind": "bust"
   },
   {
    "id": "c_QiongjiuSSR01",
@@ -4233,7 +5367,14 @@
    "portrait": {
     "bundle": "e9d9040dc325fc319ec7deee95f368a6",
     "texture": "Avatar_Head_QiongjiuSSR01"
-   }
+   },
+   "splash": "/splash/c_QiongjiuSSR01.webp",
+   "splash_source": "Img_ChrSkinPic_QiongjiuSSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_QiongjiuSSR0101",
@@ -4256,7 +5397,14 @@
    "portrait": {
     "bundle": "6ea1964eb171f7a0d1fdf30088892ef2",
     "texture": "Avatar_Head_QiongjiuSSR"
-   }
+   },
+   "splash": "/splash/c_QiongjiuSSR0101.webp",
+   "splash_source": "Img_ChrSkinPic_QiongjiuSSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_QiuhuaDorm",
@@ -4279,7 +5427,14 @@
    "portrait": {
     "bundle": "790662c5e3407dc1fafd6e393866a27f",
     "texture": "Avatar_Head_QiuhuaSSR"
-   }
+   },
+   "splash": "/splash/c_QiuhuaDorm.webp",
+   "splash_source": "Avatar_Bust_QiuhuaDorm",
+   "splash_size": [
+    512,
+    512
+   ],
+   "splash_kind": "bust"
   },
   {
    "id": "c_QiuhuaSSR01",
@@ -4302,7 +5457,14 @@
    "portrait": {
     "bundle": "9ca22eacc953fcbac71def699de415dd",
     "texture": "Avatar_Head_QiuhuaSSR01"
-   }
+   },
+   "splash": "/splash/c_QiuhuaSSR01.webp",
+   "splash_source": "Img_ChrSkinPic_QiuhuaSSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_QiuhuaSSR0101",
@@ -4325,7 +5487,14 @@
    "portrait": {
     "bundle": "790662c5e3407dc1fafd6e393866a27f",
     "texture": "Avatar_Head_QiuhuaSSR"
-   }
+   },
+   "splash": "/splash/c_QiuhuaSSR0101.webp",
+   "splash_source": "Img_ChrSkinPic_QiuhuaSSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_QiuhuaSSR0102",
@@ -4352,7 +5521,14 @@
    "portrait": {
     "bundle": "790662c5e3407dc1fafd6e393866a27f",
     "texture": "Avatar_Head_QiuhuaSSR"
-   }
+   },
+   "splash": "/splash/c_QiuhuaSSR0102.webp",
+   "splash_source": "Img_ChrSkinPic_QiuhuaSSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_QiuhuaSSR0103",
@@ -4379,7 +5555,14 @@
    "portrait": {
     "bundle": "790662c5e3407dc1fafd6e393866a27f",
     "texture": "Avatar_Head_QiuhuaSSR"
-   }
+   },
+   "splash": "/splash/c_QiuhuaSSR0103.webp",
+   "splash_source": "Img_ChrSkinPic_QiuhuaSSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_RobellaDorm",
@@ -4406,7 +5589,14 @@
    "portrait": {
     "bundle": "5bc859eaf5839855d2ae9242622b5bdd",
     "texture": "Avatar_Head_RobellaSSR"
-   }
+   },
+   "splash": "/splash/c_RobellaDorm.webp",
+   "splash_source": "Avatar_Bust_RobellaDorm",
+   "splash_size": [
+    512,
+    512
+   ],
+   "splash_kind": "bust"
   },
   {
    "id": "c_RobellaSSR01",
@@ -4429,7 +5619,14 @@
    "portrait": {
     "bundle": "5bc859eaf5839855d2ae9242622b5bdd",
     "texture": "Avatar_Head_RobellaSSR01"
-   }
+   },
+   "splash": "/splash/c_RobellaSSR01.webp",
+   "splash_source": "Img_ChrSkinPic_RobellaSSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_RobellaSSR0101",
@@ -4456,7 +5653,14 @@
    "portrait": {
     "bundle": "5bc859eaf5839855d2ae9242622b5bdd",
     "texture": "Avatar_Head_RobellaSSR"
-   }
+   },
+   "splash": "/splash/c_RobellaSSR0101.webp",
+   "splash_source": "Img_ChrSkinPic_RobellaSSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_RobellaSSR0102",
@@ -4483,7 +5687,14 @@
    "portrait": {
     "bundle": "5bc859eaf5839855d2ae9242622b5bdd",
     "texture": "Avatar_Head_RobellaSSR"
-   }
+   },
+   "splash": "/splash/c_RobellaSSR0102.webp",
+   "splash_source": "Img_ChrSkinPic_RobellaSSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_SabrinaDorm",
@@ -4506,7 +5717,14 @@
    "portrait": {
     "bundle": "14b6812619b7f9be85e6fea148ad1210",
     "texture": "Avatar_Head_SabrinaSSR"
-   }
+   },
+   "splash": "/splash/c_SabrinaDorm.webp",
+   "splash_source": "Avatar_Bust_SabrinaDorm",
+   "splash_size": [
+    512,
+    512
+   ],
+   "splash_kind": "bust"
   },
   {
    "id": "c_SabrinaSSR01",
@@ -4529,7 +5747,14 @@
    "portrait": {
     "bundle": "14b6812619b7f9be85e6fea148ad1210",
     "texture": "Avatar_Head_SabrinaSSR"
-   }
+   },
+   "splash": "/splash/c_SabrinaSSR01.webp",
+   "splash_source": "Img_ChrSkinPic_SabrinaSSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_SabrinaSSR0101",
@@ -4556,7 +5781,14 @@
    "portrait": {
     "bundle": "14b6812619b7f9be85e6fea148ad1210",
     "texture": "Avatar_Head_SabrinaSSR"
-   }
+   },
+   "splash": "/splash/c_SabrinaSSR0101.webp",
+   "splash_source": "Img_ChrSkinPic_SabrinaSSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_SakuraDorm",
@@ -4575,7 +5807,14 @@
    "portrait": {
     "bundle": "4031b8ce339024b124ccc4d76081831e",
     "texture": "Avatar_Head_SakuraSSR"
-   }
+   },
+   "splash": "/splash/c_SakuraDorm.webp",
+   "splash_source": "Avatar_Bust_SakuraDorm",
+   "splash_size": [
+    512,
+    512
+   ],
+   "splash_kind": "bust"
   },
   {
    "id": "c_SakuraSSR01",
@@ -4595,7 +5834,14 @@
    "portrait": {
     "bundle": "4031b8ce339024b124ccc4d76081831e",
     "texture": "Avatar_Head_SakuraSSR01"
-   }
+   },
+   "splash": "/splash/c_SakuraSSR01.webp",
+   "splash_source": "Img_ChrSkinPic_SakuraSSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_SakuraSSR0101",
@@ -4622,7 +5868,14 @@
    "portrait": {
     "bundle": "4031b8ce339024b124ccc4d76081831e",
     "texture": "Avatar_Head_SakuraSSR"
-   }
+   },
+   "splash": "/splash/c_SakuraSSR0101.webp",
+   "splash_source": "Img_ChrSkinPic_SakuraSSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_SextansDorm",
@@ -4669,7 +5922,14 @@
    "portrait": {
     "bundle": "c11550b09a9a334a37ee8019bd5fabe8",
     "texture": "Avatar_Head_SextansSSR01"
-   }
+   },
+   "splash": "/splash/c_SextansSSR01.webp",
+   "splash_source": "Img_ChrSkinPic_SextansSSR01",
+   "splash_size": [
+    378,
+    750
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_SextansSSR0101",
@@ -4692,7 +5952,14 @@
    "portrait": {
     "bundle": "c11550b09a9a334a37ee8019bd5fabe8",
     "texture": "Avatar_Head_SextansSSR"
-   }
+   },
+   "splash": "/splash/c_SextansSSR0101.webp",
+   "splash_source": "Img_ChrSkinPic_SextansSSR01",
+   "splash_size": [
+    378,
+    750
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_SharkryDorm",
@@ -4715,7 +5982,14 @@
    "portrait": {
     "bundle": "f7a51d10668d7da666a2525cc7e7c1bd",
     "texture": "Avatar_Head_SharkrySR"
-   }
+   },
+   "splash": "/splash/c_SharkryDorm.webp",
+   "splash_source": "Avatar_Bust_SharkryDorm",
+   "splash_size": [
+    512,
+    512
+   ],
+   "splash_kind": "bust"
   },
   {
    "id": "c_SharkrySR01",
@@ -4743,7 +6017,14 @@
    "portrait": {
     "bundle": "942fb0c4d345d7fe1c4fc85b55b9b2b4",
     "texture": "Avatar_Head_SharkrySR01"
-   }
+   },
+   "splash": "/splash/c_SharkrySR01.webp",
+   "splash_source": "Img_ChrSkinPic_SharkrySR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_SharkrySR0101",
@@ -4770,7 +6051,14 @@
    "portrait": {
     "bundle": "f7a51d10668d7da666a2525cc7e7c1bd",
     "texture": "Avatar_Head_SharkrySR"
-   }
+   },
+   "splash": "/splash/c_SharkrySR0101.webp",
+   "splash_source": "Img_ChrSkinPic_SharkrySR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_SharkrySR0102",
@@ -4797,7 +6085,14 @@
    "portrait": {
     "bundle": "f7a51d10668d7da666a2525cc7e7c1bd",
     "texture": "Avatar_Head_SharkrySR"
-   }
+   },
+   "splash": "/splash/c_SharkrySR0102.webp",
+   "splash_source": "Img_ChrSkinPic_SharkrySR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_SoppoDorm",
@@ -4820,7 +6115,14 @@
    "portrait": {
     "bundle": "231898b658b67bc25a04fc1125791bed",
     "texture": "Avatar_Head_SoppoDorm"
-   }
+   },
+   "splash": "/splash/c_SoppoDorm.webp",
+   "splash_source": "Avatar_Bust_SoppoDorm",
+   "splash_size": [
+    512,
+    512
+   ],
+   "splash_kind": "bust"
   },
   {
    "id": "c_SoppoSSR01",
@@ -4844,7 +6146,14 @@
    "portrait": {
     "bundle": "231898b658b67bc25a04fc1125791bed",
     "texture": "Avatar_Head_SoppoSSR01"
-   }
+   },
+   "splash": "/splash/c_SoppoSSR01.webp",
+   "splash_source": "Img_ChrSkinPic_SoppoSSR01",
+   "splash_size": [
+    378,
+    750
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_SoppoSSR0101",
@@ -4871,7 +6180,14 @@
    "portrait": {
     "bundle": "231898b658b67bc25a04fc1125791bed",
     "texture": "Avatar_Head_SoppoSSR"
-   }
+   },
+   "splash": "/splash/c_SoppoSSR0101.webp",
+   "splash_source": "Img_ChrSkinPic_SoppoSSR01",
+   "splash_size": [
+    378,
+    750
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_SpringfieldDorm",
@@ -4898,7 +6214,14 @@
    "portrait": {
     "bundle": "6885cf8c514b38b8984fdedde7005c73",
     "texture": "Avatar_Head_SpringfieldSSR"
-   }
+   },
+   "splash": "/splash/c_SpringfieldDorm.webp",
+   "splash_source": "Avatar_Bust_SpringfieldDorm",
+   "splash_size": [
+    512,
+    512
+   ],
+   "splash_kind": "bust"
   },
   {
    "id": "c_SpringfieldSSR01",
@@ -4921,7 +6244,14 @@
    "portrait": {
     "bundle": "6885cf8c514b38b8984fdedde7005c73",
     "texture": "Avatar_Head_SpringfieldSSR01"
-   }
+   },
+   "splash": "/splash/c_SpringfieldSSR01.webp",
+   "splash_source": "Img_ChrSkinPic_SpringfieldSSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_SpringfieldSSR0101",
@@ -4944,7 +6274,14 @@
    "portrait": {
     "bundle": "6885cf8c514b38b8984fdedde7005c73",
     "texture": "Avatar_Head_SpringfieldSSR"
-   }
+   },
+   "splash": "/splash/c_SpringfieldSSR0101.webp",
+   "splash_source": "Img_ChrSkinPic_SpringfieldSSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_SpringfieldSSR0102",
@@ -4967,7 +6304,14 @@
    "portrait": {
     "bundle": "6885cf8c514b38b8984fdedde7005c73",
     "texture": "Avatar_Head_SpringfieldSSR"
-   }
+   },
+   "splash": "/splash/c_SpringfieldSSR0102.webp",
+   "splash_source": "Img_ChrSkinPic_SpringfieldSSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_SpringfieldSSR0103",
@@ -4990,7 +6334,14 @@
    "portrait": {
     "bundle": "6885cf8c514b38b8984fdedde7005c73",
     "texture": "Avatar_Head_SpringfieldSSR"
-   }
+   },
+   "splash": "/splash/c_SpringfieldSSR0103.webp",
+   "splash_source": "Img_ChrSkinPic_SpringfieldSSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_SuomiDorm",
@@ -5017,7 +6368,14 @@
    "portrait": {
     "bundle": "45af0af8652b41f17ea7bd2ad1e841eb",
     "texture": "Avatar_Head_SuomiSSR"
-   }
+   },
+   "splash": "/splash/c_SuomiDorm.webp",
+   "splash_source": "Avatar_Bust_SuomiDorm",
+   "splash_size": [
+    512,
+    512
+   ],
+   "splash_kind": "bust"
   },
   {
    "id": "c_SuomiSSR01",
@@ -5040,7 +6398,14 @@
    "portrait": {
     "bundle": "45af0af8652b41f17ea7bd2ad1e841eb",
     "texture": "Avatar_Head_SuomiSSR01"
-   }
+   },
+   "splash": "/splash/c_SuomiSSR01.webp",
+   "splash_source": "Img_ChrSkinPic_SuomiSSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_SuomiSSR0101",
@@ -5067,7 +6432,14 @@
    "portrait": {
     "bundle": "45af0af8652b41f17ea7bd2ad1e841eb",
     "texture": "Avatar_Head_SuomiSSR"
-   }
+   },
+   "splash": "/splash/c_SuomiSSR0101.webp",
+   "splash_source": "Img_ChrSkinPic_SuomiSSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_SuomiSSR0102",
@@ -5090,7 +6462,14 @@
    "portrait": {
     "bundle": "45af0af8652b41f17ea7bd2ad1e841eb",
     "texture": "Avatar_Head_SuomiSSR"
-   }
+   },
+   "splash": "/splash/c_SuomiSSR0102.webp",
+   "splash_source": "Img_ChrSkinPic_SuomiSSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_TololoDorm",
@@ -5113,7 +6492,14 @@
    "portrait": {
     "bundle": "bf766e7a7933f8841a93f0d10273f4b7",
     "texture": "Avatar_Head_TololoSSR"
-   }
+   },
+   "splash": "/splash/c_TololoDorm.webp",
+   "splash_source": "Avatar_Bust_TololoDorm",
+   "splash_size": [
+    512,
+    512
+   ],
+   "splash_kind": "bust"
   },
   {
    "id": "c_TololoSSR01",
@@ -5136,7 +6522,14 @@
    "portrait": {
     "bundle": "bf0beb44224843066c02781fdf7576e4",
     "texture": "Avatar_Head_TololoSSR01"
-   }
+   },
+   "splash": "/splash/c_TololoSSR01.webp",
+   "splash_source": "Img_ChrSkinPic_TololoSSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_TololoSSR0101",
@@ -5163,7 +6556,14 @@
    "portrait": {
     "bundle": "bf766e7a7933f8841a93f0d10273f4b7",
     "texture": "Avatar_Head_TololoSSR"
-   }
+   },
+   "splash": "/splash/c_TololoSSR0101.webp",
+   "splash_source": "Img_ChrSkinPic_TololoSSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_TololoSSR0102",
@@ -5186,7 +6586,14 @@
    "portrait": {
     "bundle": "bf766e7a7933f8841a93f0d10273f4b7",
     "texture": "Avatar_Head_TololoSSR"
-   }
+   },
+   "splash": "/splash/c_TololoSSR0102.webp",
+   "splash_source": "Img_ChrSkinPic_TololoSSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_UllridDorm",
@@ -5213,7 +6620,14 @@
    "portrait": {
     "bundle": "ac3da243cb6d5d735a43faa46fd5e1e8",
     "texture": "Avatar_Head_UllridSSR"
-   }
+   },
+   "splash": "/splash/c_UllridDorm.webp",
+   "splash_source": "Avatar_Bust_UllridDorm",
+   "splash_size": [
+    512,
+    512
+   ],
+   "splash_kind": "bust"
   },
   {
    "id": "c_UllridSSR01",
@@ -5236,7 +6650,14 @@
    "portrait": {
     "bundle": "ac3da243cb6d5d735a43faa46fd5e1e8",
     "texture": "Avatar_Head_UllridSSR"
-   }
+   },
+   "splash": "/splash/c_UllridSSR01.webp",
+   "splash_source": "Img_ChrSkinPic_UllridSSR",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_VectorDorm",
@@ -5259,7 +6680,14 @@
    "portrait": {
     "bundle": "453291b496fdc20b16eff5287b4f9f7f",
     "texture": "Avatar_Head_VectorSSR"
-   }
+   },
+   "splash": "/splash/c_VectorDorm.webp",
+   "splash_source": "Avatar_Bust_VectorDorm",
+   "splash_size": [
+    512,
+    512
+   ],
+   "splash_kind": "bust"
   },
   {
    "id": "c_VectorSSR01",
@@ -5282,7 +6710,14 @@
    "portrait": {
     "bundle": "81e390219d04cc36574810fff8da1fea",
     "texture": "Avatar_Head_VectorSSR01"
-   }
+   },
+   "splash": "/splash/c_VectorSSR01.webp",
+   "splash_source": "Img_ChrSkinPic_VectorSSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_VectorSSR0101",
@@ -5309,7 +6744,14 @@
    "portrait": {
     "bundle": "453291b496fdc20b16eff5287b4f9f7f",
     "texture": "Avatar_Head_VectorSSR"
-   }
+   },
+   "splash": "/splash/c_VectorSSR0101.webp",
+   "splash_source": "Img_ChrSkinPic_VectorSSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_VectorSSR0102",
@@ -5332,7 +6774,14 @@
    "portrait": {
     "bundle": "453291b496fdc20b16eff5287b4f9f7f",
     "texture": "Avatar_Head_VectorSSR"
-   }
+   },
+   "splash": "/splash/c_VectorSSR0102.webp",
+   "splash_source": "Img_ChrSkinPic_VectorSSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_VepleyDorm",
@@ -5359,7 +6808,14 @@
    "portrait": {
     "bundle": "07021af81ea4f00399225968de2b5f58",
     "texture": "Avatar_Head_VepleySSR"
-   }
+   },
+   "splash": "/splash/c_VepleyDorm.webp",
+   "splash_source": "Avatar_Bust_VepleyDorm",
+   "splash_size": [
+    512,
+    512
+   ],
+   "splash_kind": "bust"
   },
   {
    "id": "c_VepleySSR01",
@@ -5400,7 +6856,14 @@
    "portrait": {
     "bundle": "145570ecc30811827fc0ff5069ad946b",
     "texture": "Avatar_Head_VepleySSR01"
-   }
+   },
+   "splash": "/splash/c_VepleySSR01.webp",
+   "splash_source": "Img_ChrSkinPic_VepleySSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_VepleySSR0101",
@@ -5419,7 +6882,14 @@
    "portrait": {
     "bundle": "07021af81ea4f00399225968de2b5f58",
     "texture": "Avatar_Head_VepleySSR"
-   }
+   },
+   "splash": "/splash/c_VepleySSR0101.webp",
+   "splash_source": "Img_ChrSkinPic_VepleySSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_VepleySSR0102",
@@ -5442,7 +6912,14 @@
    "portrait": {
     "bundle": "07021af81ea4f00399225968de2b5f58",
     "texture": "Avatar_Head_VepleySSR"
-   }
+   },
+   "splash": "/splash/c_VepleySSR0102.webp",
+   "splash_source": "Img_ChrSkinPic_VepleySSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_VoymastinaDorm",
@@ -5465,7 +6942,14 @@
    "portrait": {
     "bundle": "29d330abdfb7d9bf01738032a46545d1",
     "texture": "Avatar_Head_VoymastinaSSR"
-   }
+   },
+   "splash": "/splash/c_VoymastinaDorm.webp",
+   "splash_source": "Avatar_Bust_VoymastinaDorm",
+   "splash_size": [
+    512,
+    512
+   ],
+   "splash_kind": "bust"
   },
   {
    "id": "c_VoymastinaSSR01",
@@ -5491,7 +6975,14 @@
    "portrait": {
     "bundle": "6f456d4831bd58701fbaf8b8bcf35447",
     "texture": "Avatar_Head_VoymastinaSSR01"
-   }
+   },
+   "splash": "/splash/c_VoymastinaSSR01.webp",
+   "splash_source": "Img_ChrSkinPic_VoymastinaSSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_VoymastinaSSR0101",
@@ -5516,7 +7007,14 @@
    "portrait": {
     "bundle": "29d330abdfb7d9bf01738032a46545d1",
     "texture": "Avatar_Head_VoymastinaSSR"
-   }
+   },
+   "splash": "/splash/c_VoymastinaSSR0101.webp",
+   "splash_source": "Img_ChrSkinPic_VoymastinaSSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_VoymastinaSSR0102",
@@ -5541,7 +7039,14 @@
    "portrait": {
     "bundle": "29d330abdfb7d9bf01738032a46545d1",
     "texture": "Avatar_Head_VoymastinaSSR"
-   }
+   },
+   "splash": "/splash/c_VoymastinaSSR0102.webp",
+   "splash_source": "Img_ChrSkinPic_VoymastinaSSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_WelrodDorm",
@@ -5568,7 +7073,14 @@
    "portrait": {
     "bundle": "304dcae26f4cbd8df92de6bf43a5def1",
     "texture": "Avatar_Head_WelrodDorm"
-   }
+   },
+   "splash": "/splash/c_WelrodDorm.webp",
+   "splash_source": "Avatar_Bust_WelrodDorm",
+   "splash_size": [
+    512,
+    512
+   ],
+   "splash_kind": "bust"
   },
   {
    "id": "c_WelrodSSR01",
@@ -5591,7 +7103,14 @@
    "portrait": {
     "bundle": "304dcae26f4cbd8df92de6bf43a5def1",
     "texture": "Avatar_Head_WelrodSSR01"
-   }
+   },
+   "splash": "/splash/c_WelrodSSR01.webp",
+   "splash_source": "Img_ChrSkinPic_WelrodSSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_WelrodSSR0101",
@@ -5614,7 +7133,14 @@
    "portrait": {
     "bundle": "304dcae26f4cbd8df92de6bf43a5def1",
     "texture": "Avatar_Head_WelrodSSR"
-   }
+   },
+   "splash": "/splash/c_WelrodSSR0101.webp",
+   "splash_source": "Img_ChrSkinPic_WelrodSSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_YooHeeDorm",
@@ -5637,7 +7163,14 @@
    "portrait": {
     "bundle": "fa5ac478478af6cb85748b39ef0bf274",
     "texture": "Avatar_Head_YooHeeSSR"
-   }
+   },
+   "splash": "/splash/c_YooHeeDorm.webp",
+   "splash_source": "Avatar_Bust_YooHeeDorm",
+   "splash_size": [
+    512,
+    512
+   ],
+   "splash_kind": "bust"
   },
   {
    "id": "c_YooHeeSSR01",
@@ -5660,7 +7193,14 @@
    "portrait": {
     "bundle": "fa5ac478478af6cb85748b39ef0bf274",
     "texture": "Avatar_Head_YooHeeSSR01"
-   }
+   },
+   "splash": "/splash/c_YooHeeSSR01.webp",
+   "splash_source": "Img_ChrSkinPic_YooHeeSSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_YooHeeSSR0101",
@@ -5687,7 +7227,14 @@
    "portrait": {
     "bundle": "fa5ac478478af6cb85748b39ef0bf274",
     "texture": "Avatar_Head_YooHeeSSR"
-   }
+   },
+   "splash": "/splash/c_YooHeeSSR0101.webp",
+   "splash_source": "Img_ChrSkinPic_YooHeeSSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_ZhaohuiDorm",
@@ -5710,7 +7257,14 @@
    "portrait": {
     "bundle": "661a8eaee70a142ffb542004b0666e23",
     "texture": "Avatar_Head_ZhaohuiSSR"
-   }
+   },
+   "splash": "/splash/c_ZhaohuiDorm.webp",
+   "splash_source": "Avatar_Bust_ZhaohuiDorm",
+   "splash_size": [
+    512,
+    512
+   ],
+   "splash_kind": "bust"
   },
   {
    "id": "c_ZhaohuiSSR01",
@@ -5733,7 +7287,14 @@
    "portrait": {
     "bundle": "661a8eaee70a142ffb542004b0666e23",
     "texture": "Avatar_Head_ZhaohuiSSR01"
-   }
+   },
+   "splash": "/splash/c_ZhaohuiSSR01.webp",
+   "splash_source": "Img_ChrSkinPic_ZhaohuiSSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   },
   {
    "id": "c_ZhaohuiSSR0101",
@@ -5760,7 +7321,14 @@
    "portrait": {
     "bundle": "661a8eaee70a142ffb542004b0666e23",
     "texture": "Avatar_Head_ZhaohuiSSR"
-   }
+   },
+   "splash": "/splash/c_ZhaohuiSSR0101.webp",
+   "splash_source": "Img_ChrSkinPic_ZhaohuiSSR01",
+   "splash_size": [
+    380,
+    752
+   ],
+   "splash_kind": "skinpic"
   }
  ]
 }

@@ -22,6 +22,9 @@ interface CatalogEntry {
   parts: Record<string, string>;
   part_bundles?: Record<string, string[]>;
   portrait?: { bundle: string; texture: string } | null;
+  splash?: string;
+  splash_source?: string;
+  splash_size?: number[];
 }
 
 const catalog = ref<CatalogEntry[]>(catalogData.characters as CatalogEntry[]);
@@ -52,6 +55,16 @@ function push(kind: "info" | "ok" | "err", text: string) {
 
 function portraitUrl(entry: CatalogEntry) {
   return `portraits/${entry.id}.png`;
+}
+
+/** Skin label derived from the internal skin code (the game keeps localized names elsewhere). */
+function skinName(entry: CatalogEntry) {
+  const code = entry.id.includes("_") ? entry.id.split("_")[1] : entry.id;
+  let suffix = entry.name && code.startsWith(entry.name) ? code.slice(entry.name.length) : code;
+  if (!suffix) return "默认";
+  if (/^dorm/i.test(suffix)) return "宿舍装";
+  suffix = suffix.replace(/^SSR0?/i, "SSR ").replace(/^SR0?/i, "SR ");
+  return suffix;
 }
 
 function initials(entry: CatalogEntry) {
@@ -262,22 +275,34 @@ async function restore(entry: CatalogEntry) {
         v-for="entry in filtered"
         :key="entry.id"
         class="roster__item"
-        :class="{ 'roster__item--active': selected?.id === entry.id }"
+        :class="{
+          'roster__item--active': selected?.id === entry.id,
+          'roster__item--plain': entry.splash_kind !== 'skinpic',
+        }"
         type="button"
         @click="selected = entry"
       >
         <div class="roster__avatar">
           <img
-            v-if="entry.portrait"
+            v-if="entry.splash"
             class="roster__img"
+            :class="entry.splash_kind === 'skinpic' ? 'roster__img--splash' : 'roster__img--crop'"
+            :src="entry.splash"
+            :alt="label(entry)"
+            loading="lazy"
+          />
+          <img
+            v-else-if="entry.portrait"
+            class="roster__img roster__img--crop"
             :src="portraitUrl(entry)"
             :alt="label(entry)"
             loading="lazy"
           />
           <span v-else class="roster__ph">{{ initials(entry) }}</span>
+          <div class="roster__badge">{{ entry.variant }}</div>
         </div>
         <div class="roster__name">{{ label(entry) }}</div>
-        <div class="roster__badge">{{ entry.variant }}</div>
+        <div class="roster__skin mono">{{ skinName(entry) }}</div>
       </button>
     </div>
 
@@ -404,42 +429,79 @@ async function restore(entry: CatalogEntry) {
 <style scoped>
 .roster {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  align-items: start;
+  gap: 12px;
 }
 
 .roster__item {
   position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 6px;
-  padding: 10px 6px 8px;
-  border-radius: 10px;
+  display: block;
+  padding: 0;
+  aspect-ratio: 505 / 1000;
+  border-radius: 12px;
+  overflow: hidden;
   border: 1px solid var(--stroke, rgba(255, 255, 255, 0.07));
-  background: var(--card-subtle, rgba(255, 255, 255, 0.03));
+  background: linear-gradient(170deg, #223049 0%, #16202f 55%, #0d131d 100%);
   cursor: pointer;
   transition: 120ms ease;
 }
 
 .roster__item:hover {
-  background: rgba(255, 255, 255, 0.07);
+  transform: translateY(-2px);
+  border-color: rgba(255, 255, 255, 0.22);
+}
+
+/* no 立绘 for this skin: square thumbnail + labels underneath */
+.roster__item--plain {
+  display: flex;
+  flex-direction: column;
+  aspect-ratio: auto;
+}
+
+.roster__item--plain .roster__avatar {
+  position: static;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+}
+
+.roster__item--plain::after {
+  display: none;
+}
+
+.roster__item--plain .roster__name,
+.roster__item--plain .roster__skin {
+  position: static;
+  left: auto;
+  right: auto;
+  bottom: auto;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.roster__item--plain .roster__name {
+  margin: 8px 8px 0;
+  text-shadow: none;
+}
+
+.roster__item--plain .roster__skin {
+  margin: 2px 8px 10px;
 }
 
 .roster__item--active {
   border-color: var(--accent, #4cc2ff);
-  box-shadow: 0 0 0 1px var(--accent, #4cc2ff) inset;
+  box-shadow: 0 0 0 1px var(--accent, #4cc2ff) inset, 0 8px 24px rgba(0, 0, 0, 0.35);
 }
 
 .roster__avatar {
-  width: 64px;
-  height: 64px;
-  border-radius: 50%;
-  overflow: hidden;
-  background: linear-gradient(135deg, #2d3f5a, #1b2536);
+  position: absolute;
+  inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
+  background: linear-gradient(160deg, #24334a, #101724);
 }
 
 .roster__img {
@@ -448,23 +510,77 @@ async function restore(entry: CatalogEntry) {
   object-fit: cover;
 }
 
+/* 皮肤立绘：整张竖图完整显示，人物站在卡片底部 */
+.roster__img--splash {
+  object-fit: contain;
+  object-position: 50% 100%;
+}
+
+/* 头像 / 半身图（没有立绘的皮肤）：方形缩略图贴在卡片上半部分 */
+.roster__img--crop {
+  object-fit: contain;
+  object-position: 50% 0%;
+}
+
 .roster__ph {
-  font-size: 24px;
+  font-size: 40px;
   font-weight: 600;
+  opacity: 0.7;
 }
 
 .roster__name {
-  font-size: 12px;
-  max-width: 100%;
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: 26px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #f2f6ff;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.roster__badge {
+.roster__skin {
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: 9px;
   font-size: 10px;
-  opacity: 0.5;
+  color: rgba(224, 236, 255, 0.72);
+  letter-spacing: 0.06em;
   text-transform: uppercase;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* bottom scrim so the overlaid labels always read */
+.roster__item::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 42%;
+  background: linear-gradient(to top, rgba(6, 10, 18, 0.92), rgba(6, 10, 18, 0.55) 45%, transparent);
+  pointer-events: none;
+}
+
+.roster__badge {
+  position: absolute;
+  right: 8px;
+  top: 8px;
+  z-index: 2;
+  padding: 1px 7px;
+  border-radius: 999px;
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #dbe7ff;
+  background: rgba(8, 14, 24, 0.66);
+  backdrop-filter: blur(4px);
 }
 
 .parts {
