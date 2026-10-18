@@ -142,6 +142,7 @@
 | 行点击 = 查看（active，3D 淡蓝），复选框 = 导出；勾贴图自动勾当前子网格，避免“只勾贴图不能制作” | 截图 `shot_060748.png`（Dorm + Fight 两行与对应贴图同时勾上） |
 | 贴图方框 1:1：`padding-top:100%`，**边框只包方框，名称/尺寸在框外**；实测 162×162 CSS | 固定高度网格只写 `align-content:start` 会把行压扁、`overflow:hidden` 裁掉说明；加 `align-items:start; grid-auto-rows:max-content` 后 162×162，说明完整 |
 | UI 术语统一为“子网格”（`models.studio.meshes` = 子网格 / Submeshes）；左行 meta 显示 `N 贴图`；顶部计数变成 `N 个子网格 · N 张贴图` | `src/lib/i18n.ts`；截图 `shot_060900.png` |
+| 顶栏“全选 / 取消全选”：一次勾上全部子网格 + 全部贴图；全选后自动打开第一个有贴图的子网格（Alva 默认是 emitter），按钮变“取消全选”；再点清空并把“开始制作”重新禁用 | 截图 `shot_062826.png`（全选 7 子网格 + 20 贴图）、`shot_062837.png`（清空） |
 | 旧布局（grid 232px + 1fr，行 1fr+172px，贴图底部胶片条）已被本节取代 | `final_models.png` 仅作历史对照 |
 
 **未决**：目前贴图归属是名称前缀推断，不是材质引用；如果后续能从 prefab/material 读到真实 slot，应替换 `texturesForMesh()`，尤其是 `face`/`eye` 这类进共享组的贴图。

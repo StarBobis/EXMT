@@ -74,6 +74,14 @@ const activeLabel = computed(() => {
   return activeMesh.value ? shortName(activeMesh.value) : "";
 });
 
+/** 全部子网格 + 全部贴图都已纳入导出。 */
+const allPicked = computed(
+  () =>
+    (meshes.value.length > 0 || textures.value.length > 0) &&
+    pickedMeshes.value.length === meshes.value.length &&
+    pickedTextures.value.length === textures.value.length,
+);
+
 const hint = computed(() => {
   if (busy.value) return busy.value;
   if (note.value) return note.value;
@@ -146,6 +154,23 @@ function togglePickTexture(name: string) {
   // 勾贴图就意味着要改这个子网格；顺手把它纳入导出，避免“只勾贴图不能制作”
   if (activeMesh.value && !activeShared.value && !pickedMeshes.value.includes(activeMesh.value)) {
     pickedMeshes.value = [...pickedMeshes.value, activeMesh.value];
+  }
+}
+
+/** 一键全选：所有子网格 + 所有贴图；再点一次清空。 */
+function toggleSelectAll() {
+  if (allPicked.value) {
+    pickedMeshes.value = [];
+    pickedTextures.value = [];
+    return;
+  }
+  pickedMeshes.value = meshes.value.map((mesh) => mesh.name);
+  pickedTextures.value = textures.value.map((tex) => tex.name);
+  // 没在看任何贴图时，顺手打开第一个有贴图的子网格，避免中间还是空的
+  if (!activeMesh.value && !activeShared.value && meshes.value.length) {
+    const first =
+      meshes.value.find((mesh) => textureCount(mesh.name) > 0) ?? meshes.value[0];
+    activateMesh(first.name);
   }
 }
 
@@ -288,6 +313,15 @@ async function startMaking() {
         </div>
         <span class="studio__hint" :title="hint">{{ hint }}</span>
         <div class="studio__bar-actions">
+          <button
+            class="btn"
+            type="button"
+            :title="t('models.studio.selectAllHint')"
+            :disabled="!!busy || (!meshes.length && !textures.length)"
+            @click="toggleSelectAll"
+          >
+            {{ allPicked ? t("models.studio.clearAll") : t("models.studio.selectAll") }}
+          </button>
           <button class="btn" type="button" @click="navigate('home')">
             <span class="glyph">&#xE72B;</span>
             {{ t("models.changeSkin") }}
