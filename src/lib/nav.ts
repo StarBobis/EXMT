@@ -1,7 +1,15 @@
 /** Navigation model — single source of truth for the sidebar and the view switch. */
+import { ref } from "vue";
 import type { MessageKey } from "./i18n";
 
 export type ViewKey = "home" | "models" | "library" | "tools" | "logs" | "settings";
+
+/** Shared so pages can hand off to each other (home ⇄ studio). */
+export const currentView = ref<ViewKey>("home");
+
+export function navigate(key: ViewKey) {
+  currentView.value = key;
+}
 
 export interface NavItem {
   key: ViewKey;

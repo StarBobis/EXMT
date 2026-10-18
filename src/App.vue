@@ -9,12 +9,12 @@ import ToolsView from "./views/ToolsView.vue";
 import LogsView from "./views/LogsView.vue";
 import SettingsView from "./views/SettingsView.vue";
 import type { ViewKey } from "./lib/nav";
+import { currentView } from "./lib/nav";
 import { t } from "./lib/i18n";
 import { checkGamePath, gamePath, gameReady } from "./lib/settings";
 
 const STORAGE_KEY = "exmt.nav.collapsed";
 
-const current = ref<ViewKey>("home");
 const collapsed = ref(localStorage.getItem(STORAGE_KEY) === "1");
 
 watch(collapsed, (v) => localStorage.setItem(STORAGE_KEY, v ? "1" : "0"));
@@ -28,9 +28,13 @@ const views = {
   settings: SettingsView,
 } as const;
 
-const currentView = computed(() => views[current.value]);
+const viewComponent = computed(() => views[currentView.value]);
 /** 这三页都要读游戏资源，没设游戏路径前不给进。 */
-const gated = computed(() => ["models", "library", "tools"].includes(current.value));
+const gated = computed(() => ["models", "library", "tools"].includes(currentView.value));
+
+function selectView(key: ViewKey) {
+  currentView.value = key;
+}
 
 // 启动时先验证已存的游戏路径，否则直接从导航进模型页会误判成"没设置"。
 onMounted(() => {
@@ -43,20 +47,20 @@ onMounted(() => {
     <TitleBar title="EXMT Modbox" :badge="t('app.preview')" />
     <div class="app__body">
       <SideBar
-        :selected="current"
+        :selected="currentView"
         :collapsed="collapsed"
-        @select="current = $event"
+        @select="selectView"
         @toggle="collapsed = !collapsed"
       />
       <main class="app__content">
         <KeepAlive v-if="!gated || gameReady">
-          <component :is="currentView" :key="current" />
+          <component :is="viewComponent" :key="currentView" />
         </KeepAlive>
         <section v-else class="gate">
           <div class="gate__icon glyph">&#xE7BA;</div>
           <h2 class="gate__title">{{ t("gate.title") }}</h2>
           <p class="gate__body">{{ t("gate.body") }}</p>
-          <button class="btn btn--accent" type="button" @click="current = 'settings'">
+          <button class="btn btn--accent" type="button" @click="selectView('settings')">
             {{ t("gate.action") }}
           </button>
         </section>
