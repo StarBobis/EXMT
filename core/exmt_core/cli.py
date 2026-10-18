@@ -56,12 +56,36 @@ def cmd_extract_all(args):
     bundle_path, outdir = args
     os.makedirs(outdir, exist_ok=True)
     b = open_bundle(bundle_path)
+    skeleton = {}
     for o in b.meshes():
         tree = o.read_typetree()
         md = M.from_tree(tree)
         p = os.path.join(outdir, md.name + ".exmtmesh")
         interchange.save(md, p, {"bundle": os.path.basename(bundle_path)}, tree=tree)
         print("exported", p)
+        # the .exmtmesh already carries bindpose + bone hashes; dump them as plain
+        # text too, so the rig is inspectable without opening the binary file
+        if md.bindpose is not None:
+            import numpy as np
+
+            rest = np.linalg.inv(np.asarray(md.bindpose, dtype=np.float64))
+            skeleton[md.name] = {
+                "bone_count": len(md.bone_hashes),
+                "root_bone_hash": int(tree.get("m_RootBoneNameHash") or 0),
+                "bones": [
+                    {
+                        "index": i,
+                        "hash": int(md.bone_hashes[i]) if i < len(md.bone_hashes) else 0,
+                        "rest_position": [round(float(v), 6) for v in rest[i][:3, 3]],
+                    }
+                    for i in range(len(md.bone_hashes))
+                ],
+            }
+    if skeleton:
+        with open(os.path.join(outdir, "skeleton.json"), "w", encoding="utf-8") as fh:
+            json.dump({"bundle": os.path.basename(bundle_path), "meshes": skeleton}, fh,
+                      ensure_ascii=False, indent=1)
+        print("exported skeleton.json (%d meshes)" % len(skeleton))
     return 0
 
 
