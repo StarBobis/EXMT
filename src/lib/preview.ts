@@ -31,8 +31,9 @@ export interface TextureEntry {
   png?: string;
 }
 
-export interface GeometryData {
+export interface PreviewGeometry {
   name: string;
+  bundle: string;
   count: number;
   positions: Float32Array;
   normals: Float32Array | null;
@@ -137,18 +138,24 @@ export function texturesFor(index: TexIndex, skinKey: string): TextureEntry[] {
 // --------------------------------------------------------------------------- //
 // meshes / geometry / thumbnails
 // --------------------------------------------------------------------------- //
+const meshCache = new Map<string, SkinMesh[]>();
+
 /** All meshes across the entry's bundles; unreadable bundles are skipped. */
 export async function loadMeshes(hashes: string[]): Promise<SkinMesh[]> {
   const seen = new Map<string, SkinMesh>();
   for (const hash of hashes) {
-    try {
-      const data = await runJson(["skinfo", bundlePathOf(hash)]);
-      for (const mesh of data.meshes as SkinMesh[]) {
-        if (!seen.has(mesh.name)) seen.set(mesh.name, { ...mesh, bundle: hash });
+    let list = meshCache.get(hash);
+    if (!list) {
+      try {
+        const data = await runJson(["skinfo", bundlePathOf(hash)]);
+        list = (data.meshes as SkinMesh[]).map((mesh) => ({ ...mesh, bundle: hash }));
+      } catch {
+        // a bundle listed in the catalog may not be downloaded
+        list = [];
       }
-    } catch {
-      /* a bundle listed in the catalog may not be downloaded */
+      meshCache.set(hash, list);
     }
+    for (const mesh of list) if (!seen.has(mesh.name)) seen.set(mesh.name, mesh);
   }
   return [...seen.values()];
 }
@@ -165,10 +172,10 @@ function float32(b64: string | null): Float32Array | null {
   return new Float32Array(b64ToBytes(b64).buffer);
 }
 
-export async function loadGeometry(hash: string, mesh: string): Promise<GeometryData> {
-  const raw = await runJson(["geo", bundlePathOf(hash), mesh]);
+function decodeGeometry(raw: any): PreviewGeometry {
   return {
     name: raw.name,
+    bundle: raw.bundle,
     count: raw.count,
     positions: float32(raw.positions) ?? new Float32Array(),
     normals: float32(raw.normals),
@@ -176,6 +183,26 @@ export async function loadGeometry(hash: string, mesh: string): Promise<Geometry
     indices: new Uint32Array(b64ToBytes(raw.indices).buffer),
     bounds: raw.bounds,
   };
+}
+
+/** Geometry for the whole skin in one core call (each bundle parsed once). */
+export async function loadGeometrySet(
+  entryId: string,
+  meshes: SkinMesh[],
+): Promise<PreviewGeometry[]> {
+  if (!meshes.length) return [];
+  const bundles: Record<string, string> = {};
+  for (const mesh of meshes) bundles[mesh.bundle] = bundlePathOf(mesh.bundle);
+  const specPath = await join(cacheFolder.value, `geoset-${entryId}.json`);
+  await writeTextFile(
+    specPath,
+    JSON.stringify({
+      bundles,
+      meshes: meshes.map((mesh) => ({ bundle: mesh.bundle, mesh: mesh.name })),
+    }),
+  );
+  const data = await runJson(["geoset", specPath]);
+  return (data.meshes as any[]).map(decodeGeometry);
 }
 
 /** Downscaled PNGs for the grid; `size` is the long edge in pixels. */

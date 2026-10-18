@@ -217,3 +217,26 @@ Blender 端只读 `current.json` → 目录 → `workspace.json`，就能"一键
 
 1. **索引里存的文件名带 `.bundle`**，拼路径前必须 `replace(/\.bundle$/i, "")`，否则变成 `x.bundle.bundle`，所有贴图静默失败。
 2. 失败信息别被"空状态"覆盖：先记下第一个错误，`empty` 文案只在**没有错误**时显示，否则永远查不到原因。
+
+## 8. `tauri dev` 会莫名其妙退出（Vite watcher EBUSY）
+
+**现象**：`dev2.log` 反复出现
+
+```
+file watcher error: EBUSY: resource busy or locked, watch
+  'C:\Dev\EXMT\src\views\.ModelsView.vue.7464.<uuid>.tmpdir\ModelsView.vue.tmp'
+```
+
+随后 `error: script "dev" exited with code 255` → `Error The "beforeDevCommand" terminated with a non-zero status code`，
+`bun run tauri dev` 整个退出（窗口消失），但 Rust 进程可能还在。
+
+**根因**：编辑工具用「写临时文件 → 改名」的方式保存 `.vue`，Vite(chokidar) 正在 watch 那个临时目录，
+文件已改名/删除 → Windows 上句柄仍被占用 → 抛 EBUSY。偶发多次后 dev server 进程崩溃。
+
+**处理**：
+1. 看到 `beforeDevCommand terminated` 就是**前端 dev server 死了**，不是 Rust 编译失败；看日志末尾 20 行确认。
+2. 直接重启：`bun run tauri dev > C:\DevCache\tauri-logs\dev3.log 2>&1`（后台 job），约 10–35 秒出窗口。
+3. 想减少复发：在 `vite.config.ts` 的 `server.watch.ignored` 里加上 `'**/.*.tmpdir/**'`、`'**/*.tmp'`。
+4. 判断窗口是否真的起来了：`Get-Process exmt-modbox | Select MainWindowTitle`，不要只看 job 状态。
+
+**教训**：后台 job 显示 `completed` 不等于"应用在跑"；Tauri dev 的 job 结束 = 窗口没了。

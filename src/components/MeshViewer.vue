@@ -1,16 +1,21 @@
 <script setup lang="ts">
 /**
- * three.js preview of one GF2 mesh.
+ * three.js preview of a whole skin.
  *
- * The geometry arrives as typed arrays from the Python core, already mirrored
- * into three's right-handed space; nothing here touches the game files.
+ * Every mesh of the selected skin is rendered together in one scene (bind pose,
+ * same coordinate space), so the character is complete instead of one part at a
+ * time. Geometry arrives as typed arrays from the Python core.
  */
 import { onBeforeUnmount, onMounted, ref, watch } from "vue";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
-import type { GeometryData } from "../lib/preview";
+import type { PreviewGeometry } from "../lib/preview";
 
-const props = defineProps<{ geometry: GeometryData | null; loading?: boolean }>();
+const props = defineProps<{
+  meshes: PreviewGeometry[];
+  hidden: string[];
+  loading?: boolean;
+}>();
 
 const host = ref<HTMLDivElement | null>(null);
 
@@ -18,9 +23,13 @@ let renderer: THREE.WebGLRenderer | null = null;
 let scene: THREE.Scene | null = null;
 let camera: THREE.PerspectiveCamera | null = null;
 let controls: OrbitControls | null = null;
-let current: THREE.Mesh | null = null;
-let grid: THREE.GridHelper | null = null;
 let observer: ResizeObserver | null = null;
+let group: THREE.Group | null = null;
+let grid: THREE.GridHelper | null = null;
+const built = new Map<string, THREE.Mesh>();
+
+const COLOR = 0x9fb6cc;
+const COLOR_ACTIVE = 0x4cc2ff;
 
 function render() {
   if (!renderer || !scene || !camera) return;
@@ -38,68 +47,93 @@ function resize() {
   render();
 }
 
-function disposeMesh() {
-  if (!scene || !current) return;
-  scene.remove(current);
-  current.geometry.dispose();
-  (current.material as THREE.Material).dispose();
-  current = null;
+function clearGroup() {
+  built.clear();
+  if (!scene || !group) return;
+  scene.remove(group);
+  group.traverse((obj) => {
+    const mesh = obj as THREE.Mesh;
+    if (mesh.geometry) mesh.geometry.dispose();
+    const material = mesh.material as THREE.Material | THREE.Material[] | undefined;
+    if (Array.isArray(material)) material.forEach((m) => m.dispose());
+    else material?.dispose();
+  });
+  group = null;
 }
 
-function show(geo: GeometryData) {
-  if (!scene || !camera || !controls) return;
-  disposeMesh();
+function fit(all: PreviewGeometry[]) {
+  if (!camera || !controls) return;
+  const min = new THREE.Vector3(Infinity, Infinity, Infinity);
+  const max = new THREE.Vector3(-Infinity, -Infinity, -Infinity);
+  for (const geo of all) {
+    min.min(new THREE.Vector3(geo.bounds.min[0], geo.bounds.min[1], geo.bounds.min[2]));
+    max.max(new THREE.Vector3(geo.bounds.max[0], geo.bounds.max[1], geo.bounds.max[2]));
+  }
+  if (!Number.isFinite(min.x)) return;
+
+  const size = max.clone().sub(min);
+  const center = min.clone().add(max).multiplyScalar(0.5);
+  const maxDim = Math.max(size.x, size.y, size.z, 0.001);
+  const fov = (camera.fov * Math.PI) / 180;
+  // fit the largest dimension into the vertical field of view, with margin
+  const distance = (maxDim / 2 / Math.tan(fov / 2)) * 1.35;
+  const direction = new THREE.Vector3(0.45, 0.28, 1).normalize();
+
+  controls.target.copy(center);
+  camera.position.copy(center).addScaledVector(direction, distance);
+  camera.near = Math.max(distance / 200, 0.001);
+  camera.far = distance * 6 + maxDim * 4;
+  camera.updateProjectionMatrix();
+  controls.update();
+
   if (grid) {
-    scene.remove(grid);
+    scene?.remove(grid);
     grid.geometry.dispose();
     (grid.material as THREE.Material).dispose();
-    grid = null;
+  }
+  grid = new THREE.GridHelper(Math.max(maxDim * 4, 4), 20, 0x2c3a4a, 0x1b242e);
+  grid.position.set(center.x, min.y, center.z);
+  scene?.add(grid);
+}
+
+function build(all: PreviewGeometry[]) {
+  if (!scene) return;
+  clearGroup();
+  if (!all.length) {
+    render();
+    return;
   }
 
-  const buffer = new THREE.BufferGeometry();
-  buffer.setAttribute("position", new THREE.BufferAttribute(geo.positions, 3));
-  if (geo.normals) buffer.setAttribute("normal", new THREE.BufferAttribute(geo.normals, 3));
-  if (geo.uvs) buffer.setAttribute("uv", new THREE.BufferAttribute(geo.uvs, 2));
-  buffer.setIndex(new THREE.BufferAttribute(geo.indices, 1));
-  if (!geo.normals) buffer.computeVertexNormals();
-  buffer.computeBoundingSphere();
+  group = new THREE.Group();
+  for (const geo of all) {
+    if (!geo.positions.length || !geo.indices.length) continue;
+    const buffer = new THREE.BufferGeometry();
+    buffer.setAttribute("position", new THREE.BufferAttribute(geo.positions, 3));
+    if (geo.normals) buffer.setAttribute("normal", new THREE.BufferAttribute(geo.normals, 3));
+    if (geo.uvs) buffer.setAttribute("uv", new THREE.BufferAttribute(geo.uvs, 2));
+    buffer.setIndex(new THREE.BufferAttribute(geo.indices, 1));
+    if (!geo.normals) buffer.computeVertexNormals();
+    buffer.computeBoundingSphere();
 
-  const material = new THREE.MeshStandardMaterial({
-    color: 0x9fb6cc,
-    metalness: 0.12,
-    roughness: 0.72,
-    side: THREE.DoubleSide,
-  });
-  current = new THREE.Mesh(buffer, material);
-  scene.add(current);
-
-  const sphere = buffer.boundingSphere;
-  if (sphere) {
-    const radius = Math.max(sphere.radius, 0.001);
-    const size = new THREE.Vector3(
-      geo.bounds.max[0] - geo.bounds.min[0],
-      geo.bounds.max[1] - geo.bounds.min[1],
-      geo.bounds.max[2] - geo.bounds.min[2],
-    );
-    const maxDim = Math.max(size.x, size.y, size.z, 0.001);
-    const fov = (camera.fov * Math.PI) / 180;
-    // fit the largest dimension into the vertical field of view, with margin
-    const distance = (maxDim / 2 / Math.tan(fov / 2)) * 1.3;
-    const direction = new THREE.Vector3(0.5, 0.32, 1).normalize();
-
-    controls.target.copy(sphere.center);
-    camera.position.copy(sphere.center).addScaledVector(direction, distance);
-    camera.near = Math.max(distance / 200, 0.001);
-    camera.far = distance * 6 + maxDim * 4;
-    camera.updateProjectionMatrix();
-    controls.update();
-
-    const floor = geo.bounds?.min?.[1] ?? sphere.center.y - radius;
-    const span = Math.max(radius * 4, 4);
-    grid = new THREE.GridHelper(span, 20, 0x2c3a4a, 0x1b242e);
-    grid.position.set(sphere.center.x, floor, sphere.center.z);
-    scene.add(grid);
+    const material = new THREE.MeshStandardMaterial({
+      color: COLOR,
+      metalness: 0.12,
+      roughness: 0.7,
+      side: THREE.DoubleSide,
+    });
+    const mesh = new THREE.Mesh(buffer, material);
+    mesh.name = geo.name;
+    mesh.visible = !props.hidden.includes(geo.name);
+    built.set(geo.name, mesh);
+    group.add(mesh);
   }
+  scene.add(group);
+  fit(all);
+  render();
+}
+
+function syncVisibility() {
+  for (const [name, mesh] of built) mesh.visible = !props.hidden.includes(name);
   render();
 }
 
@@ -134,19 +168,19 @@ onMounted(() => {
   observer.observe(el);
   resize();
 
-  if (props.geometry) show(props.geometry);
+  if (props.meshes.length) build(props.meshes);
 });
 
 watch(
-  () => props.geometry,
-  (geo) => {
-    if (geo) show(geo);
-  },
+  () => props.meshes,
+  (all) => build(all),
 );
+watch(() => props.hidden, syncVisibility, { deep: true });
 
 onBeforeUnmount(() => {
   observer?.disconnect();
   controls?.dispose();
+  clearGroup();
   renderer?.dispose();
   renderer?.domElement.remove();
   renderer = null;
@@ -154,11 +188,22 @@ onBeforeUnmount(() => {
   camera = null;
   controls = null;
 });
+
+function setColor(name: string | null) {
+  for (const [meshName, mesh] of built) {
+    const material = mesh.material as THREE.MeshStandardMaterial;
+    material.color.setHex(meshName === name ? COLOR_ACTIVE : COLOR);
+    material.emissive.setHex(meshName === name ? 0x123044 : 0x000000);
+  }
+  render();
+}
+
+defineExpose({ setColor });
 </script>
 
 <template>
   <div ref="host" class="meshviewer">
-    <div v-if="!geometry && !loading" class="meshviewer__empty">3D</div>
+    <div v-if="!meshes.length && !loading" class="meshviewer__empty">3D</div>
     <div v-if="loading" class="meshviewer__loading"><span class="spinner" /></div>
   </div>
 </template>
@@ -168,7 +213,7 @@ onBeforeUnmount(() => {
   position: relative;
   width: 100%;
   height: 100%;
-  min-height: 240px;
+  min-height: 220px;
   border-radius: 10px;
   overflow: hidden;
   background:

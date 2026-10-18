@@ -10,6 +10,7 @@ Commands
     texindex  <bundleDir> <out.json>            index which bundle holds which texture
     skinfo    <bundle>                          meshes of one bundle as JSON
     geo       <bundle> <mesh>                   preview geometry as JSON (base64 f32)
+    geoset    <spec.json>                       every mesh of one skin in one call
     thumbs    <bundle> <size> <texture...>      downscaled PNGs for the texture grid
     workspace <outdir> <spec.json>              meshes + textures + manifest for Blender
 """
@@ -281,6 +282,16 @@ def cmd_geo(args):
     return 0
 
 
+def cmd_geoset(args):
+    """geoset <spec.json> - every mesh of one skin in one call."""
+    from . import preview
+
+    with open(args[0], encoding="utf-8") as fh:
+        spec = json.load(fh)
+    print(json.dumps(preview.geoset(spec)))
+    return 0
+
+
 def cmd_thumbs(args):
     """thumbs <bundle> <size> <texture...> - base64 PNGs for the texture grid."""
     from . import preview
@@ -322,6 +333,7 @@ def main(argv=None):
         "texindex": cmd_texindex,
         "skinfo": cmd_skinfo,
         "geo": cmd_geo,
+        "geoset": cmd_geoset,
         "thumbs": cmd_thumbs,
         "workspace": cmd_workspace,
     }

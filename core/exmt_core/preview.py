@@ -159,18 +159,11 @@ def _b64(array: np.ndarray) -> str:
     return base64.b64encode(np.ascontiguousarray(array).tobytes()).decode("ascii")
 
 
-def geometry(bundle_path: str, mesh_name: str) -> dict:
-    """Positions / normals / uvs / indices for the three.js preview (base64 f32)."""
-    from . import mesh as M
-    from .sf import open_bundle
-
-    b = open_bundle(bundle_path)
-    tree = b.mesh(mesh_name).read_typetree()
-    md = M.from_tree(tree)
-
+def _geometry_payload(md) -> dict:
+    """Typed arrays for three.js, base64 float32/uint32."""
     pos = md.arrays.get(0)
     if pos is None:
-        raise ValueError("mesh %r has no positions" % mesh_name)
+        raise ValueError("mesh %r has no positions" % md.name)
     pos = pos[:, :3].astype(np.float32)
     normal = md.arrays.get(1)
     uv = md.arrays.get(4)
@@ -197,6 +190,36 @@ def geometry(bundle_path: str, mesh_name: str) -> dict:
         "indices": _b64(idx),
         "bounds": {"min": [float(v) for v in lo], "max": [float(v) for v in hi]},
     }
+
+
+def geometry(bundle_path: str, mesh_name: str) -> dict:
+    """Positions / normals / uvs / indices for the three.js preview (base64 f32)."""
+    from . import mesh as M
+    from .sf import open_bundle
+
+    md = M.from_tree(open_bundle(bundle_path).mesh(mesh_name).read_typetree())
+    return _geometry_payload(md)
+
+
+def geoset(spec: dict) -> dict:
+    """Every mesh of one skin in a single call, each bundle parsed once.
+
+    `spec` = {bundles: {hash: path}, meshes: [{bundle, mesh}]}
+    """
+    from . import mesh as M
+    from .sf import open_bundle
+
+    opened: dict[str, object] = {}
+    out = []
+    for item in spec.get("meshes", []):
+        hash_ = item["bundle"]
+        if hash_ not in opened:
+            opened[hash_] = open_bundle(spec["bundles"][hash_])
+        tree = opened[hash_].mesh(item["mesh"]).read_typetree()
+        payload = _geometry_payload(M.from_tree(tree))
+        payload["bundle"] = hash_
+        out.append(payload)
+    return {"meshes": out}
 
 
 # --------------------------------------------------------------------------- #

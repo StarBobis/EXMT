@@ -55,6 +55,7 @@
 | Blender 导入 | `bpy` 自定义属性存 uint32 会 `OverflowError`，要转 JSON 字符串 |
 | 截图 | `PrintWindow` 在窗口被遮挡时返回旧帧；必须 HWND_TOPMOST→NOTOPMOST + `CopyFromScreen` |
 | pwsh 改文本 | `Set-Content` 会写 BOM/GBK，`.vue` 直接损坏 |
+| `tauri dev` 突然退出 | 编辑工具的临时文件触发 Vite watcher `EBUSY`，`bun run dev` 以 255 退出 → `beforeDevCommand terminated`；重启即可，见 skill `windows-shell-lessons.md` §8 |
 
 ### 2.4 窗口尺寸 / DPI
 

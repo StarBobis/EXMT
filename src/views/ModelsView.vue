@@ -5,12 +5,12 @@ import MeshViewer from "../components/MeshViewer.vue";
 import { isTauri } from "../lib/tauri";
 import {
   ensureTexIndex,
-  loadGeometry,
+  loadGeometrySet,
   loadMeshes,
   loadThumbs,
   makeWorkspace,
   texturesFor,
-  type GeometryData,
+  type PreviewGeometry,
   type SkinMesh,
   type TextureEntry,
 } from "../lib/preview";
@@ -143,11 +143,11 @@ function portraitUrl(entry: CatalogEntry) {
 }
 
 // ------------------------------------------------------------------------- //
-// studio: meshes + three.js preview + textures + workspace export
+// studio: every mesh + every texture of the selected skin, one 3D scene
 // ------------------------------------------------------------------------- //
 const meshes = ref<SkinMesh[]>([]);
-const activeMesh = ref<SkinMesh | null>(null);
-const geometry = ref<GeometryData | null>(null);
+const geometries = ref<PreviewGeometry[]>([]);
+const hidden = ref<string[]>([]);
 const textures = ref<TextureEntry[]>([]);
 const busy = ref("");
 const note = ref("");
@@ -174,27 +174,18 @@ function compact(n: number) {
   return String(n);
 }
 
-async function showMesh(mesh: SkinMesh) {
-  const mine = token;
-  activeMesh.value = mesh;
-  geometry.value = null;
-  busy.value = t("models.studio.loading");
-  try {
-    const geo = await loadGeometry(mesh.bundle, mesh.name);
-    if (mine === token) geometry.value = geo;
-  } catch (e) {
-    if (mine === token) note.value = String(e);
-  } finally {
-    if (mine === token) busy.value = "";
-  }
+function toggleMesh(name: string) {
+  hidden.value = hidden.value.includes(name)
+    ? hidden.value.filter((item) => item !== name)
+    : [...hidden.value, name];
 }
 
 async function openStudio(entry: CatalogEntry) {
   const mine = ++token;
   skinKey = skinKeyOf(entry);
   meshes.value = [];
-  activeMesh.value = null;
-  geometry.value = null;
+  geometries.value = [];
+  hidden.value = [];
   textures.value = [];
   note.value = "";
   status.value = null;
@@ -206,55 +197,37 @@ async function openStudio(entry: CatalogEntry) {
   busy.value = t("models.studio.loading");
   try {
     const prefix = `${skinKey}_`;
-    // The catalog already knows which meshes make up this skin and which
-    // bundle holds each part, so only those bundles are opened.
-    const parts = Object.entries(entry.parts ?? {});
+    // Every bundle the catalog associates with this skin, then every mesh whose
+    // name carries the skin prefix — that is the complete set, not just parts.
+    const hashes = new Set<string>([entry.bundle]);
+    for (const list of Object.values(entry.part_bundles ?? {})) {
+      for (const hash of list) hashes.add(hash);
+    }
     const pool = new Map<string, SkinMesh>();
-    const add = (list: SkinMesh[]) => {
-      for (const mesh of list) if (!pool.has(mesh.name)) pool.set(mesh.name, mesh);
-    };
-
-    for (const [part, meshName] of parts) {
-      if (pool.has(meshName)) continue;
-      const candidates = entry.part_bundles?.[part] ?? [];
-      for (const hash of candidates.length ? candidates : [entry.bundle]) {
-        add(await loadMeshes([hash]));
-        if (mine !== token) return;
-        if (pool.has(meshName)) break;
+    for (const hash of hashes) {
+      for (const mesh of await loadMeshes([hash])) {
+        if (mesh.name.startsWith(prefix) && !pool.has(mesh.name)) pool.set(mesh.name, mesh);
       }
-    }
-
-    let list = parts.map(([, name]) => pool.get(name)).filter((m): m is SkinMesh => !!m);
-    if (!list.length) {
-      // no catalog parts for this entry: fall back to the skin's own meshes
-      add(await loadMeshes([entry.bundle]));
       if (mine !== token) return;
-      list = [...pool.values()].filter((m) => m.name.startsWith(prefix));
     }
+    const list = [...pool.values()].sort((a, b) => a.name.localeCompare(b.name));
     meshes.value = list;
     if (!list.length) note.value = t("models.studio.noMesh");
-    else await showMesh(list[0]);
-    if (mine !== token) return;
+
+    if (list.length) {
+      busy.value = t("models.studio.geometry");
+      const set = await loadGeometrySet(entry.id, list);
+      if (mine !== token) return;
+      geometries.value = set;
+    }
 
     busy.value = t("models.studio.indexing");
     const index = await ensureTexIndex();
     if (mine !== token) return;
     const found = texturesFor(index, skinKey);
 
-    // Keep only the textures that belong to the parts we are showing, so the
-    // workspace does not collect a whole character's texture folder.
-    const tokens = new Set<string>();
-    for (const mesh of list) {
-      const match = /_slg_(.+?)_lod\d+/.exec(mesh.name) ?? /_(.+?)_lod\d+/.exec(mesh.name);
-      if (match) tokens.add(match[1].replace(/\d+$/, ""));
-    }
-    const scoped = [...tokens].length
-      ? found.filter((tex) => [...tokens].some((token) => tex.name.includes(`_${token}`)))
-      : [];
-    const chosen = scoped.length ? scoped : found;
-
     const byBundle = new Map<string, TextureEntry[]>();
-    for (const tex of chosen) {
+    for (const tex of found) {
       const group = byBundle.get(tex.bundle);
       if (group) group.push(tex);
       else byBundle.set(tex.bundle, [tex]);
@@ -441,13 +414,16 @@ watch(
                 :key="mesh.name"
                 type="button"
                 class="meshline"
-                :class="{ 'meshline--active': activeMesh?.name === mesh.name }"
-                :title="mesh.name"
-                @click="showMesh(mesh)"
+                :class="{ 'meshline--off': hidden.includes(mesh.name) }"
+                :title="t('models.studio.toggle')"
+                @click="toggleMesh(mesh.name)"
               >
-                <span class="meshline__name mono">{{ shortName(mesh.name) }}</span>
-                <span class="meshline__meta">
-                  {{ t("models.studio.verts", { n: compact(mesh.verts), m: compact(mesh.tris) }) }}
+                <span class="meshline__eye" aria-hidden="true" />
+                <span class="meshline__body">
+                  <span class="meshline__name mono">{{ shortName(mesh.name) }}</span>
+                  <span class="meshline__meta">
+                    {{ t("models.studio.verts", { n: compact(mesh.verts), m: compact(mesh.tris) }) }}
+                  </span>
                 </span>
               </button>
               <p v-if="!meshes.length && !busy" class="studio__empty">
@@ -457,7 +433,7 @@ watch(
           </div>
 
           <div class="studio__viewer">
-            <MeshViewer :geometry="geometry" :loading="!!busy" />
+            <MeshViewer :meshes="geometries" :hidden="hidden" :loading="!!busy" />
           </div>
 
           <div class="studio__textures">
@@ -467,14 +443,16 @@ watch(
             </div>
             <div class="texgrid">
               <figure v-for="tex in textures" :key="tex.name" class="texcard" :title="tex.name">
-                <img
-                  v-if="tex.png"
-                  class="texcard__img"
-                  :src="`data:image/png;base64,${tex.png}`"
-                  :alt="tex.name"
-                />
-                <div v-else class="texcard__ph">?</div>
-                <div class="texcard__caption mono">{{ shortName(tex.name) }}</div>
+                <div class="texcard__frame">
+                  <img
+                    v-if="tex.png"
+                    class="texcard__img"
+                    :src="`data:image/png;base64,${tex.png}`"
+                    :alt="tex.name"
+                  />
+                  <div v-else class="texcard__ph">?</div>
+                </div>
+                <figcaption class="texcard__caption mono">{{ shortName(tex.name) }}</figcaption>
               </figure>
               <p v-if="!textures.length && !busy" class="studio__empty">
                 {{ t("models.studio.noTex") }}
@@ -610,7 +588,7 @@ watch(
 .artrow__item {
   position: relative;
   aspect-ratio: 505 / 1000;
-  max-height: 178px;
+  max-height: 160px;
   padding: 0;
   border: 1px solid var(--stroke, rgba(255, 255, 255, 0.08));
   border-radius: 12px;
@@ -712,8 +690,8 @@ watch(
 /* ---------- 工作台 ---------- */
 .studio {
   display: grid;
-  grid-template-columns: 172px minmax(0, 1fr);
-  grid-template-rows: 264px auto;
+  grid-template-columns: 196px minmax(0, 1fr);
+  grid-template-rows: 240px auto;
   gap: 12px;
   margin-top: 10px;
   min-width: 0;
@@ -738,7 +716,11 @@ watch(
 }
 
 .studio__meshes {
-  grid-row: 1 / span 2;
+  grid-row: 1;
+}
+
+.studio__textures {
+  grid-column: 1 / -1;
 }
 
 .meshline-list {
@@ -752,9 +734,8 @@ watch(
 
 .meshline {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 1px;
+  align-items: center;
+  gap: 7px;
   padding: 6px 8px;
   border: 1px solid transparent;
   border-radius: 7px;
@@ -768,9 +749,31 @@ watch(
   background: rgba(255, 255, 255, 0.07);
 }
 
-.meshline--active {
-  border-color: var(--accent, #4cc2ff);
-  background: rgba(76, 194, 255, 0.12);
+.meshline__body {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+/* 显示/隐藏指示：实心点 = 显示中 */
+.meshline__eye {
+  flex: none;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--accent, #4cc2ff);
+  box-shadow: 0 0 6px rgba(76, 194, 255, 0.45);
+}
+
+.meshline--off {
+  opacity: 0.45;
+}
+
+.meshline--off .meshline__eye {
+  background: transparent;
+  border: 1px solid var(--text-3, #7d8fa6);
+  box-shadow: none;
 }
 
 .meshline__name {
@@ -782,25 +785,27 @@ watch(
 }
 
 .meshline__meta {
-  font-size: 9.5px;
+  font-size: 9px;
   opacity: 0.5;
+  white-space: nowrap;
 }
 
 .studio__viewer {
-  height: 264px;
+  height: 240px;
   min-width: 0;
 }
 
 .texgrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
-  gap: 6px;
-  max-height: 150px;
-  overflow-y: auto;
-  padding-right: 4px;
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 2px 4px 8px 2px;
+  align-items: flex-start;
 }
 
 .texcard {
+  flex: 0 0 88px;
   margin: 0;
   border: 1px solid var(--stroke, rgba(255, 255, 255, 0.08));
   border-radius: 8px;
@@ -810,18 +815,28 @@ watch(
     rgba(255, 255, 255, 0.02);
 }
 
-.texcard__img {
-  display: block;
+/* 游戏贴图都是正方形：用 padding-top 撑成 1:1，不依赖 aspect-ratio */
+.texcard__frame {
+  position: relative;
   width: 100%;
-  aspect-ratio: 1;
+  padding-top: 100%;
+}
+
+.texcard__img,
+.texcard__ph {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.texcard__img {
   object-fit: contain;
 }
 
 .texcard__ph {
   display: grid;
   place-items: center;
-  width: 100%;
-  aspect-ratio: 1;
   font-size: 16px;
   opacity: 0.35;
 }
@@ -881,15 +896,11 @@ watch(
 @media (max-width: 1120px) {
   .studio {
     grid-template-columns: 150px minmax(0, 1fr);
-    grid-template-rows: 240px auto;
+    grid-template-rows: 220px auto;
   }
 
   .studio__viewer {
-    height: 240px;
-  }
-
-  .texgrid {
-    max-height: 120px;
+    height: 220px;
   }
 }
 </style>
