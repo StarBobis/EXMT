@@ -42,6 +42,7 @@ SetThreadDpiAwarenessContext((IntPtr)(-4));   // PER_MONITOR_AWARE_V2，之后�
 | 两栏（7:3）右栏跑到屏幕外 | `grid-template-columns: 7fr 3fr` 被左侧 min-content 顶宽 | `minmax(0, 7fr) minmax(0, 3fr)` + 子项 `min-width: 0` |
 | 卡片一排放不下、最后一张被切 | `repeat(auto-fill, minmax(96px, 124px))` 的**上限**比可用宽度大 | 用 `minmax(96px, 1fr)`，让轨道按容器均分 |
 | 立绘/海报卡片被"固定高度"压瘦，图缩在中间 | `height: 320px` + `width: 1fr`，卡不是图的比例，`object-fit:contain` 只能留白 | 卡片的 `aspect-ratio` 取**图片本身**的比例（380/752），宽度平分、高度由宽度算，`flex: 1 1 0` + `max-width` 封顶 |
+| 点一下卡片，整页往下跳 ~80px（header 被滚出视口） | 无边框 WebView 里点击会给 `<button>` 焦点，布局一变 Chrome 就把焦点元素滚进视口 | 卡片/缩略图这类"点了就换内容"的按钮加 `@mousedown.prevent`（顺带符合"鼠标点选不要 focus 框"）；别指望 `scrollTop=0` 能救 |
 
 一句话：**任何 `1fr` / 百分比栅格，都要假设子元素会反抗，用 `minmax(0, …)` 兜住。**
 
