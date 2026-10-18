@@ -24,6 +24,7 @@ interface CatalogEntry {
   portrait?: { bundle: string; texture: string } | null;
   splash?: string;
   splash_source?: string;
+  splash_kind?: string;
   splash_size?: number[];
 }
 
