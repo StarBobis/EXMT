@@ -103,10 +103,12 @@ async function readIndex(): Promise<TexIndex | null> {
   }
 }
 
+let indexCache: TexIndex | null = null;
 let indexPromise: Promise<TexIndex> | null = null;
 
 /** Load the texture index, rebuilding it when missing, stale or from another game folder. */
 export async function ensureTexIndex(): Promise<TexIndex> {
+  if (indexCache) return indexCache;
   if (indexPromise) return indexPromise;
   indexPromise = (async () => {
     const cached = await readIndex();
@@ -117,7 +119,8 @@ export async function ensureTexIndex(): Promise<TexIndex> {
     return JSON.parse(await readTextFile(path)) as TexIndex;
   })();
   try {
-    return await indexPromise;
+    indexCache = await indexPromise;
+    return indexCache;
   } finally {
     indexPromise = null;
   }
@@ -136,8 +139,197 @@ export function texturesFor(index: TexIndex, skinKey: string): TextureEntry[] {
 }
 
 // --------------------------------------------------------------------------- //
-// meshes / geometry / thumbnails
+// per-skin cache: <cache>/skins/<skinKey>/{meta,meshes,geometry,thumbs}.json
 // --------------------------------------------------------------------------- //
+const SKIN_CACHE_VERSION = 1;
+const MEMORY_SKINS = 4;
+
+export interface SkinEntry {
+  id: string;
+  name: string;
+  bundle: string;
+  parts?: Record<string, string>;
+  part_bundles?: Record<string, string[]>;
+}
+
+export interface SkinData {
+  key: string;
+  meshes: SkinMesh[];
+  geometry: PreviewGeometry[];
+  textures: TextureEntry[];
+  cached: boolean;
+  builtAt: string | null;
+}
+
+const skinMemory = new Map<string, SkinData>();
+
+/** `c_AlvaSSR01` — the prefix shared by a skin's meshes and textures. */
+export function skinKeyOf(entry: SkinEntry): string {
+  const first = Object.values(entry.parts ?? {})[0];
+  const m = first ? /^(c_[^_]+)_/.exec(first) : null;
+  return m ? m[1] : `c_${entry.name}`;
+}
+
+function remember(data: SkinData) {
+  skinMemory.delete(data.key);
+  skinMemory.set(data.key, data);
+  while (skinMemory.size > MEMORY_SKINS) {
+    const oldest = skinMemory.keys().next().value;
+    if (oldest === undefined) break;
+    skinMemory.delete(oldest);
+  }
+}
+
+async function skinsRoot(): Promise<string> {
+  const root = await join(cacheFolder.value, "skins");
+  await mkdir(root, { recursive: true }).catch(() => undefined);
+  return root;
+}
+
+async function readJson<T>(path: string): Promise<T | null> {
+  try {
+    if (!(await exists(path))) return null;
+    return JSON.parse(await readTextFile(path)) as T;
+  } catch {
+    return null;
+  }
+}
+
+async function writeJson(path: string, value: unknown): Promise<void> {
+  await writeTextFile(path, JSON.stringify(value));
+}
+
+/** Bundle files change only on a game update, so size+mtime is enough to invalidate. */
+async function bundleSignature(hashes: string[]): Promise<string> {
+  const parts: string[] = [];
+  for (const hash of [...new Set(hashes)].sort()) {
+    try {
+      const info = await stat(bundlePathOf(hash));
+      parts.push(`${hash}:${info.size}:${new Date(info.mtime ?? 0).getTime()}`);
+    } catch {
+      parts.push(`${hash}:missing`);
+    }
+  }
+  return parts.join("|");
+}
+
+function decodeSet(raw: { meshes?: any[] } | null): PreviewGeometry[] {
+  return (raw?.meshes ?? []).map(decodeGeometry);
+}
+
+async function geosetRaw(skinKey: string, meshes: SkinMesh[]): Promise<{ meshes: any[] }> {
+  if (!meshes.length) return { meshes: [] };
+  const bundles: Record<string, string> = {};
+  for (const mesh of meshes) bundles[mesh.bundle] = bundlePathOf(mesh.bundle);
+  const specPath = await join(cacheFolder.value, `geoset-${skinKey}.json`);
+  await writeTextFile(
+    specPath,
+    JSON.stringify({
+      bundles,
+      meshes: meshes.map((mesh) => ({ bundle: mesh.bundle, mesh: mesh.name })),
+    }),
+  );
+  return (await runJson(["geoset", specPath])) as { meshes: any[] };
+}
+
+async function thumbsFor(textures: TextureEntry[]): Promise<TextureEntry[]> {
+  const byBundle = new Map<string, TextureEntry[]>();
+  for (const tex of textures) {
+    const group = byBundle.get(tex.bundle);
+    if (group) group.push(tex);
+    else byBundle.set(tex.bundle, [tex]);
+  }
+  const out: TextureEntry[] = [];
+  for (const [hash, items] of byBundle) {
+    try {
+      out.push(...(await loadThumbs(hash, items.map((i) => i.name))));
+    } catch {
+      out.push(...items);
+    }
+  }
+  return out.sort((a, b) => a.name.localeCompare(b.name));
+}
+
+export type SkinPhase = "meshes" | "geometry" | "textures";
+
+/**
+ * Everything the studio shows for one skin.
+ *
+ * First visit parses the bundles and writes `<cache>/skins/<key>/`; later
+ * visits read those four small files instead, so switching back is instant.
+ * The in-memory LRU avoids even the disk read for the last few skins.
+ */
+export async function loadSkin(
+  entry: SkinEntry,
+  onPhase?: (phase: SkinPhase) => void,
+): Promise<SkinData> {
+  const key = skinKeyOf(entry);
+  const hit = skinMemory.get(key);
+  if (hit) {
+    remember(hit);
+    return { ...hit, cached: true };
+  }
+  if (!isTauri) throw new Error("desktop only");
+
+  const index = await ensureTexIndex();
+  const texs = texturesFor(index, key);
+  const meshHashes = bundleHashesOf(entry);
+  const allHashes = [...meshHashes, ...texs.map((t) => t.bundle)];
+  const dir = await join(await skinsRoot(), key);
+
+  const signature = await bundleSignature(allHashes);
+  const meta = await readJson<{ version: number; signature: string; built_at: string }>(
+    await join(dir, "meta.json"),
+  );
+  if (meta && meta.version === SKIN_CACHE_VERSION && meta.signature === signature) {
+    const meshes = await readJson<SkinMesh[]>(await join(dir, "meshes.json"));
+    const raw = await readJson<{ meshes: any[] }>(await join(dir, "geometry.json"));
+    const thumbs = await readJson<TextureEntry[]>(await join(dir, "thumbs.json"));
+    if (meshes && raw && thumbs) {
+      const data: SkinData = {
+        key,
+        meshes,
+        geometry: decodeSet(raw),
+        textures: thumbs,
+        cached: true,
+        builtAt: meta.built_at,
+      };
+      remember(data);
+      return data;
+    }
+  }
+
+  onPhase?.("meshes");
+  const prefix = `${key}_`;
+  const found = await loadMeshes(meshHashes);
+  const meshes = found
+    .filter((mesh) => mesh.name.startsWith(prefix))
+    .sort((a, b) => a.name.localeCompare(b.name));
+
+  onPhase?.("geometry");
+  const raw = await geosetRaw(key, meshes);
+
+  onPhase?.("textures");
+  const thumbs = await thumbsFor(texs);
+
+  const builtAt = new Date().toISOString();
+  await mkdir(dir, { recursive: true }).catch(() => undefined);
+  await Promise.all([
+    writeJson(await join(dir, "meshes.json"), meshes),
+    writeJson(await join(dir, "geometry.json"), raw),
+    writeJson(await join(dir, "thumbs.json"), thumbs),
+    writeJson(await join(dir, "meta.json"), {
+      version: SKIN_CACHE_VERSION,
+      key,
+      signature,
+      built_at: builtAt,
+    }),
+  ]).catch(() => undefined);
+
+  const data: SkinData = { key, meshes, geometry: decodeSet(raw), textures: thumbs, cached: false, builtAt };
+  remember(data);
+  return data;
+}
 const meshCache = new Map<string, SkinMesh[]>();
 
 /** All meshes across the entry's bundles; unreadable bundles are skipped. */
@@ -183,26 +375,6 @@ function decodeGeometry(raw: any): PreviewGeometry {
     indices: new Uint32Array(b64ToBytes(raw.indices).buffer),
     bounds: raw.bounds,
   };
-}
-
-/** Geometry for the whole skin in one core call (each bundle parsed once). */
-export async function loadGeometrySet(
-  entryId: string,
-  meshes: SkinMesh[],
-): Promise<PreviewGeometry[]> {
-  if (!meshes.length) return [];
-  const bundles: Record<string, string> = {};
-  for (const mesh of meshes) bundles[mesh.bundle] = bundlePathOf(mesh.bundle);
-  const specPath = await join(cacheFolder.value, `geoset-${entryId}.json`);
-  await writeTextFile(
-    specPath,
-    JSON.stringify({
-      bundles,
-      meshes: meshes.map((mesh) => ({ bundle: mesh.bundle, mesh: mesh.name })),
-    }),
-  );
-  const data = await runJson(["geoset", specPath]);
-  return (data.meshes as any[]).map(decodeGeometry);
 }
 
 /** Downscaled PNGs for the grid; `size` is the long edge in pixels. */

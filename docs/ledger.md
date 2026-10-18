@@ -92,6 +92,9 @@
 | `make_workspace` 的 spec 必须把**贴图所在的 bundle** 也放进 `bundles`，否则每张贴图都 `failed_textures`（曾 20/20 失败） | 第一次 CLI 验证只放网格包；UI 侧同时收集网格与贴图的 bundle |
 | 贴图索引的 bundle 名带 `.bundle` 后缀，传给核心前必须去掉，否则路径变成 `xxx.bundle.bundle`（曾导致贴图 0 张且错误被“无贴图”覆盖） | `bundlePathOf()` 与 `texturesFor()` 都做了 `replace(/\.bundle$/)` |
 | 自动化验证：pwsh 用 `PrintWindow(PW_RENDERFULLCONTENT)` 抓窗口不受遮挡影响；但合成鼠标点击在窗口被别的程序盖住时会失效（`SetForegroundWindow` 被拒），只能靠真实前台 | `pwshot.ps1` 截图成功；点击需先置顶/前台 |
+| 皮肤级持久缓存：`<cache>/skins/<skinKey>/{meshes,geometry,thumbs,meta}.json`（Alva 默认 geometry 2.76 MB + thumbs 876 KB + meshes 831 B + meta 251 B）；签名 = 相关 bundle 的 size+mtime | `C:\EXMTCacheFolder\skins\c_AlvaSSR01\*`；meta 里 `signature` 三个包 |
+| 冷启动（新进程）里 2 秒内出完整皮肤并显示「本地缓存 · 2026-10-18 23:51」；同一会话内切走再切回不重新解析 | 截图 `cold-cache2.png`、`cache-back.png`（切回 2 秒内已渲染） |
+| 页面状态用 `<KeepAlive>` 保留：首页→模型来回切，选中皮肤/网格可见性/贴图都不丢 | 截图 `keepalive.png` 与切走前逐像素一致 |
 
 
 ---

@@ -4,14 +4,12 @@ import { t } from "../lib/i18n";
 import MeshViewer from "../components/MeshViewer.vue";
 import { isTauri } from "../lib/tauri";
 import {
-  ensureTexIndex,
-  loadGeometrySet,
-  loadMeshes,
-  loadThumbs,
+  loadSkin,
   makeWorkspace,
-  texturesFor,
+  skinKeyOf,
   type PreviewGeometry,
   type SkinMesh,
+  type SkinPhase,
   type TextureEntry,
 } from "../lib/preview";
 import catalogData from "../data/catalog.json";
@@ -151,17 +149,11 @@ const hidden = ref<string[]>([]);
 const textures = ref<TextureEntry[]>([]);
 const busy = ref("");
 const note = ref("");
+const cacheHint = ref("");
 const status = ref<{ kind: "info" | "ok" | "err"; text: string } | null>(null);
 let token = 0;
 /** `c_AlvaSSR01` — the asset-name prefix shared by this skin's meshes and textures. */
 let skinKey = "";
-
-/** The skin's own prefix, taken from its parts (falls back to the catalog name). */
-function skinKeyOf(entry: CatalogEntry) {
-  const first = Object.values(entry.parts ?? {})[0];
-  const m = first ? /^(c_[^_]+)_/.exec(first) : null;
-  return m ? m[1] : `c_${entry.name}`;
-}
 
 function shortName(name: string) {
   const prefix = skinKey ? `${skinKey}_` : "";
@@ -180,6 +172,14 @@ function toggleMesh(name: string) {
     : [...hidden.value, name];
 }
 
+function stamp(iso: string | null) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
 async function openStudio(entry: CatalogEntry) {
   const mine = ++token;
   skinKey = skinKeyOf(entry);
@@ -188,65 +188,28 @@ async function openStudio(entry: CatalogEntry) {
   hidden.value = [];
   textures.value = [];
   note.value = "";
+  cacheHint.value = "";
   status.value = null;
   if (!isTauri) {
     note.value = t("models.studio.browser");
     return;
   }
 
+  const phase = (p: SkinPhase) =>
+    p === "geometry" ? t("models.studio.geometry") : p === "textures" ? t("models.studio.indexing") : t("models.studio.loading");
+
   busy.value = t("models.studio.loading");
   try {
-    const prefix = `${skinKey}_`;
-    // Every bundle the catalog associates with this skin, then every mesh whose
-    // name carries the skin prefix — that is the complete set, not just parts.
-    const hashes = new Set<string>([entry.bundle]);
-    for (const list of Object.values(entry.part_bundles ?? {})) {
-      for (const hash of list) hashes.add(hash);
-    }
-    const pool = new Map<string, SkinMesh>();
-    for (const hash of hashes) {
-      for (const mesh of await loadMeshes([hash])) {
-        if (mesh.name.startsWith(prefix) && !pool.has(mesh.name)) pool.set(mesh.name, mesh);
-      }
-      if (mine !== token) return;
-    }
-    const list = [...pool.values()].sort((a, b) => a.name.localeCompare(b.name));
-    meshes.value = list;
-    if (!list.length) note.value = t("models.studio.noMesh");
-
-    if (list.length) {
-      busy.value = t("models.studio.geometry");
-      const set = await loadGeometrySet(entry.id, list);
-      if (mine !== token) return;
-      geometries.value = set;
-    }
-
-    busy.value = t("models.studio.indexing");
-    const index = await ensureTexIndex();
+    const data = await loadSkin(entry, (p) => {
+      if (mine === token) busy.value = phase(p);
+    });
     if (mine !== token) return;
-    const found = texturesFor(index, skinKey);
-
-    const byBundle = new Map<string, TextureEntry[]>();
-    for (const tex of found) {
-      const group = byBundle.get(tex.bundle);
-      if (group) group.push(tex);
-      else byBundle.set(tex.bundle, [tex]);
-    }
-    const loaded: TextureEntry[] = [];
-    let firstError = "";
-    for (const [hash, items] of byBundle) {
-      try {
-        const thumbs = await loadThumbs(hash, items.map((i) => i.name));
-        if (mine !== token) return;
-        loaded.push(...thumbs);
-      } catch (e) {
-        firstError ||= String(e);
-        loaded.push(...items);
-      }
-    }
-    textures.value = loaded.sort((a, b) => a.name.localeCompare(b.name));
-    if (!found.length) note.value = t("models.studio.noTex");
-    else if (firstError) note.value = firstError;
+    meshes.value = data.meshes;
+    geometries.value = data.geometry;
+    textures.value = data.textures;
+    if (data.cached) cacheHint.value = t("models.studio.cached", { time: stamp(data.builtAt) });
+    if (!data.meshes.length) note.value = t("models.studio.noMesh");
+    else if (!data.textures.length) note.value = t("models.studio.noTex");
   } catch (e) {
     if (mine === token) note.value = String(e);
   } finally {
@@ -394,7 +357,7 @@ watch(
             <span class="glyph">&#xE768;</span>
             {{ t("models.make") }}
           </button>
-          <span class="studio__hint">{{ busy || note }}</span>
+          <span class="studio__hint">{{ busy || note || cacheHint }}</span>
         </div>
         <p v-if="status" class="status-line" :class="'status-line--' + status.kind">
           {{ status.kind === "ok" ? "✓" : status.kind === "err" ? "✗" : "·" }} {{ status.text }}

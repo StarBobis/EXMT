@@ -209,7 +209,25 @@ if flags != 4 or size > 512 * 1024: return []
 
 - 窗口被别的程序盖住时，`CopyFromScreen` 抓到的是别人；用 `PrintWindow(hwnd, hdc, PW_RENDERFULLCONTENT=2)` 抓自己窗口，WebView2 也能正确渲染。
 - 合成点击（`mouse_event`）在窗口不在前台时经常无效：`SetForegroundWindow` 会被系统拒绝。要么先真实点一下标题栏，要么先 `SetWindowPos(HWND_TOPMOST)` 再点。
+- **更稳的点击方式：UI Automation**。WebView2 暴露完整无障碍树，找 `ControlType.Button`、名字包含目标文案，然后 `InvokePattern.Invoke()`；不受前后台/DPI 影响。
 - 坐标换算只算一次：`CSS → 物理`（×DPI/100）→ `ClientToScreen`；截图里的像素是**物理像素**，别拿它当 CSS 直接点。
+
+### 10.3.3 缓存：按"一屏数据"落盘，别只靠内存
+
+只做内存缓存的话，重启就全丢；用户会问"缓存文件夹干什么吃的"。
+
+```
+<cache>/skins/<skinKey>/
+  meta.json      # {version, signature, built_at}
+  meshes.json    # 列表（名字/顶点/三角/骨骼/来源包）
+  geometry.json  # 整个皮肤的预览几何（base64 数组）
+  thumbs.json    # 贴图缩略图（base64 PNG）
+```
+
+- **签名**用相关 bundle 的 `size + mtime`（游戏更新才变），拼成一串存进 `meta.json`；命中就只读这 4 个文件，不碰 Python。
+- 内存再做一层小 LRU（比如 4 个皮肤），同一会话内来回切是零 IO。
+- 切换页面的状态用 Vue 的 `<KeepAlive>`，不要用 `:key` 强制重建；否则每次进页面都重新拉数据。
+- 首屏要能感知到缓存：界面角落显示「本地缓存 · 时间」，用户才知道缓存真的生效。
 
 ### 10.4 导出成"工作空间"而不是一堆文件
 

@@ -41,7 +41,9 @@ const currentView = computed(() => views[current.value]);
         @toggle="collapsed = !collapsed"
       />
       <main class="app__content">
-        <component :is="currentView" :key="current" />
+        <KeepAlive>
+          <component :is="currentView" />
+        </KeepAlive>
       </main>
     </div>
   </div>
