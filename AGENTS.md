@@ -103,6 +103,7 @@ bun run check     # 见 §6
 | 多语言 | 界面文案一律走 `t("key")`（`src/lib/i18n.ts`），**中文是源字典**，`Record<keyof typeof zh, string>` 强制英文补齐同 key；**模板里不许写死中文**。语言选择存 localStorage `exmt.locale`，默认简体中文，设置页「常规 → 语言 / Language」切换 |
 | 密度 | 用户偏好**简洁**：操作日志、素体按钮都是被要求删掉的；状态反馈一行足够 |
 | 批量 | 模型页顶部要有“全选 / 取消全选”：一次勾上全部子网格 + 全部贴图；全选后自动打开第一个有贴图的子网格；再点清空。默认仍全不勾，全选只是给“想偷懒”的快捷方式 |
+| 下拉 | 统一用 `src/components/Dropdown.vue`（自绘 listbox + Teleport + token 配色 + 键盘）；**不要用原生 `<select>`**——Windows/WebView2 的 option 弹出层是系统绘制，暗色主题会白底白字看不清 |
 
 ---
 

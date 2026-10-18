@@ -330,6 +330,7 @@ Blender 端只读 `current.json` → 目录 → `workspace.json`，就能"一键
 - 一个立绘多个工作空间：目录用 `<skin>__<YYYYMMDD-HHmmss>`，每次“开始制作”新建，绝不覆盖 `<skin>` 旧目录；列表扫 `*/workspace.json`，旧目录无 `workspace_id` 时用目录名兜底。选工作空间 = 选立绘：切 `selectedSkin` 并按 manifest 的 `meshes[].mesh` / `textures[].name` 恢复勾选。
 - 写配置要**串行化**（promise chain）。快速“切皮肤 → 选工作空间”时，先发出的 `write(null)` 可能后完成，把新选择覆盖掉；队列化后按调用顺序落盘。
 - 下拉标签用 `MM-DD HH:mm:ss`，**秒必须可见**；`YYYY-MM-DD HH:mm:ss` 在 220px 的下拉里会被截断到分钟，同一分钟的两个工作空间就分不清了。
+- **不要用原生 `<select>`**：Windows/WebView2 的 option 弹出层是系统绘制，暗色主题下白底白字，CSS 改不到。用自绘 `Dropdown.vue`：Teleport 到 body + `position: fixed`（避免被面板裁切），菜单至少 300px 宽，token 配色，选中项打勾，键盘 ↑↓/Enter/Esc 可用；选项多时 `overflow-y:auto`。
 - Blender 侧“一键导入”不只是按钮：面板每次 draw 读 config 显示“当前：<label>”，操作符再读一次 config 拿绝对目录；导入后把 label 写到每个物体的自定义属性，便于回溯。
 - **已安装插件是副本，不是 dev 目录**：Blender 5.2 实际加载的是 `%APPDATA%\Blender Foundation\Blender\5.2\scripts\addons\EXMTBlender\`。改完 `C:\Dev\EXMTBlender` 要同步过去（先备份旧目录），然后 Blender 里 `Reload Scripts` 或重启；否则用户看到的还是旧面板。
 - 无头验证：`blender.exe --background --factory-startup --python test.py`，脚本 import 插件模块 → `register()` → `bpy.ops.exmt.import_workspace()`，打印 `MESH_COUNT`/`MATERIAL_COUNT`；本例 12 网格 + 12 贴图 → 13 个 Mesh（含默认 Cube）、28 个材质。

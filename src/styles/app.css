@@ -52,6 +52,18 @@ button {
   cursor: pointer;
 }
 
+/* Native select popups are OS-drawn; keep the closed control readable and
+   prefer the shared <Dropdown> component for actual menus. */
+select {
+  color: var(--text-1);
+  background-color: var(--card-bg);
+}
+
+select option {
+  color: var(--text-1);
+  background-color: var(--bg-elevated);
+}
+
 :focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 1px;

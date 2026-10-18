@@ -2,7 +2,9 @@
 import { computed, onActivated, onDeactivated, ref, watch } from "vue";
 import { openPath } from "@tauri-apps/plugin-opener";
 import { t } from "../lib/i18n";
+import Dropdown from "../components/Dropdown.vue";
 import MeshViewer from "../components/MeshViewer.vue";
+import type { DropdownOption } from "../lib/dropdown";
 import { navigate } from "../lib/nav";
 import { isTauri } from "../lib/tauri";
 import {
@@ -102,6 +104,16 @@ const allPicked = computed(
 );
 
 const selectedWorkspaceId = computed(() => activeWorkspace.value?.id ?? "");
+
+const workspaceOptions = computed<DropdownOption[]>(() => [
+  {
+    value: "",
+    label: workspaces.value.length
+      ? t("models.workspace.none")
+      : t("models.workspace.empty"),
+  },
+  ...workspaces.value.map((ws) => ({ value: ws.id, label: ws.label })),
+]);
 
 const hint = computed(() => {
   if (busy.value) return busy.value;
@@ -287,8 +299,7 @@ async function chooseWorkspace(id: string) {
   applyWorkspaceSelection(ws);
 }
 
-async function onWorkspaceChange(event: Event) {
-  const id = (event.target as HTMLSelectElement).value;
+async function onWorkspaceChange(id: string) {
   if (!id) {
     await clearActiveWorkspace();
     return;
@@ -496,24 +507,19 @@ async function startMaking() {
             {{ t("models.studio.counts", { meshes: meshes.length, textures: textures.length }) }}
           </span>
           <span v-if="skinCode" class="studio__code mono">{{ skinCode }}</span>
-          <label class="workspace-pick" :title="t('models.workspace.hint')">
+          <span class="workspace-pick" :title="t('models.workspace.hint')">
             <span class="workspace-pick__label">{{ t("models.workspace.label") }}</span>
-            <select
-              class="workspace-select"
-              :value="selectedWorkspaceId"
-              :disabled="!!busy || !workspaces.length"
-              :aria-label="t('models.workspace.label')"
-              :title="activeWorkspace?.label ?? t('models.workspace.none')"
-              @change="onWorkspaceChange"
-            >
-              <option value="">
-                {{ workspaces.length ? t("models.workspace.none") : t("models.workspace.empty") }}
-              </option>
-              <option v-for="ws in workspaces" :key="ws.id" :value="ws.id">
-                {{ ws.label }}
-              </option>
-            </select>
-          </label>
+            <span class="workspace-pick__control">
+              <Dropdown
+                :model-value="selectedWorkspaceId"
+                :options="workspaceOptions"
+                :disabled="!!busy || !workspaces.length"
+                :aria-label="t('models.workspace.label')"
+                :title="activeWorkspace?.label ?? t('models.workspace.none')"
+                @change="onWorkspaceChange"
+              />
+            </span>
+          </span>
         </div>
         <span class="studio__hint" :title="hint">{{ hint }}</span>
         <div class="studio__bar-actions">
@@ -747,34 +753,10 @@ async function startMaking() {
   white-space: nowrap;
 }
 
-.workspace-select {
-  width: 220px;
-  max-width: 100%;
-  height: 30px;
+.workspace-pick__control {
+  display: block;
+  width: 230px;
   min-width: 0;
-  padding: 0 8px;
-  border: 1px solid var(--stroke-strong);
-  border-radius: var(--radius-sm);
-  background: var(--card-bg);
-  color: var(--text-1);
-  font: inherit;
-  font-size: 11.5px;
-  cursor: pointer;
-}
-
-.workspace-select:hover:not(:disabled) {
-  background: var(--fill-subtle-hover);
-}
-
-.workspace-select:disabled {
-  opacity: 0.5;
-  cursor: default;
-}
-
-.workspace-select:focus,
-.workspace-select:focus-visible {
-  outline: none;
-  border-color: var(--accent);
 }
 
 .studio__hint {
@@ -1208,8 +1190,8 @@ async function startMaking() {
     display: none;
   }
 
-  .workspace-select {
-    width: 180px;
+  .workspace-pick__control {
+    width: 190px;
   }
 
   .studio__hint {
