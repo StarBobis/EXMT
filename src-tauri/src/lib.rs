@@ -10,16 +10,16 @@ use serde::Serialize;
 use tauri::{LogicalSize, Manager, PhysicalPosition, PhysicalSize};
 
 /// Default window footprint, as ratios of the monitor's work area (taskbar
-/// excluded). 16:10 keeps a widescreen shape with enough vertical room for the
-/// sidebar, so a 4K panel does not get a postage stamp and a laptop does not get
-/// an edge-to-edge window.
-const WINDOW_ASPECT: f64 = 16.0 / 10.0;
-const WINDOW_WIDTH_SHARE: f64 = 0.72;
-const WINDOW_HEIGHT_LIMIT: f64 = 0.88;
+/// excluded). The reference layout is 1920×1080: the window keeps that 16:9
+/// shape at roughly two thirds of the screen, so a 4K panel gets a bigger
+/// window than a laptop without either being hard-coded in pixels.
+const WINDOW_ASPECT: f64 = 16.0 / 9.0;
+const WINDOW_WIDTH_SHARE: f64 = 2.0 / 3.0;
+const WINDOW_HEIGHT_LIMIT: f64 = 0.9;
 /// Must stay in sync with `minWidth` / `minHeight` in `tauri.conf.json`.
 const WINDOW_MIN_WIDTH: f64 = 920.0;
 const WINDOW_MIN_HEIGHT: f64 = 600.0;
-const WINDOW_FALLBACK: (f64, f64) = (1120.0, 700.0);
+const WINDOW_FALLBACK: (f64, f64) = (1120.0, 630.0);
 
 #[derive(Serialize)]
 struct CoreOutput {
@@ -164,18 +164,18 @@ mod tests {
     fn assert_aspect(width: f64, height: f64) {
         assert!(
             (width / height - WINDOW_ASPECT).abs() < 0.01,
-            "not 16:10: {width}×{height}"
+            "not 16:9: {width}×{height}"
         );
     }
 
     #[test]
     fn follows_the_screen_but_stays_inside_it() {
-        // (work area in logical px, expected window)
+        // (work area in logical px, expected window): 16:9 at two thirds wide
         let screens = [
-            ((1920.0, 1040.0), (1382.0, 864.0)),
-            ((1707.0, 1019.0), (1229.0, 768.0)),
-            ((2560.0, 1400.0), (1843.0, 1152.0)),
-            ((1366.0, 728.0), (984.0, 615.0)),
+            ((1920.0, 1040.0), (1280.0, 720.0)),
+            ((1707.0, 1019.0), (1138.0, 640.0)),
+            ((2560.0, 1400.0), (1707.0, 960.0)),
+            ((1366.0, 728.0), (1067.0, 600.0)),
         ];
         for ((work_w, work_h), (want_w, want_h)) in screens {
             let (width, height) = default_window_size(work_w, work_h);
