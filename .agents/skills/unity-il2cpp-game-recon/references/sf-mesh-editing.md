@@ -187,6 +187,47 @@ v' = M · v
 
 ### 21.3 分工建议
 
+这种重定向放在 **Blender** 里做（约束 + 姿势烘焙 + 权重传递），Python 只负责解包/打包。
+纯 numpy 手搓到"看起来对"的代价很高：kNN / envelope / 拉普拉斯平滑三种都试过，都是扭曲的。
+
+## 22. 批量提取贴图：别对每个 texture 都 read_typetree()
+
+把 240 个角色的立绘/头像导出来时，第一版脚本跑了 **15 分钟**；换成 `peek_name()` 之后 **41 秒**。
+
+原因：`o.read_typetree()` 会把 `image data`（每张贴图的完整字节）一起读进 Python。
+一个 40 MB 的 bundle 里有 337 张贴图，逐张解析 = 几十 GB 的临时拷贝。
+
+正确写法（UnityPy）：
+
+```python
+for o in bundle.objects():
+    if o.type.name != "Texture2D":
+        continue
+    name = o.peek_name()        # 只读 m_Name 字段，不碰 image data
+    if name in wanted:
+        hit[name] = o.read_typetree()   # 只对真正要导出的那几张做完整解析
+```
+
+配套要点：
+
+- **按 bundle 分组**：一个容器只 open 一次，别在循环里 `Bundle(path)` 重开
+- 导出的图统一压成 WebP（q90，保留 alpha）；380×752 的立绘约 60 KB
+- 同一张图不要分配给多个条目：先精确匹配，再退化匹配，用一个 `used` 集合去重，
+  否则界面上会出现"不同皮肤同一张卡"
+
+### 皮肤立绘的命名规律（GF2）
+
+| 前缀 | 内容 | 典型尺寸 |
+| --- | --- | --- |
+| `Img_ChrSkinPic_<Skin>` | **皮肤立绘**（透明底整身） | 380×752 |
+| `Avatar_Half_<Skin>` | 半身 | ~512 |
+| `Avatar_Bust_<Skin>` | 胸像 | 512×512 |
+| `Avatar_Head_<Skin>` | 头像（列表图标） | 128×128 |
+| `Avatar_Gacha_<Skin>` | 抽卡滚动条（**不是立绘**） | 256×1600 |
+
+`Avatar_Gacha_*` 名字最像立绘，但它是抽卡动画用的长条，别拿它当皮肤图。
+
+
 这种重定向建议放在 **Blender** 里做（有约束、姿势烘焙、权重传递），
 Python 只负责解包/打包。纯 numpy 手搓到"看起来对"的代价很高。
 

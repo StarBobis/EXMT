@@ -85,12 +85,12 @@
     "texture": "Avatar_Head_AgentSSR"
    },
    "splash": "/splash/c_AgentSSR0101.webp",
-   "splash_source": "Img_ChrSkinPic_AgentSSR01",
+   "splash_source": "Img_ChrSkinPic_AgentSSR",
+   "splash_kind": "skinpic",
    "splash_size": [
     378,
     750
-   ],
-   "splash_kind": "skinpic"
+   ]
   },
   {
    "id": "c_AlvaDorm",
@@ -175,12 +175,12 @@
     "texture": "Avatar_Head_AlvaSSR"
    },
    "splash": "/splash/c_AlvaSSR0101.webp",
-   "splash_source": "Img_ChrSkinPic_AlvaSSR01",
+   "splash_source": "Img_ChrSkinPic_AlvaSSR",
+   "splash_kind": "skinpic",
    "splash_size": [
     380,
     752
-   ],
-   "splash_kind": "skinpic"
+   ]
   },
   {
    "id": "c_AlvaSSR0102",
@@ -205,12 +205,12 @@
     "texture": "Avatar_Head_AlvaSSR"
    },
    "splash": "/splash/c_AlvaSSR0102.webp",
-   "splash_source": "Img_ChrSkinPic_AlvaSSR01",
+   "splash_source": "Avatar_Half_AlvaSSR",
+   "splash_kind": "half",
    "splash_size": [
-    380,
-    752
-   ],
-   "splash_kind": "skinpic"
+    512,
+    512
+   ]
   },
   {
    "id": "c_AndorisDorm",
@@ -318,12 +318,12 @@
     "texture": "Avatar_Head_AndorisSSR"
    },
    "splash": "/splash/c_AndorisSSR0101.webp",
-   "splash_source": "Img_ChrSkinPic_AndorisSSR01",
+   "splash_source": "Img_ChrSkinPic_AndorisSSR",
+   "splash_kind": "skinpic",
    "splash_size": [
     380,
     752
-   ],
-   "splash_kind": "skinpic"
+   ]
   },
   {
    "id": "c_AsteriaDorm",
@@ -413,12 +413,12 @@
     "texture": "Avatar_Head_AsteriaSSR"
    },
    "splash": "/splash/c_AsteriaSSR0101.webp",
-   "splash_source": "Img_ChrSkinPic_AsteriaSSR01",
+   "splash_source": "Img_ChrSkinPic_AsteriaSSR",
+   "splash_kind": "skinpic",
    "splash_size": [
     380,
     752
-   ],
-   "splash_kind": "skinpic"
+   ]
   },
   {
    "id": "c_BalthildeDorm",
@@ -474,11 +474,11 @@
    },
    "splash": "/splash/c_BalthildeSSR01.webp",
    "splash_source": "Img_ChrSkinPic_BalthildeSSR",
+   "splash_kind": "skinpic",
    "splash_size": [
     380,
     752
-   ],
-   "splash_kind": "skinpic"
+   ]
   },
   {
    "id": "c_BastiDorm",
@@ -568,12 +568,12 @@
     "texture": "Avatar_Head_BastiSSR"
    },
    "splash": "/splash/c_BastiSSR0101.webp",
-   "splash_source": "Img_ChrSkinPic_BastiSSR01",
+   "splash_source": "Img_ChrSkinPic_BastiSSR",
+   "splash_kind": "skinpic",
    "splash_size": [
     380,
     752
-   ],
-   "splash_kind": "skinpic"
+   ]
   },
   {
    "id": "c_BiyocaDorm",
@@ -662,12 +662,12 @@
     "texture": "Avatar_Head_BiyocaSSR"
    },
    "splash": "/splash/c_BiyocaSSR0101.webp",
-   "splash_source": "Img_ChrSkinPic_BiyocaSSR01",
+   "splash_source": "Img_ChrSkinPic_BiyocaSSR",
+   "splash_kind": "skinpic",
    "splash_size": [
     380,
     752
-   ],
-   "splash_kind": "skinpic"
+   ]
   },
   {
    "id": "c_CeciliaDorm",
@@ -756,12 +756,12 @@
     "texture": "Avatar_Head_CeciliaSSR"
    },
    "splash": "/splash/c_CeciliaSSR0101.webp",
-   "splash_source": "Img_ChrSkinPic_CeciliaSSR01",
+   "splash_source": "Img_ChrSkinPic_CeciliaSSR",
+   "splash_kind": "skinpic",
    "splash_size": [
     378,
     750
-   ],
-   "splash_kind": "skinpic"
+   ]
   },
   {
    "id": "c_CentaureissiDorm",
@@ -846,12 +846,12 @@
     "texture": "Avatar_Head_CentaureissiSSR"
    },
    "splash": "/splash/c_CentaureissiSSR0101.webp",
-   "splash_source": "Img_ChrSkinPic_CentaureissiSSR01",
+   "splash_source": "Img_ChrSkinPic_CentaureissiSSR",
+   "splash_kind": "skinpic",
    "splash_size": [
     380,
     752
-   ],
-   "splash_kind": "skinpic"
+   ]
   },
   {
    "id": "c_CentaureissiSSR0102",
@@ -876,12 +876,12 @@
     "texture": "Avatar_Head_CentaureissiSSR"
    },
    "splash": "/splash/c_CentaureissiSSR0102.webp",
-   "splash_source": "Img_ChrSkinPic_CentaureissiSSR01",
+   "splash_source": "Avatar_Half_CentaureissiSSR",
+   "splash_kind": "half",
    "splash_size": [
-    380,
-    752
-   ],
-   "splash_kind": "skinpic"
+    512,
+    512
+   ]
   },
   {
    "id": "c_CharolicDorm",
@@ -972,12 +972,12 @@
     "texture": "Avatar_Head_CharolicSR"
    },
    "splash": "/splash/c_CharolicSR0101.webp",
-   "splash_source": "Img_ChrSkinPic_CharolicSR01",
+   "splash_source": "Img_ChrSkinPic_CharolicSR",
+   "splash_kind": "skinpic",
    "splash_size": [
     380,
     752
-   ],
-   "splash_kind": "skinpic"
+   ]
   },
   {
    "id": "c_CharolicSR0103",
@@ -1002,12 +1002,12 @@
     "texture": "Avatar_Head_CharolicSR"
    },
    "splash": "/splash/c_CharolicSR0103.webp",
-   "splash_source": "Img_ChrSkinPic_CharolicSR01",
+   "splash_source": "Avatar_Half_CharolicSR",
+   "splash_kind": "half",
    "splash_size": [
-    380,
-    752
-   ],
-   "splash_kind": "skinpic"
+    512,
+    512
+   ]
   },
   {
    "id": "c_CheetaDorm",
@@ -1100,12 +1100,12 @@
     "texture": "Avatar_Head_CheetaSR"
    },
    "splash": "/splash/c_CheetaSR0101.webp",
-   "splash_source": "Img_ChrSkinPic_CheetaSR01",
+   "splash_source": "Img_ChrSkinPic_CheetaSR",
+   "splash_kind": "skinpic",
    "splash_size": [
     380,
     752
-   ],
-   "splash_kind": "skinpic"
+   ]
   },
   {
    "id": "c_CheyanneDorm",
@@ -1194,12 +1194,12 @@
     "texture": "Avatar_Head_CheyanneSSR"
    },
    "splash": "/splash/c_CheyanneSSR0101.webp",
-   "splash_source": "Img_ChrSkinPic_CheyanneSSR01",
+   "splash_source": "Img_ChrSkinPic_CheyanneSSR",
+   "splash_kind": "skinpic",
    "splash_size": [
     380,
     752
-   ],
-   "splash_kind": "skinpic"
+   ]
   },
   {
    "id": "c_ClukayDorm",
@@ -1280,12 +1280,12 @@
     "texture": "Avatar_Head_ClukaySSR"
    },
    "splash": "/splash/c_ClukaySSR0101.webp",
-   "splash_source": "Img_ChrSkinPic_ClukaySSR01",
+   "splash_source": "Img_ChrSkinPic_ClukaySSR",
+   "splash_kind": "skinpic",
    "splash_size": [
     380,
     752
-   ],
-   "splash_kind": "skinpic"
+   ]
   },
   {
    "id": "c_ClukaySSR0102",
@@ -1310,12 +1310,12 @@
     "texture": "Avatar_Head_ClukaySSR"
    },
    "splash": "/splash/c_ClukaySSR0102.webp",
-   "splash_source": "Img_ChrSkinPic_ClukaySSR01",
+   "splash_source": "Avatar_Half_ClukaySSR",
+   "splash_kind": "half",
    "splash_size": [
-    380,
-    752
-   ],
-   "splash_kind": "skinpic"
+    512,
+    512
+   ]
   },
   {
    "id": "c_ClukaySSR0103",
@@ -1340,12 +1340,12 @@
     "texture": "Avatar_Head_ClukaySSR"
    },
    "splash": "/splash/c_ClukaySSR0103.webp",
-   "splash_source": "Img_ChrSkinPic_ClukaySSR01",
+   "splash_source": "Avatar_Bust_ClukaySSR",
+   "splash_kind": "bust",
    "splash_size": [
-    380,
-    752
-   ],
-   "splash_kind": "skinpic"
+    512,
+    512
+   ]
   },
   {
    "id": "c_ClukaySSR0104",
@@ -1370,12 +1370,12 @@
     "texture": "Avatar_Head_ClukaySSR"
    },
    "splash": "/splash/c_ClukaySSR0104.webp",
-   "splash_source": "Img_ChrSkinPic_ClukaySSR01",
+   "splash_source": "Avatar_Head_ClukaySSR",
+   "splash_kind": "head",
    "splash_size": [
-    380,
-    752
-   ],
-   "splash_kind": "skinpic"
+    128,
+    128
+   ]
   },
   {
    "id": "c_ClukaySSR0105",
@@ -1398,14 +1398,7 @@
    "portrait": {
     "bundle": "00db9bc6c41c1d1067a767de09b1d010",
     "texture": "Avatar_Head_ClukaySSR"
-   },
-   "splash": "/splash/c_ClukaySSR0105.webp",
-   "splash_source": "Img_ChrSkinPic_ClukaySSR01",
-   "splash_size": [
-    380,
-    752
-   ],
-   "splash_kind": "skinpic"
+   }
   },
   {
    "id": "c_ColphneDoppelgaengerDorm",
@@ -1468,11 +1461,11 @@
    },
    "splash": "/splash/c_ColphneDoppelgaengerSSR01.webp",
    "splash_source": "Img_ChrSkinPic_ColphneDoppelgaengerSSR",
+   "splash_kind": "skinpic",
    "splash_size": [
     378,
     750
-   ],
-   "splash_kind": "skinpic"
+   ]
   },
   {
    "id": "c_ColphneDorm",
@@ -1561,12 +1554,12 @@
     "texture": "Avatar_Head_ColphneSR"
    },
    "splash": "/splash/c_ColphneSR0101.webp",
-   "splash_source": "Img_ChrSkinPic_ColphneSR01",
+   "splash_source": "Img_ChrSkinPic_ColphneSR",
+   "splash_kind": "skinpic",
    "splash_size": [
     380,
     752
-   ],
-   "splash_kind": "skinpic"
+   ]
   },
   {
    "id": "c_ColphneSR0103",
@@ -1591,12 +1584,12 @@
     "texture": "Avatar_Head_ColphneSR"
    },
    "splash": "/splash/c_ColphneSR0103.webp",
-   "splash_source": "Img_ChrSkinPic_ColphneSR01",
+   "splash_source": "Avatar_Half_ColphneSR",
+   "splash_kind": "half",
    "splash_size": [
-    380,
-    752
-   ],
-   "splash_kind": "skinpic"
+    512,
+    512
+   ]
   },
   {
    "id": "c_CommanderFemale",
@@ -1788,11 +1781,11 @@
    },
    "splash": "/splash/c_DaiyanSSR01.webp",
    "splash_source": "Img_ChrSkinPic_DaiyanSSR",
+   "splash_kind": "skinpic",
    "splash_size": [
     380,
     752
-   ],
-   "splash_kind": "skinpic"
+   ]
   },
   {
    "id": "c_DaiyanSSR0103",
@@ -1817,12 +1810,12 @@
     "texture": "Avatar_Head_DaiyanSSR"
    },
    "splash": "/splash/c_DaiyanSSR0103.webp",
-   "splash_source": "Img_ChrSkinPic_DaiyanSSR",
+   "splash_source": "Avatar_Half_DaiyanSSR",
+   "splash_kind": "half",
    "splash_size": [
-    380,
-    752
-   ],
-   "splash_kind": "skinpic"
+    512,
+    512
+   ]
   },
   {
    "id": "c_DusevnyjDorm",
@@ -1904,12 +1897,12 @@
     "texture": "Avatar_Head_DusevnyjSSR"
    },
    "splash": "/splash/c_DusevnyjSSR0101.webp",
-   "splash_source": "Img_ChrSkinPic_DusevnyjSSR01",
+   "splash_source": "Img_ChrSkinPic_DusevnyjSSR",
+   "splash_kind": "skinpic",
    "splash_size": [
-    378,
-    750
-   ],
-   "splash_kind": "skinpic"
+    380,
+    752
+   ]
   },
   {
    "id": "c_EaglettaDorm",
@@ -1998,12 +1991,12 @@
     "texture": "Avatar_Head_EaglettaSSR"
    },
    "splash": "/splash/c_EaglettaSSR0101.webp",
-   "splash_source": "Img_ChrSkinPic_EaglettaSSR01",
+   "splash_source": "Img_ChrSkinPic_EaglettaSSR",
+   "splash_kind": "skinpic",
    "splash_size": [
     380,
     752
-   ],
-   "splash_kind": "skinpic"
+   ]
   },
   {
    "id": "c_FaelynnDorm",
@@ -2096,12 +2089,12 @@
     "texture": "Avatar_Head_FaelynnSSR"
    },
    "splash": "/splash/c_FaelynnSSR0101.webp",
-   "splash_source": "Img_ChrSkinPic_FaelynnSSR01",
+   "splash_source": "Img_ChrSkinPic_FaelynnSSR",
+   "splash_kind": "skinpic",
    "splash_size": [
     378,
     750
-   ],
-   "splash_kind": "skinpic"
+   ]
   },
   {
    "id": "c_FayeDorm",
@@ -2179,12 +2172,12 @@
     "texture": "Avatar_Head_FayeSSR"
    },
    "splash": "/splash/c_FayeSSR0101.webp",
-   "splash_source": "Img_ChrSkinPic_FayeSSR01",
+   "splash_source": "Img_ChrSkinPic_FayeSSR",
+   "splash_kind": "skinpic",
    "splash_size": [
     380,
     752
-   ],
-   "splash_kind": "skinpic"
+   ]
   },
   {
    "id": "c_FlorenceDorm",
@@ -2277,12 +2270,12 @@
     "texture": "Avatar_Head_FlorenceSSR"
    },
    "splash": "/splash/c_FlorenceSSR0101.webp",
-   "splash_source": "Img_ChrSkinPic_FlorenceSSR01",
+   "splash_source": "Img_ChrSkinPic_FlorenceSSR",
+   "splash_kind": "skinpic",
    "splash_size": [
     380,
     752
-   ],
-   "splash_kind": "skinpic"
+   ]
   },
   {
    "id": "c_FlorenceSSR0102",
@@ -2315,12 +2308,12 @@
     "texture": "Avatar_Head_FlorenceSSR"
    },
    "splash": "/splash/c_FlorenceSSR0102.webp",
-   "splash_source": "Img_ChrSkinPic_FlorenceSSR01",
+   "splash_source": "Avatar_Half_FlorenceSSR",
+   "splash_kind": "half",
    "splash_size": [
-    380,
-    752
-   ],
-   "splash_kind": "skinpic"
+    512,
+    512
+   ]
   },
   {
    "id": "c_GrozaDorm",
@@ -2445,12 +2438,12 @@
     "texture": "Avatar_Head_GrozaSR"
    },
    "splash": "/splash/c_GrozaSR0102.webp",
-   "splash_source": "Img_ChrSkinPic_GrozaSR01",
+   "splash_source": "Img_ChrSkinPic_GrozaSR",
+   "splash_kind": "skinpic",
    "splash_size": [
     380,
     752
-   ],
-   "splash_kind": "skinpic"
+   ]
   },
   {
    "id": "c_GrozaSR0103",
@@ -2475,12 +2468,12 @@
     "texture": "Avatar_Head_GrozaSR"
    },
    "splash": "/splash/c_GrozaSR0103.webp",
-   "splash_source": "Img_ChrSkinPic_GrozaSR01",
+   "splash_source": "Avatar_Half_GrozaSR",
+   "splash_kind": "half",
    "splash_size": [
-    380,
-    752
-   ],
-   "splash_kind": "skinpic"
+    512,
+    512
+   ]
   },
   {
    "id": "c_GrozaSR0105",
@@ -2509,12 +2502,12 @@
     "texture": "Avatar_Head_GrozaSR"
    },
    "splash": "/splash/c_GrozaSR0105.webp",
-   "splash_source": "Img_ChrSkinPic_GrozaSR01",
+   "splash_source": "Avatar_Bust_GrozaSR",
+   "splash_kind": "bust",
    "splash_size": [
-    380,
-    752
-   ],
-   "splash_kind": "skinpic"
+    512,
+    512
+   ]
   },
   {
    "id": "c_HarpsyDorm",
@@ -2567,11 +2560,11 @@
    },
    "splash": "/splash/c_HarpsySSR01.webp",
    "splash_source": "Img_ChrSkinPic_HarpsySSR",
+   "splash_kind": "skinpic",
    "splash_size": [
     380,
     752
-   ],
-   "splash_kind": "skinpic"
+   ]
   },
   {
    "id": "c_Helena",
@@ -2617,12 +2610,12 @@
    },
    "portrait": null,
    "splash": "/splash/c_Helena01.webp",
-   "splash_source": "Avatar_Half_Helena",
+   "splash_source": "Avatar_Bust_Helena",
+   "splash_kind": "bust",
    "splash_size": [
     512,
     512
-   ],
-   "splash_kind": "half"
+   ]
   },
   {
    "id": "c_HelenDorm",
@@ -2712,12 +2705,12 @@
     "texture": "Avatar_Head_HelenSSR"
    },
    "splash": "/splash/c_HelenSSR0101.webp",
-   "splash_source": "Img_ChrSkinPic_HelenSSR01",
+   "splash_source": "Img_ChrSkinPic_HelenSSR",
+   "splash_kind": "skinpic",
    "splash_size": [
     380,
     752
-   ],
-   "splash_kind": "skinpic"
+   ]
   },
   {
    "id": "c_HelenSSR0102",
@@ -2742,12 +2735,12 @@
     "texture": "Avatar_Head_HelenSSR"
    },
    "splash": "/splash/c_HelenSSR0102.webp",
-   "splash_source": "Img_ChrSkinPic_HelenSSR01",
+   "splash_source": "Avatar_Half_HelenSSR",
+   "splash_kind": "half",
    "splash_size": [
-    380,
-    752
-   ],
-   "splash_kind": "skinpic"
+    512,
+    512
+   ]
   },
   {
    "id": "c_IglaDorm",
@@ -2843,12 +2836,12 @@
     "texture": "Avatar_Head_IglaSSR"
    },
    "splash": "/splash/c_IglaSSR0101.webp",
-   "splash_source": "Img_ChrSkinPic_IglaSSR01",
+   "splash_source": "Img_ChrSkinPic_IglaSSR",
+   "splash_kind": "skinpic",
    "splash_size": [
     380,
     752
-   ],
-   "splash_kind": "skinpic"
+   ]
   },
   {
    "id": "c_JiangyuDorm",
@@ -2933,12 +2926,12 @@
     "texture": "Avatar_Head_JiangyuSSR"
    },
    "splash": "/splash/c_JiangyuSSR0101.webp",
-   "splash_source": "Img_ChrSkinPic_JiangyuSSR01",
+   "splash_source": "Img_ChrSkinPic_JiangyuSSR",
+   "splash_kind": "skinpic",
    "splash_size": [
     380,
     752
-   ],
-   "splash_kind": "skinpic"
+   ]
   },
   {
    "id": "c_KoledaDorm",
@@ -3031,12 +3024,12 @@
     "texture": "Avatar_Head_KoledaSSR"
    },
    "splash": "/splash/c_KoledaSSR0101.webp",
-   "splash_source": "Img_ChrSkinPic_KoledaSSR01",
+   "splash_source": "Img_ChrSkinPic_KoledaSSR",
+   "splash_kind": "skinpic",
    "splash_size": [
-    378,
-    750
-   ],
-   "splash_kind": "skinpic"
+    380,
+    752
+   ]
   },
   {
    "id": "c_KseniaDorm",
@@ -3089,11 +3082,11 @@
    },
    "splash": "/splash/c_KseniaSR01.webp",
    "splash_source": "Img_ChrSkinPic_KseniaSR",
+   "splash_kind": "skinpic",
    "splash_size": [
     380,
     752
-   ],
-   "splash_kind": "skinpic"
+   ]
   },
   {
    "id": "c_LeneDorm",
@@ -3178,12 +3171,12 @@
     "texture": "Avatar_Head_LeneSSR"
    },
    "splash": "/splash/c_LeneSSR0101.webp",
-   "splash_source": "Img_ChrSkinPic_LeneSSR01",
+   "splash_source": "Img_ChrSkinPic_LeneSSR",
+   "splash_kind": "skinpic",
    "splash_size": [
     380,
     752
-   ],
-   "splash_kind": "skinpic"
+   ]
   },
   {
    "id": "c_LennaDorm",
@@ -3268,12 +3261,12 @@
     "texture": "Avatar_Head_LennaSSR"
    },
    "splash": "/splash/c_LennaSSR0101.webp",
-   "splash_source": "Img_ChrSkinPic_LennaSSR01",
+   "splash_source": "Img_ChrSkinPic_LennaSSR",
+   "splash_kind": "skinpic",
    "splash_size": [
     380,
     752
-   ],
-   "splash_kind": "skinpic"
+   ]
   },
   {
    "id": "c_LennaSSR0105",
@@ -3298,12 +3291,12 @@
     "texture": "Avatar_Head_LennaSSR"
    },
    "splash": "/splash/c_LennaSSR0105.webp",
-   "splash_source": "Img_ChrSkinPic_LennaSSR01",
+   "splash_source": "Avatar_Half_LennaSSR",
+   "splash_kind": "half",
    "splash_size": [
-    380,
-    752
-   ],
-   "splash_kind": "skinpic"
+    512,
+    512
+   ]
   },
   {
    "id": "c_LevaDorm",
@@ -3389,12 +3382,12 @@
     "texture": "Avatar_Head_LevaSSR"
    },
    "splash": "/splash/c_LevaSSR0101.webp",
-   "splash_source": "Img_ChrSkinPic_LevaSSR01",
+   "splash_source": "Img_ChrSkinPic_LevaSSR",
+   "splash_kind": "skinpic",
    "splash_size": [
     380,
     752
-   ],
-   "splash_kind": "skinpic"
+   ]
   },
   {
    "id": "c_LevaSSR0102",
@@ -3419,12 +3412,12 @@
     "texture": "Avatar_Head_LevaSSR"
    },
    "splash": "/splash/c_LevaSSR0102.webp",
-   "splash_source": "Img_ChrSkinPic_LevaSSR01",
+   "splash_source": "Avatar_Half_LevaSSR",
+   "splash_kind": "half",
    "splash_size": [
-    380,
-    752
-   ],
-   "splash_kind": "skinpic"
+    512,
+    512
+   ]
   },
   {
    "id": "c_LevaSSR0103",
@@ -3449,12 +3442,12 @@
     "texture": "Avatar_Head_LevaSSR"
    },
    "splash": "/splash/c_LevaSSR0103.webp",
-   "splash_source": "Img_ChrSkinPic_LevaSSR01",
+   "splash_source": "Avatar_Bust_LevaSSR",
+   "splash_kind": "bust",
    "splash_size": [
-    380,
-    752
-   ],
-   "splash_kind": "skinpic"
+    512,
+    512
+   ]
   },
   {
    "id": "c_LewisDorm",
@@ -3543,12 +3536,12 @@
     "texture": "Avatar_Head_LewisSSR"
    },
    "splash": "/splash/c_LewisSSR0101.webp",
-   "splash_source": "Img_ChrSkinPic_LewisSSR01",
+   "splash_source": "Img_ChrSkinPic_LewisSSR",
+   "splash_kind": "skinpic",
    "splash_size": [
     380,
     752
-   ],
-   "splash_kind": "skinpic"
+   ]
   },
   {
    "id": "c_LewisSSR0102",
@@ -3573,12 +3566,12 @@
     "texture": "Avatar_Head_LewisSSR"
    },
    "splash": "/splash/c_LewisSSR0102.webp",
-   "splash_source": "Img_ChrSkinPic_LewisSSR01",
+   "splash_source": "Avatar_Half_LewisSSR",
+   "splash_kind": "half",
    "splash_size": [
-    380,
-    752
-   ],
-   "splash_kind": "skinpic"
+    512,
+    512
+   ]
   },
   {
    "id": "c_LindDorm",
@@ -3659,12 +3652,12 @@
     "texture": "Avatar_Head_LindSSRUP"
    },
    "splash": "/splash/c_LindSSR0101.webp",
-   "splash_source": "Img_ChrSkinPic_LindSSR01",
+   "splash_source": "Img_ChrSkinPic_LindSSR",
+   "splash_kind": "skinpic",
    "splash_size": [
     380,
     752
-   ],
-   "splash_kind": "skinpic"
+   ]
   },
   {
    "id": "c_LittaraDorm",
@@ -3721,11 +3714,11 @@
    },
    "splash": "/splash/c_LittaraSR01.webp",
    "splash_source": "Img_ChrSkinPic_LittaraSR",
+   "splash_kind": "skinpic",
    "splash_size": [
     380,
     752
-   ],
-   "splash_kind": "skinpic"
+   ]
   },
   {
    "id": "c_LiushihSSR01",
@@ -3782,12 +3775,12 @@
     "texture": "Avatar_Head_LiushihSSR"
    },
    "splash": "/splash/c_LiushihSSR0101.webp",
-   "splash_source": "Img_ChrSkinPic_LiushihSSR01",
+   "splash_source": "Img_ChrSkinPic_LiushihSSR",
+   "splash_kind": "skinpic",
    "splash_size": [
-    380,
-    752
-   ],
-   "splash_kind": "skinpic"
+    378,
+    750
+   ]
   },
   {
    "id": "c_LoreleyDorm",
@@ -3876,12 +3869,12 @@
     "texture": "Avatar_Head_LoreleySSR"
    },
    "splash": "/splash/c_LoreleySSR0101.webp",
-   "splash_source": "Img_ChrSkinPic_LoreleySSR01",
+   "splash_source": "Img_ChrSkinPic_LoreleySSR",
+   "splash_kind": "skinpic",
    "splash_size": [
     380,
     752
-   ],
-   "splash_kind": "skinpic"
+   ]
   },
   {
    "id": "c_LottaDorm",
@@ -3967,12 +3960,12 @@
     "texture": "Avatar_Head_LottaSR"
    },
    "splash": "/splash/c_LottaSR0101.webp",
-   "splash_source": "Img_ChrSkinPic_LottaSR01",
+   "splash_source": "Img_ChrSkinPic_LottaSR",
+   "splash_kind": "skinpic",
    "splash_size": [
     380,
     752
-   ],
-   "splash_kind": "skinpic"
+   ]
   },
   {
    "id": "c_MacqiatoDorm",
@@ -4061,12 +4054,12 @@
     "texture": "Avatar_Head_MacqiatoSSR"
    },
    "splash": "/splash/c_MacqiatoSSR0101.webp",
-   "splash_source": "Img_ChrSkinPic_MacqiatoSSR01",
+   "splash_source": "Img_ChrSkinPic_MacqiatoSSR",
+   "splash_kind": "skinpic",
    "splash_size": [
     380,
     752
-   ],
-   "splash_kind": "skinpic"
+   ]
   },
   {
    "id": "c_MacqiatoSSR0102",
@@ -4091,12 +4084,12 @@
     "texture": "Avatar_Head_MacqiatoSSR"
    },
    "splash": "/splash/c_MacqiatoSSR0102.webp",
-   "splash_source": "Img_ChrSkinPic_MacqiatoSSR01",
+   "splash_source": "Avatar_Half_MacqiatoSSR",
+   "splash_kind": "half",
    "splash_size": [
-    380,
-    752
-   ],
-   "splash_kind": "skinpic"
+    512,
+    512
+   ]
   },
   {
    "id": "c_MacqiatoSSR0103",
@@ -4125,12 +4118,12 @@
     "texture": "Avatar_Head_MacqiatoSSR"
    },
    "splash": "/splash/c_MacqiatoSSR0103.webp",
-   "splash_source": "Img_ChrSkinPic_MacqiatoSSR01",
+   "splash_source": "Avatar_Bust_MacqiatoSSR",
+   "splash_kind": "bust",
    "splash_size": [
-    380,
-    752
-   ],
-   "splash_kind": "skinpic"
+    512,
+    512
+   ]
   },
   {
    "id": "c_Mayling",
@@ -4224,11 +4217,11 @@
    },
    "splash": "/splash/c_MishtySSR01.webp",
    "splash_source": "Img_ChrSkinPic_MishtySSR",
+   "splash_kind": "skinpic",
    "splash_size": [
     380,
     752
-   ],
-   "splash_kind": "skinpic"
+   ]
   },
   {
    "id": "c_MitylDorm",
@@ -4313,12 +4306,12 @@
     "texture": "Avatar_Head_MitylSSR"
    },
    "splash": "/splash/c_MitylSSR0101.webp",
-   "splash_source": "Img_ChrSkinPic_MitylSSR01",
+   "splash_source": "Img_ChrSkinPic_MitylSSR",
+   "splash_kind": "skinpic",
    "splash_size": [
     380,
     752
-   ],
-   "splash_kind": "skinpic"
+   ]
   },
   {
    "id": "c_MosinnagantDorm",
@@ -4399,12 +4392,12 @@
     "texture": "Avatar_Head_MosinnagantSSR"
    },
    "splash": "/splash/c_MosinnagantSSR0101.webp",
-   "splash_source": "Img_ChrSkinPic_MosinnagantSSR01",
+   "splash_source": "Img_ChrSkinPic_MosinnagantSSR",
+   "splash_kind": "skinpic",
    "splash_size": [
     380,
     752
-   ],
-   "splash_kind": "skinpic"
+   ]
   },
   {
    "id": "c_NagantDorm",
@@ -4481,12 +4474,12 @@
     "texture": "Avatar_Head_NagantSR"
    },
    "splash": "/splash/c_NagantSR0101.webp",
-   "splash_source": "Img_ChrSkinPic_NagantSR01",
+   "splash_source": "Img_ChrSkinPic_NagantSR",
+   "splash_kind": "skinpic",
    "splash_size": [
     380,
     752
-   ],
-   "splash_kind": "skinpic"
+   ]
   },
   {
    "id": "c_NemesisDorm",
@@ -4573,11 +4566,11 @@
    },
    "splash": "/splash/c_NemesisGnosisSSR01.webp",
    "splash_source": "Img_ChrSkinPic_NemesisGnosisSSR",
+   "splash_kind": "skinpic",
    "splash_size": [
     378,
     750
-   ],
-   "splash_kind": "skinpic"
+   ]
   },
   {
    "id": "c_NemesisSR01",
@@ -4604,11 +4597,11 @@
    },
    "splash": "/splash/c_NemesisSR01.webp",
    "splash_source": "Img_ChrSkinPic_NemesisSR",
+   "splash_kind": "skinpic",
    "splash_size": [
     380,
     752
-   ],
-   "splash_kind": "skinpic"
+   ]
   },
   {
    "id": "c_NemesisSR0103",
@@ -4633,12 +4626,12 @@
     "texture": "Avatar_Head_NemesisSR"
    },
    "splash": "/splash/c_NemesisSR0103.webp",
-   "splash_source": "Img_ChrSkinPic_NemesisSR",
+   "splash_source": "Avatar_Half_NemesisSR",
+   "splash_kind": "half",
    "splash_size": [
-    380,
-    752
-   ],
-   "splash_kind": "skinpic"
+    512,
+    512
+   ]
   },
   {
    "id": "c_NemesisSR0104",
@@ -4667,12 +4660,12 @@
     "texture": "Avatar_Head_NemesisSR"
    },
    "splash": "/splash/c_NemesisSR0104.webp",
-   "splash_source": "Img_ChrSkinPic_NemesisSR",
+   "splash_source": "Avatar_Bust_NemesisSR",
+   "splash_kind": "bust",
    "splash_size": [
-    380,
-    752
-   ],
-   "splash_kind": "skinpic"
+    512,
+    512
+   ]
   },
   {
    "id": "c_NemesisSR0105",
@@ -4693,12 +4686,12 @@
     "texture": "Avatar_Head_NemesisSR"
    },
    "splash": "/splash/c_NemesisSR0105.webp",
-   "splash_source": "Img_ChrSkinPic_NemesisSR",
+   "splash_source": "Avatar_Head_NemesisSR",
+   "splash_kind": "head",
    "splash_size": [
-    380,
-    752
-   ],
-   "splash_kind": "skinpic"
+    128,
+    128
+   ]
   },
   {
    "id": "c_NikketaDorm",
@@ -4788,12 +4781,12 @@
     "texture": "Avatar_Head_NikketaSSR"
    },
    "splash": "/splash/c_NikketaSSR0101.webp",
-   "splash_source": "Img_ChrSkinPic_NikketaSSR01",
+   "splash_source": "Img_ChrSkinPic_NikketaSSR",
+   "splash_kind": "skinpic",
    "splash_size": [
     380,
     752
-   ],
-   "splash_kind": "skinpic"
+   ]
   },
   {
    "id": "c_NikketaSSR0102",
@@ -4818,12 +4811,12 @@
     "texture": "Avatar_Head_NikketaSSR"
    },
    "splash": "/splash/c_NikketaSSR0102.webp",
-   "splash_source": "Img_ChrSkinPic_NikketaSSR01",
+   "splash_source": "Avatar_Half_NikketaSSR",
+   "splash_kind": "half",
    "splash_size": [
-    380,
-    752
-   ],
-   "splash_kind": "skinpic"
+    512,
+    512
+   ]
   },
   {
    "id": "c_NikketaSSR0103",
@@ -4848,12 +4841,12 @@
     "texture": "Avatar_Head_NikketaSSR"
    },
    "splash": "/splash/c_NikketaSSR0103.webp",
-   "splash_source": "Img_ChrSkinPic_NikketaSSR01",
+   "splash_source": "Avatar_Bust_NikketaSSR",
+   "splash_kind": "bust",
    "splash_size": [
-    380,
-    752
-   ],
-   "splash_kind": "skinpic"
+    512,
+    512
+   ]
   },
   {
    "id": "c_OTs14Dorm",
@@ -4935,12 +4928,12 @@
     "texture": "Avatar_Head_OTs14SSR"
    },
    "splash": "/splash/c_OTs14SSR0101.webp",
-   "splash_source": "Img_ChrSkinPic_OTs14SSR01",
+   "splash_source": "Img_ChrSkinPic_OTs14SSR",
+   "splash_kind": "skinpic",
    "splash_size": [
-    378,
-    750
-   ],
-   "splash_kind": "skinpic"
+    380,
+    752
+   ]
   },
   {
    "id": "c_OTs14SSR0102",
@@ -4962,12 +4955,12 @@
     "texture": "Avatar_Head_OTs14SSR"
    },
    "splash": "/splash/c_OTs14SSR0102.webp",
-   "splash_source": "Img_ChrSkinPic_OTs14SSR01",
+   "splash_source": "Avatar_Half_OTs14SSR",
+   "splash_kind": "half",
    "splash_size": [
-    378,
-    750
-   ],
-   "splash_kind": "skinpic"
+    512,
+    512
+   ]
   },
   {
    "id": "c_PapashaDorm",
@@ -5035,11 +5028,11 @@
    },
    "splash": "/splash/c_PapashaSSR01.webp",
    "splash_source": "Img_ChrSkinPic_PapashaSSR",
+   "splash_kind": "skinpic",
    "splash_size": [
     380,
     752
-   ],
-   "splash_kind": "skinpic"
+   ]
   },
   {
    "id": "c_PeriDorm",
@@ -5121,12 +5114,12 @@
     "texture": "Avatar_Head_PeriSSR"
    },
    "splash": "/splash/c_PeriSSR0101.webp",
-   "splash_source": "Img_ChrSkinPic_PeriSSR01",
+   "splash_source": "Img_ChrSkinPic_PeriSSR",
+   "splash_kind": "skinpic",
    "splash_size": [
     380,
     752
-   ],
-   "splash_kind": "skinpic"
+   ]
   },
   {
    "id": "c_PerityaDorm",
@@ -5215,12 +5208,12 @@
     "texture": "Avatar_Head_PerityaSSR"
    },
    "splash": "/splash/c_PerityaSSR0101.webp",
-   "splash_source": "Img_ChrSkinPic_PerityaSSR01",
+   "splash_source": "Img_ChrSkinPic_PerityaSSR",
+   "splash_kind": "skinpic",
    "splash_size": [
     380,
     752
-   ],
-   "splash_kind": "skinpic"
+   ]
   },
   {
    "id": "c_PerityaSSR0102",
@@ -5245,12 +5238,12 @@
     "texture": "Avatar_Head_PerityaSSR"
    },
    "splash": "/splash/c_PerityaSSR0102.webp",
-   "splash_source": "Img_ChrSkinPic_PerityaSSR01",
+   "splash_source": "Avatar_Half_PerityaSSR",
+   "splash_kind": "half",
    "splash_size": [
-    380,
-    752
-   ],
-   "splash_kind": "skinpic"
+    512,
+    512
+   ]
   },
   {
    "id": "c_PhaetusaDorm",
@@ -5305,12 +5298,12 @@
     "texture": "Avatar_Head_PhaetusaSSR"
    },
    "splash": "/splash/c_PhaetusaSSR0101.webp",
-   "splash_source": "Img_ChrSkinPic_PhaetusaSSR01",
+   "splash_source": "Img_ChrSkinPic_PhaetusaSSR",
+   "splash_kind": "skinpic",
    "splash_size": [
     380,
     752
-   ],
-   "splash_kind": "skinpic"
+   ]
   },
   {
    "id": "c_QiongjiuDorm",
@@ -5399,12 +5392,12 @@
     "texture": "Avatar_Head_QiongjiuSSR"
    },
    "splash": "/splash/c_QiongjiuSSR0101.webp",
-   "splash_source": "Img_ChrSkinPic_QiongjiuSSR01",
+   "splash_source": "Img_ChrSkinPic_QiongjiuSSR",
+   "splash_kind": "skinpic",
    "splash_size": [
     380,
     752
-   ],
-   "splash_kind": "skinpic"
+   ]
   },
   {
    "id": "c_QiuhuaDorm",
@@ -5489,12 +5482,12 @@
     "texture": "Avatar_Head_QiuhuaSSR"
    },
    "splash": "/splash/c_QiuhuaSSR0101.webp",
-   "splash_source": "Img_ChrSkinPic_QiuhuaSSR01",
+   "splash_source": "Img_ChrSkinPic_QiuhuaSSR",
+   "splash_kind": "skinpic",
    "splash_size": [
     380,
     752
-   ],
-   "splash_kind": "skinpic"
+   ]
   },
   {
    "id": "c_QiuhuaSSR0102",
@@ -5523,12 +5516,12 @@
     "texture": "Avatar_Head_QiuhuaSSR"
    },
    "splash": "/splash/c_QiuhuaSSR0102.webp",
-   "splash_source": "Img_ChrSkinPic_QiuhuaSSR01",
+   "splash_source": "Avatar_Half_QiuhuaSSR",
+   "splash_kind": "half",
    "splash_size": [
-    380,
-    752
-   ],
-   "splash_kind": "skinpic"
+    512,
+    512
+   ]
   },
   {
    "id": "c_QiuhuaSSR0103",
@@ -5557,12 +5550,12 @@
     "texture": "Avatar_Head_QiuhuaSSR"
    },
    "splash": "/splash/c_QiuhuaSSR0103.webp",
-   "splash_source": "Img_ChrSkinPic_QiuhuaSSR01",
+   "splash_source": "Avatar_Bust_QiuhuaSSR",
+   "splash_kind": "bust",
    "splash_size": [
-    380,
-    752
-   ],
-   "splash_kind": "skinpic"
+    512,
+    512
+   ]
   },
   {
    "id": "c_RobellaDorm",
@@ -5655,12 +5648,12 @@
     "texture": "Avatar_Head_RobellaSSR"
    },
    "splash": "/splash/c_RobellaSSR0101.webp",
-   "splash_source": "Img_ChrSkinPic_RobellaSSR01",
+   "splash_source": "Img_ChrSkinPic_RobellaSSR",
+   "splash_kind": "skinpic",
    "splash_size": [
     380,
     752
-   ],
-   "splash_kind": "skinpic"
+   ]
   },
   {
    "id": "c_RobellaSSR0102",
@@ -5689,12 +5682,12 @@
     "texture": "Avatar_Head_RobellaSSR"
    },
    "splash": "/splash/c_RobellaSSR0102.webp",
-   "splash_source": "Img_ChrSkinPic_RobellaSSR01",
+   "splash_source": "Avatar_Half_RobellaSSR",
+   "splash_kind": "half",
    "splash_size": [
-    380,
-    752
-   ],
-   "splash_kind": "skinpic"
+    512,
+    512
+   ]
   },
   {
    "id": "c_SabrinaDorm",
@@ -5783,12 +5776,12 @@
     "texture": "Avatar_Head_SabrinaSSR"
    },
    "splash": "/splash/c_SabrinaSSR0101.webp",
-   "splash_source": "Img_ChrSkinPic_SabrinaSSR01",
+   "splash_source": "Img_ChrSkinPic_SabrinaSSR",
+   "splash_kind": "skinpic",
    "splash_size": [
     380,
     752
-   ],
-   "splash_kind": "skinpic"
+   ]
   },
   {
    "id": "c_SakuraDorm",
@@ -5870,12 +5863,12 @@
     "texture": "Avatar_Head_SakuraSSR"
    },
    "splash": "/splash/c_SakuraSSR0101.webp",
-   "splash_source": "Img_ChrSkinPic_SakuraSSR01",
+   "splash_source": "Img_ChrSkinPic_SakuraSSR",
+   "splash_kind": "skinpic",
    "splash_size": [
     380,
     752
-   ],
-   "splash_kind": "skinpic"
+   ]
   },
   {
    "id": "c_SextansDorm",
@@ -5954,12 +5947,12 @@
     "texture": "Avatar_Head_SextansSSR"
    },
    "splash": "/splash/c_SextansSSR0101.webp",
-   "splash_source": "Img_ChrSkinPic_SextansSSR01",
+   "splash_source": "Img_ChrSkinPic_SextansSSR",
+   "splash_kind": "skinpic",
    "splash_size": [
     378,
     750
-   ],
-   "splash_kind": "skinpic"
+   ]
   },
   {
    "id": "c_SharkryDorm",
@@ -6053,12 +6046,12 @@
     "texture": "Avatar_Head_SharkrySR"
    },
    "splash": "/splash/c_SharkrySR0101.webp",
-   "splash_source": "Img_ChrSkinPic_SharkrySR01",
+   "splash_source": "Img_ChrSkinPic_SharkrySR",
+   "splash_kind": "skinpic",
    "splash_size": [
     380,
     752
-   ],
-   "splash_kind": "skinpic"
+   ]
   },
   {
    "id": "c_SharkrySR0102",
@@ -6087,12 +6080,12 @@
     "texture": "Avatar_Head_SharkrySR"
    },
    "splash": "/splash/c_SharkrySR0102.webp",
-   "splash_source": "Img_ChrSkinPic_SharkrySR01",
+   "splash_source": "Avatar_Half_SharkrySR",
+   "splash_kind": "half",
    "splash_size": [
-    380,
-    752
-   ],
-   "splash_kind": "skinpic"
+    512,
+    512
+   ]
   },
   {
    "id": "c_SoppoDorm",
@@ -6182,12 +6175,12 @@
     "texture": "Avatar_Head_SoppoSSR"
    },
    "splash": "/splash/c_SoppoSSR0101.webp",
-   "splash_source": "Img_ChrSkinPic_SoppoSSR01",
+   "splash_source": "Img_ChrSkinPic_SoppoSSR",
+   "splash_kind": "skinpic",
    "splash_size": [
     378,
     750
-   ],
-   "splash_kind": "skinpic"
+   ]
   },
   {
    "id": "c_SpringfieldDorm",
@@ -6276,12 +6269,12 @@
     "texture": "Avatar_Head_SpringfieldSSR"
    },
    "splash": "/splash/c_SpringfieldSSR0101.webp",
-   "splash_source": "Img_ChrSkinPic_SpringfieldSSR01",
+   "splash_source": "Img_ChrSkinPic_SpringfieldSSR",
+   "splash_kind": "skinpic",
    "splash_size": [
     380,
     752
-   ],
-   "splash_kind": "skinpic"
+   ]
   },
   {
    "id": "c_SpringfieldSSR0102",
@@ -6306,12 +6299,12 @@
     "texture": "Avatar_Head_SpringfieldSSR"
    },
    "splash": "/splash/c_SpringfieldSSR0102.webp",
-   "splash_source": "Img_ChrSkinPic_SpringfieldSSR01",
+   "splash_source": "Avatar_Half_SpringfieldSSR",
+   "splash_kind": "half",
    "splash_size": [
-    380,
-    752
-   ],
-   "splash_kind": "skinpic"
+    512,
+    512
+   ]
   },
   {
    "id": "c_SpringfieldSSR0103",
@@ -6336,12 +6329,12 @@
     "texture": "Avatar_Head_SpringfieldSSR"
    },
    "splash": "/splash/c_SpringfieldSSR0103.webp",
-   "splash_source": "Img_ChrSkinPic_SpringfieldSSR01",
+   "splash_source": "Avatar_Bust_SpringfieldSSR",
+   "splash_kind": "bust",
    "splash_size": [
-    380,
-    752
-   ],
-   "splash_kind": "skinpic"
+    512,
+    512
+   ]
   },
   {
    "id": "c_SuomiDorm",
@@ -6434,12 +6427,12 @@
     "texture": "Avatar_Head_SuomiSSR"
    },
    "splash": "/splash/c_SuomiSSR0101.webp",
-   "splash_source": "Img_ChrSkinPic_SuomiSSR01",
+   "splash_source": "Img_ChrSkinPic_SuomiSSR",
+   "splash_kind": "skinpic",
    "splash_size": [
     380,
     752
-   ],
-   "splash_kind": "skinpic"
+   ]
   },
   {
    "id": "c_SuomiSSR0102",
@@ -6464,12 +6457,12 @@
     "texture": "Avatar_Head_SuomiSSR"
    },
    "splash": "/splash/c_SuomiSSR0102.webp",
-   "splash_source": "Img_ChrSkinPic_SuomiSSR01",
+   "splash_source": "Avatar_Half_SuomiSSR",
+   "splash_kind": "half",
    "splash_size": [
-    380,
-    752
-   ],
-   "splash_kind": "skinpic"
+    512,
+    512
+   ]
   },
   {
    "id": "c_TololoDorm",
@@ -6558,12 +6551,12 @@
     "texture": "Avatar_Head_TololoSSR"
    },
    "splash": "/splash/c_TololoSSR0101.webp",
-   "splash_source": "Img_ChrSkinPic_TololoSSR01",
+   "splash_source": "Img_ChrSkinPic_TololoSSR",
+   "splash_kind": "skinpic",
    "splash_size": [
     380,
     752
-   ],
-   "splash_kind": "skinpic"
+   ]
   },
   {
    "id": "c_TololoSSR0102",
@@ -6588,12 +6581,12 @@
     "texture": "Avatar_Head_TololoSSR"
    },
    "splash": "/splash/c_TololoSSR0102.webp",
-   "splash_source": "Img_ChrSkinPic_TololoSSR01",
+   "splash_source": "Avatar_Half_TololoSSR",
+   "splash_kind": "half",
    "splash_size": [
-    380,
-    752
-   ],
-   "splash_kind": "skinpic"
+    512,
+    512
+   ]
   },
   {
    "id": "c_UllridDorm",
@@ -6653,11 +6646,11 @@
    },
    "splash": "/splash/c_UllridSSR01.webp",
    "splash_source": "Img_ChrSkinPic_UllridSSR",
+   "splash_kind": "skinpic",
    "splash_size": [
     380,
     752
-   ],
-   "splash_kind": "skinpic"
+   ]
   },
   {
    "id": "c_VectorDorm",
@@ -6746,12 +6739,12 @@
     "texture": "Avatar_Head_VectorSSR"
    },
    "splash": "/splash/c_VectorSSR0101.webp",
-   "splash_source": "Img_ChrSkinPic_VectorSSR01",
+   "splash_source": "Img_ChrSkinPic_VectorSSR",
+   "splash_kind": "skinpic",
    "splash_size": [
     380,
     752
-   ],
-   "splash_kind": "skinpic"
+   ]
   },
   {
    "id": "c_VectorSSR0102",
@@ -6776,12 +6769,12 @@
     "texture": "Avatar_Head_VectorSSR"
    },
    "splash": "/splash/c_VectorSSR0102.webp",
-   "splash_source": "Img_ChrSkinPic_VectorSSR01",
+   "splash_source": "Avatar_Half_VectorSSR",
+   "splash_kind": "half",
    "splash_size": [
-    380,
-    752
-   ],
-   "splash_kind": "skinpic"
+    512,
+    512
+   ]
   },
   {
    "id": "c_VepleyDorm",
@@ -6884,12 +6877,12 @@
     "texture": "Avatar_Head_VepleySSR"
    },
    "splash": "/splash/c_VepleySSR0101.webp",
-   "splash_source": "Img_ChrSkinPic_VepleySSR01",
+   "splash_source": "Img_ChrSkinPic_VepleySSR",
+   "splash_kind": "skinpic",
    "splash_size": [
     380,
     752
-   ],
-   "splash_kind": "skinpic"
+   ]
   },
   {
    "id": "c_VepleySSR0102",
@@ -6914,12 +6907,12 @@
     "texture": "Avatar_Head_VepleySSR"
    },
    "splash": "/splash/c_VepleySSR0102.webp",
-   "splash_source": "Img_ChrSkinPic_VepleySSR01",
+   "splash_source": "Avatar_Half_VepleySSR",
+   "splash_kind": "half",
    "splash_size": [
-    380,
-    752
-   ],
-   "splash_kind": "skinpic"
+    512,
+    512
+   ]
   },
   {
    "id": "c_VoymastinaDorm",
@@ -7009,12 +7002,12 @@
     "texture": "Avatar_Head_VoymastinaSSR"
    },
    "splash": "/splash/c_VoymastinaSSR0101.webp",
-   "splash_source": "Img_ChrSkinPic_VoymastinaSSR01",
+   "splash_source": "Img_ChrSkinPic_VoymastinaSSR",
+   "splash_kind": "skinpic",
    "splash_size": [
     380,
     752
-   ],
-   "splash_kind": "skinpic"
+   ]
   },
   {
    "id": "c_VoymastinaSSR0102",
@@ -7041,12 +7034,12 @@
     "texture": "Avatar_Head_VoymastinaSSR"
    },
    "splash": "/splash/c_VoymastinaSSR0102.webp",
-   "splash_source": "Img_ChrSkinPic_VoymastinaSSR01",
+   "splash_source": "Avatar_Half_VoymastinaSSR",
+   "splash_kind": "half",
    "splash_size": [
-    380,
-    752
-   ],
-   "splash_kind": "skinpic"
+    512,
+    512
+   ]
   },
   {
    "id": "c_WelrodDorm",
@@ -7135,12 +7128,12 @@
     "texture": "Avatar_Head_WelrodSSR"
    },
    "splash": "/splash/c_WelrodSSR0101.webp",
-   "splash_source": "Img_ChrSkinPic_WelrodSSR01",
+   "splash_source": "Img_ChrSkinPic_WelrodSSR",
+   "splash_kind": "skinpic",
    "splash_size": [
     380,
     752
-   ],
-   "splash_kind": "skinpic"
+   ]
   },
   {
    "id": "c_YooHeeDorm",
@@ -7229,12 +7222,12 @@
     "texture": "Avatar_Head_YooHeeSSR"
    },
    "splash": "/splash/c_YooHeeSSR0101.webp",
-   "splash_source": "Img_ChrSkinPic_YooHeeSSR01",
+   "splash_source": "Img_ChrSkinPic_YooHeeSSR",
+   "splash_kind": "skinpic",
    "splash_size": [
     380,
     752
-   ],
-   "splash_kind": "skinpic"
+   ]
   },
   {
    "id": "c_ZhaohuiDorm",
@@ -7323,12 +7316,12 @@
     "texture": "Avatar_Head_ZhaohuiSSR"
    },
    "splash": "/splash/c_ZhaohuiSSR0101.webp",
-   "splash_source": "Img_ChrSkinPic_ZhaohuiSSR01",
+   "splash_source": "Img_ChrSkinPic_ZhaohuiSSR",
+   "splash_kind": "skinpic",
    "splash_size": [
     380,
     752
-   ],
-   "splash_kind": "skinpic"
+   ]
   }
  ]
 }
