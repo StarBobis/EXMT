@@ -1,5 +1,11 @@
 """`.exmtmesh` interchange format (numpy .npz) used by the Tauri app and the Blender add-on.
 
+This is the **lossless** format: besides the decoded vertex attributes it carries the
+mesh's full SerializedFile typetree (`meta["tree"]`), so bone hashes, bind poses,
+per-bone AABBs, collision meshes, submesh descriptors and every engine-only flag
+survive a Blender round trip.  glTF cannot represent those, which is why the add-on
+uses this format for both directions.
+
 Stored arrays
     positions (N,3) f32     normals (N,3) f32      tangents (N,4) f32
     colors    (N,4) f32     uv0     (N,2) f32      uv1 (N,2) f32 (optional)
@@ -7,21 +13,51 @@ Stored arrays
     indices   (M,)  u32
     submesh_first (S,) u32  submesh_count (S,) u32
     bindpose  (B,4,4) f32   bone_hashes (B,) u32
-    meta      ()    unicode JSON string
+    raw_stream, raw_index   uint8 blobs of the original buffers (byte-identical round trip)
+    meta      ()    unicode JSON string (includes the full typetree)
 """
 
 from __future__ import annotations
 
+import base64
+import copy
 import json
 
 import numpy as np
 
 from . import mesh as M
 
-FORMAT = "exmt-mesh-1"
+FORMAT = "exmt-mesh-2"
+
+# fields that hold megabytes of bytes and are moved out of the JSON tree
+RAW_FIELDS = {
+    "m_IndexBuffer": "raw_index",
+    "m_BakedConvexCollisionMesh": "raw_baked_convex",
+    "m_BakedTriangleCollisionMesh": "raw_baked_tri",
+}
 
 
-def save(md: M.MeshData, path: str, meta: dict | None = None) -> None:
+def _extract_tree(tree: dict) -> tuple[dict, dict]:
+    """Split a mesh typetree into (json-safe tree, raw byte blobs)."""
+    t = copy.deepcopy(tree)
+    raw = {}
+    vd = t.get("m_VertexData") or {}
+    data = vd.get("m_DataSize")
+    if isinstance(data, (bytes, bytearray)) and data:
+        raw["raw_stream"] = np.frombuffer(bytes(data), dtype=np.uint8)
+        vd["m_DataSize"] = None
+    for field, key in RAW_FIELDS.items():
+        v = t.get(field)
+        if isinstance(v, (bytes, bytearray)) and len(v):
+            raw[key] = np.frombuffer(bytes(v), dtype=np.uint8)
+            t[field] = None
+        elif isinstance(v, list) and v and isinstance(v[0], int):
+            raw[key] = np.asarray(v, dtype=np.uint8)
+            t[field] = None
+    return t, raw
+
+
+def save(md: M.MeshData, path: str, meta: dict | None = None, tree: dict | None = None) -> None:
     arrs = {}
     names = {0: "positions", 1: "normals", 2: "tangents", 3: "colors", 4: "uv0", 5: "uv1"}
     for attr, arr in md.arrays.items():
@@ -51,6 +87,9 @@ def save(md: M.MeshData, path: str, meta: dict | None = None) -> None:
     }
     if meta:
         info.update(meta)
+    if tree is not None:
+        info["tree"], raw = _extract_tree(tree)
+        arrs.update(raw)
     arrs["meta"] = np.array(json.dumps(info, ensure_ascii=False))
     with open(path, "wb") as fh:
         np.savez_compressed(fh, **arrs)
@@ -59,7 +98,7 @@ def save(md: M.MeshData, path: str, meta: dict | None = None) -> None:
 def load(path: str, template: dict | None = None) -> tuple[M.MeshData, dict]:
     z = np.load(path, allow_pickle=False)
     info = json.loads(str(z["meta"]))
-    channels = info["channels"]
+    channels = list(info["channels"])
     while len(channels) < 14:
         channels.append({"stream": 0, "offset": 0, "format": 0, "dimension": 0})
     # only keep channels that actually exist in the target layout
@@ -92,6 +131,11 @@ def load(path: str, template: dict | None = None) -> tuple[M.MeshData, dict]:
     subs = [{"firstByte": int(first[i]) * width, "indexCount": int(cnt[i]), "topology": 0,
              "baseVertex": 0, "firstVertex": 0, "vertexCount": 0, "localAABB": {}} for i in range(len(cnt))]
 
+    raw = {}
+    for name in ("raw_stream", "raw_index", "raw_baked_convex", "raw_baked_tri"):
+        if name in z:
+            raw[name] = np.asarray(z[name], dtype=np.uint8).tobytes()
+
     return M.MeshData(
         name=info.get("name", ""),
         vertex_count=count,
@@ -104,7 +148,7 @@ def load(path: str, template: dict | None = None) -> tuple[M.MeshData, dict]:
         bone_hashes=[int(x) for x in np.asarray(z["bone_hashes"])] if "bone_hashes" in z else [],
         aabb=info.get("aabb") or {},
         raw_data=b"",
-    ), {"first": first, "count": cnt, "info": info}
+    ), {"first": first, "count": cnt, "info": info, "raw": raw}
 
 
 def rebuild_submeshes(md: M.MeshData, first, count) -> None:

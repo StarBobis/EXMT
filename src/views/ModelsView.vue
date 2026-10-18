@@ -58,6 +58,43 @@ function initials(entry: CatalogEntry) {
   return label(entry).slice(0, 1) || entry.id.slice(2, 3);
 }
 
+async function exportAllParts(entry: CatalogEntry) {
+  busy.value = entry.id;
+  try {
+    const dir = await open({ title: "选择导出目录（每个部位一个 .exmtmesh）", directory: true });
+    if (!dir) return;
+    push("info", `导出全部部位（.exmtmesh，含完整类型树）…`);
+    const res = await runCore(["extract-all", bundlePath(entry.bundle), dir as string]);
+    if (res.code !== 0) throw new Error(res.stderr || res.stdout);
+    const lines = res.stdout.trim().split("\n").filter(Boolean).length;
+    push("ok", `${label(entry)}：导出 ${lines} 个部位 → ${dir}`);
+  } catch (e) {
+    push("err", String(e));
+  } finally {
+    busy.value = "";
+  }
+}
+
+async function exportGlb(entry: CatalogEntry) {
+  busy.value = entry.id;
+  try {
+    const out = await save({
+      title: "导出 glTF（仅用于预览）",
+      defaultPath: `${entry.id}.glb`,
+      filters: [{ name: "glTF 二进制", extensions: ["glb"] }],
+    });
+    if (!out) return;
+    const res = await runCore(["glb", bundlePath(entry.bundle), out]);
+    if (res.code !== 0) throw new Error(res.stderr || res.stdout);
+    const info = JSON.parse(res.stdout.trim().split("\n").pop() || "{}");
+    push("ok", `glTF（预览用，不含骨骼哈希/碰撞等数据）：${info.meshes} 个网格 → ${out}`);
+  } catch (e) {
+    push("err", String(e));
+  } finally {
+    busy.value = "";
+  }
+}
+
 async function exportModel(entry: CatalogEntry, format: "glb" | "exmtmesh") {
   busy.value = entry.id;
   try {
@@ -303,10 +340,19 @@ async function restore(entry: CatalogEntry) {
           class="btn btn--accent"
           type="button"
           :disabled="busy === selected.id"
-          @click="exportModel(selected, 'glb')"
+          @click="exportAllParts(selected)"
         >
           <span class="glyph">&#xE896;</span>
-          导出 glTF（全部网格 + 骨架）
+          导出全部部位（.exmtmesh）
+        </button>
+        <button
+          class="btn"
+          type="button"
+          :disabled="busy === selected.id"
+          @click="exportGlb(selected)"
+        >
+          <span class="glyph">&#xE74E;</span>
+          导出 glTF（仅预览）
         </button>
         <button
           class="btn"
@@ -314,8 +360,7 @@ async function restore(entry: CatalogEntry) {
           :disabled="busy === selected.id"
           @click="exportModel(selected, 'exmtmesh')"
         >
-          <span class="glyph">&#xE74E;</span>
-          导出 .exmtmesh
+          导出单个部位
         </button>
         <button
           class="btn"

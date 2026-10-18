@@ -45,8 +45,9 @@ def cmd_extract(args):
     bundle_path, mesh_name, out = args
     b = open_bundle(bundle_path)
     o = b.mesh(mesh_name)
-    md = M.from_tree(o.read_typetree())
-    interchange.save(md, out, {"bundle": os.path.basename(bundle_path)})
+    tree = o.read_typetree()
+    md = M.from_tree(tree)
+    interchange.save(md, out, {"bundle": os.path.basename(bundle_path)}, tree=tree)
     print("exported %s -> %s (%d verts, %d bones)" % (md.name, out, md.vertex_count, len(md.bone_hashes)))
     return 0
 
@@ -56,9 +57,10 @@ def cmd_extract_all(args):
     os.makedirs(outdir, exist_ok=True)
     b = open_bundle(bundle_path)
     for o in b.meshes():
-        md = M.from_tree(o.read_typetree())
+        tree = o.read_typetree()
+        md = M.from_tree(tree)
         p = os.path.join(outdir, md.name + ".exmtmesh")
-        interchange.save(md, p, {"bundle": os.path.basename(bundle_path)})
+        interchange.save(md, p, {"bundle": os.path.basename(bundle_path)}, tree=tree)
         print("exported", p)
     return 0
 
@@ -127,21 +129,46 @@ def cmd_subdivide(args):
 
 
 def cmd_pack(args):
+    """pack <bundle> <mesh> <in.exmtmesh> <out.bundle>
+
+    The `.exmtmesh` carries the mesh's full typetree, so packing restores every
+    field the game shipped (bone hashes, bind poses, per-bone AABBs, collision
+    meshes, usage flags …) and only replaces the geometry.
+    """
+    import copy
+
     bundle_path, mesh_name, src, out = args
     b = open_bundle(bundle_path)
     o = b.mesh(mesh_name)
-    tree = o.read_typetree()
-    md, extra = interchange.load(src, tree)
-    interchange.rebuild_submeshes(md, extra["first"], extra["count"])
-    if not md.aabb:
-        md.aabb = M.aabb_from_vertices(md.arrays[0].astype("float32"))
+    target_tree = o.read_typetree()
+    md, extra = interchange.load(src, target_tree)
+
+    base = extra["info"].get("tree")
+    if base:
+        tree = copy.deepcopy(base)
+        # the target bundle's own name must win
+        tree["m_Name"] = target_tree.get("m_Name", tree.get("m_Name"))
     else:
-        md.aabb = M.aabb_from_vertices(md.arrays[0].astype("float32"))
+        tree = target_tree
+
+    # restore binary blobs that we do not regenerate (collision meshes)
+    raw = extra.get("raw") or {}
+    for field, key in (("m_BakedConvexCollisionMesh", "raw_baked_convex"),
+                       ("m_BakedTriangleCollisionMesh", "raw_baked_tri")):
+        if tree.get(field) is None:
+            if key in raw:
+                tree[field] = raw[key]
+            elif target_tree.get(field) is not None:
+                tree[field] = target_tree[field]
+
+    interchange.rebuild_submeshes(md, extra["first"], extra["count"])
+    md.aabb = M.aabb_from_vertices(md.arrays[0].astype("float32"))
     M.to_tree(tree, md)
     o.save_typetree(tree)
     size = len(b.save(out))
     print(json.dumps({"output": out, "bytes": size, "mesh": md.name,
-                      "verts": md.vertex_count, "indices": int(len(md.indices))}))
+                      "verts": md.vertex_count, "indices": int(len(md.indices)),
+                      "tree_restored": bool(base)}))
     return 0
 
 
