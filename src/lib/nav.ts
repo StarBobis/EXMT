@@ -1,27 +1,28 @@
 /** Navigation model — single source of truth for the sidebar and the view switch. */
+import type { MessageKey } from "./i18n";
 
 export type ViewKey = "home" | "models" | "library" | "tools" | "logs" | "settings";
 
 export interface NavItem {
   key: ViewKey;
-  /** Label shown in the sidebar. */
-  label: string;
+  /** i18n key for the label shown in the sidebar. */
+  labelKey: MessageKey;
+  /** i18n key for the one-line description used under the page title. */
+  hintKey: MessageKey;
   /** Segoe Fluent Icons code point. */
   icon: string;
-  /** Short description used by the page header when the view has no custom one. */
-  hint: string;
 }
 
 export const NAV_PRIMARY: NavItem[] = [
-  { key: "home", label: "首页", icon: "\uE80F", hint: "概览与最近操作" },
-  { key: "models", label: "模型", icon: "\uE8F1", hint: "角色预设与模型替换" },
-  { key: "library", label: "资源库", icon: "\uE8B7", hint: "游戏资源与 Mod 包" },
-  { key: "tools", label: "工具", icon: "\uE90F", hint: "贴图、模型与打包" },
-  { key: "logs", label: "日志", icon: "\uE8A5", hint: "运行与诊断输出" },
+  { key: "home", labelKey: "nav.home", hintKey: "nav.hint.home", icon: "\uE80F" },
+  { key: "models", labelKey: "nav.models", hintKey: "nav.hint.models", icon: "\uE8F1" },
+  { key: "library", labelKey: "nav.library", hintKey: "nav.hint.library", icon: "\uE8B7" },
+  { key: "tools", labelKey: "nav.tools", hintKey: "nav.hint.tools", icon: "\uE90F" },
+  { key: "logs", labelKey: "nav.logs", hintKey: "nav.hint.logs", icon: "\uE8A5" },
 ];
 
 export const NAV_FOOTER: NavItem[] = [
-  { key: "settings", label: "设置", icon: "\uE713", hint: "应用、路径与权限" },
+  { key: "settings", labelKey: "nav.settings", hintKey: "nav.hint.settings", icon: "\uE713" },
 ];
 
 export const ALL_NAV_ITEMS: NavItem[] = [...NAV_PRIMARY, ...NAV_FOOTER];

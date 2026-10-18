@@ -13,6 +13,7 @@ import {
 } from "../lib/modbox";
 import catalogData from "../data/catalog.json";
 import artData from "../data/art.json";
+import { t } from "../lib/i18n";
 
 interface CatalogEntry {
   id: string;
@@ -153,13 +154,13 @@ function portraitUrl(entry: CatalogEntry) {
 async function exportAllParts(entry: CatalogEntry) {
   busy.value = entry.id;
   try {
-    const dir = await open({ title: "选择导出目录（每个部位一个 .exmtmesh）", directory: true });
+    const dir = await open({ title: t("models.dialog.exportAll"), directory: true });
     if (!dir) return;
-    push("info", `导出全部部位（.exmtmesh，含完整类型树）…`);
+    push("info", t("models.status.exportAll"));
     const res = await runCore(["extract-all", bundlePath(entry.bundle), dir as string]);
     if (res.code !== 0) throw new Error(res.stderr || res.stdout);
     const lines = res.stdout.trim().split("\n").filter(Boolean).length;
-    push("ok", `${label(entry)}：导出 ${lines} 个部位 → ${dir}`);
+    push("ok", t("models.status.exportedAll", { name: label(entry), n: lines, dir: String(dir) }));
   } catch (e) {
     push("err", String(e));
   } finally {
@@ -172,14 +173,14 @@ async function exportPart(entry: CatalogEntry) {
   try {
     const part = entry.parts.cloth || entry.parts.body || Object.values(entry.parts)[0];
     const out = await save({
-      title: "导出 .exmtmesh",
+      title: t("models.dialog.exportOne"),
       defaultPath: `${part}.exmtmesh`,
       filters: [{ name: "EXMT Mesh", extensions: ["exmtmesh"] }],
     });
     if (!out) return;
     const res = await runCore(["extract", bundlePath(entry.bundle), part, out]);
     if (res.code !== 0) throw new Error(res.stderr || res.stdout);
-    push("ok", res.stdout.trim() || `已导出 → ${out}`);
+    push("ok", res.stdout.trim() || t("models.status.exportedOne", { path: String(out) }));
   } catch (e) {
     push("err", String(e));
   } finally {
@@ -191,7 +192,7 @@ async function installMod(entry: CatalogEntry, target: string) {
   busy.value = entry.id;
   try {
     const file = await open({
-      title: `选择要替换 ${target} 的 .exmtmesh`,
+      title: t("models.dialog.install", { target }),
       multiple: false,
       filters: [{ name: "EXMT Mesh", extensions: ["exmtmesh"] }],
     });
@@ -203,7 +204,7 @@ async function installMod(entry: CatalogEntry, target: string) {
       : [entry.bundle];
     const mesh = entry.parts[target] ?? target;
     for (const hash of bundles) {
-      push("info", `打包 ${target} → ${hash.slice(0, 8)}…`);
+      push("info", t("models.status.packing", { target, hash: hash.slice(0, 8) }));
       await ensureBackup(hash);
       const tmp = await join(await cacheDir(), `${entry.id}-${target}-${hash.slice(0, 8)}.bundle`);
       const res = await runCore(["pack", bundlePath(hash), mesh, file as string, tmp]);
@@ -220,7 +221,7 @@ async function installMod(entry: CatalogEntry, target: string) {
       installed_at: new Date().toISOString(),
       kind: "mesh",
     });
-    push("ok", `已安装：${label(entry)} · ${target}（${bundles.length} 个包，原文件已备份）`);
+    push("ok", t("models.status.installed", { name: label(entry), target, n: bundles.length }));
   } catch (e) {
     push("err", String(e));
   } finally {
@@ -236,7 +237,7 @@ async function applyHide(entry: CatalogEntry, part: string) {
       : [entry.bundle];
     const mesh = entry.parts[part] ?? part;
     for (const hash of bundles) {
-      push("info", `隐藏 ${part} → ${hash.slice(0, 8)}…`);
+      push("info", t("models.status.hiding", { part, hash: hash.slice(0, 8) }));
       await ensureBackup(hash);
       const tmp = await join(await cacheDir(), `${entry.id}-${part}-hidden-${hash.slice(0, 8)}.bundle`);
       const res = await runCore(["hide-mesh", bundlePath(hash), mesh, tmp]);
@@ -252,7 +253,7 @@ async function applyHide(entry: CatalogEntry, part: string) {
       installed_at: new Date().toISOString(),
       kind: "hidden",
     });
-    push("ok", `${label(entry)} · ${part}：已隐藏`);
+    push("ok", t("models.status.hidden", { name: label(entry), part }));
   } catch (e) {
     push("err", String(e));
   } finally {
@@ -264,7 +265,7 @@ async function importBundle(entry: CatalogEntry) {
   busy.value = entry.id;
   try {
     const file = await open({
-      title: "选择要安装的 .bundle",
+      title: t("models.dialog.bundle"),
       multiple: false,
       filters: [{ name: "UnityFS Bundle", extensions: ["bundle"] }],
     });
@@ -280,7 +281,7 @@ async function importBundle(entry: CatalogEntry) {
       installed_at: new Date().toISOString(),
       kind: "bundle",
     });
-    push("ok", `已安装 bundle：${await basename(file as string)}`);
+    push("ok", t("models.status.bundleInstalled", { file: await basename(file as string) }));
   } catch (e) {
     push("err", String(e));
   } finally {
@@ -292,7 +293,7 @@ async function restore(entry: CatalogEntry) {
   busy.value = entry.id;
   try {
     await restoreBackup(entry.bundle);
-    push("ok", `${label(entry)}：已还原原始文件`);
+    push("ok", t("models.status.restored", { name: label(entry) }));
   } catch (e) {
     push("err", String(e));
   } finally {
@@ -305,12 +306,12 @@ async function restore(entry: CatalogEntry) {
   <section class="page">
     <header class="page-header">
       <div>
-        <h1 class="page-title">模型</h1>
-        <p class="page-subtitle">选角色 · 导出改 · 装回来</p>
+        <h1 class="page-title">{{ t("models.title") }}</h1>
+        <p class="page-subtitle">{{ t("models.subtitle") }}</p>
       </div>
       <div class="page-actions">
-        <input v-model="query" class="input" type="search" placeholder="搜索角色…" />
-        <span class="chip chip--accent">{{ characters.length }} 个角色</span>
+        <input v-model="query" class="input" type="search" :placeholder="t('models.search')" />
+        <span class="chip chip--accent">{{ t("models.chars", { n: characters.length }) }}</span>
       </div>
     </header>
 
@@ -340,8 +341,14 @@ async function restore(entry: CatalogEntry) {
             </div>
             <div class="roster__name">{{ c.display }}</div>
             <div class="roster__skin mono">
-              {{ c.art ? `${(c.art.default ? 1 : 0) + c.art.skins.length} 立绘` : "无立绘" }} ·
-              {{ c.entries.length }} 皮肤
+              {{
+                c.art
+                  ? t("models.roster", {
+                      art: (c.art.default ? 1 : 0) + c.art.skins.length,
+                      skins: c.entries.length,
+                    })
+                  : t("models.rosterNoArt", { skins: c.entries.length })
+              }}
             </div>
           </button>
         </div>
@@ -352,7 +359,9 @@ async function restore(entry: CatalogEntry) {
         <section v-if="selectedChar" class="artboard">
       <div class="artboard__head">
         <h3 class="artboard__title">{{ selectedChar.display }}</h3>
-        <span class="chip">{{ artCards.filter(c => c.art).length }} 张立绘 · {{ selectedChar.entries.length }} 个皮肤</span>
+        <span class="chip">
+          {{ t("models.artboard", { art: artCards.filter((c) => c.art).length, skins: selectedChar.entries.length }) }}
+        </span>
       </div>
 
       <div v-if="artCards.length" class="artrow">
@@ -365,7 +374,7 @@ async function restore(entry: CatalogEntry) {
             'artrow__item--empty': !card.art,
           }"
           type="button"
-          :title="card.art ? card.art.label : `${label(card.entry)}（无立绘）`"
+          :title="card.art ? card.art.label : t('models.titleNoArt', { name: label(card.entry) })"
           @click="selected = card.entry"
         >
           <img
@@ -384,7 +393,7 @@ async function restore(entry: CatalogEntry) {
               loading="lazy"
             />
             <span v-else class="artrow__initial">{{ label(card.entry).slice(0, 1) }}</span>
-            <span class="artrow__nopic">无立绘</span>
+            <span class="artrow__nopic">{{ t("models.noArt") }}</span>
           </div>
 
           <div class="artrow__label">
@@ -395,7 +404,7 @@ async function restore(entry: CatalogEntry) {
           </div>
         </button>
       </div>
-      <p v-else class="artboard__empty">这个角色没有立绘资源，下面直接选皮肤模型。</p>
+      <p v-else class="artboard__empty">{{ t("models.noArtHint") }}</p>
     </section>
 
     <article v-if="selected" class="card" style="margin-top: 14px">
@@ -413,7 +422,7 @@ async function restore(entry: CatalogEntry) {
       <div class="kv" style="margin: 16px 0 4px">
         <div class="kv__k">bundle</div>
         <div class="kv__v mono">{{ selected.bundle }}</div>
-        <div class="kv__k">可导出部位</div>
+        <div class="kv__k">{{ t("models.parts") }}</div>
         <div class="kv__v mono">{{ parts.map(([k]) => k).join(" · ") }}</div>
       </div>
 
@@ -428,16 +437,16 @@ async function restore(entry: CatalogEntry) {
               :disabled="busy === selected.id"
               @click="installMod(selected, key)"
             >
-              替换…
+              {{ t("models.replace") }}
             </button>
             <button
               class="btn"
               type="button"
-              title="隐藏这个部位"
+              :title="t('models.hideTitle')"
               :disabled="busy === selected.id"
               @click="applyHide(selected, key)"
             >
-              隐藏
+              {{ t("models.hide") }}
             </button>
           </div>
         </div>
@@ -450,7 +459,7 @@ async function restore(entry: CatalogEntry) {
           @click="exportAllParts(selected)"
         >
           <span class="glyph">&#xE896;</span>
-          导出全部部位（.exmtmesh）
+          {{ t("models.exportAll") }}
         </button>
         <button
           class="btn"
@@ -458,7 +467,7 @@ async function restore(entry: CatalogEntry) {
           :disabled="busy === selected.id"
           @click="exportPart(selected)"
         >
-          导出单个部位
+          {{ t("models.exportOne") }}
         </button>
         <button
           class="btn"
@@ -466,14 +475,14 @@ async function restore(entry: CatalogEntry) {
           :disabled="busy === selected.id"
           @click="importBundle(selected)"
         >
-          安装 .bundle
+          {{ t("models.installBundle") }}
         </button>
         <button class="btn" type="button" :disabled="busy === selected.id" @click="restore(selected)">
           <span class="glyph">&#xE777;</span>
-          还原原版
+          {{ t("models.restore") }}
         </button>
         <span v-if="busy === selected.id" class="status">
-          <span class="status__dot status__dot--warn" />处理中…
+          <span class="status__dot status__dot--warn" />{{ t("models.working") }}
         </span>
       </div>
       <p v-if="status" class="status-line" :class="'status-line--' + status.kind">

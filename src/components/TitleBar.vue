@@ -2,6 +2,7 @@
 import { onBeforeUnmount, onMounted, ref } from "vue";
 import AppLogo from "./AppLogo.vue";
 import { isTauri, tauriWindow } from "../lib/tauri";
+import { t } from "../lib/i18n";
 
 withDefaults(
   defineProps<{
@@ -71,13 +72,13 @@ onBeforeUnmount(() => {
     <div class="titlebar__spacer" data-tauri-drag-region />
 
     <div class="caption-buttons" @dblclick.stop>
-      <button class="caption-btn" type="button" title="最小化" @click="minimize">
+      <button class="caption-btn" type="button" :title="t('win.minimize')" @click="minimize">
         <span class="glyph">&#xE921;</span>
       </button>
       <button
         class="caption-btn"
         type="button"
-        :title="maximized ? '向下还原' : '最大化'"
+        :title="maximized ? t('win.restore') : t('win.maximize')"
         @click="toggleMaximize"
       >
         <span class="glyph">{{ maximized ? "\uE923" : "\uE922" }}</span>
@@ -85,7 +86,7 @@ onBeforeUnmount(() => {
       <button
         class="caption-btn caption-btn--close"
         type="button"
-        title="关闭"
+        :title="t('win.close')"
         @click="close"
       >
         <span class="glyph">&#xE8BB;</span>

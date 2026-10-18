@@ -116,3 +116,45 @@ window.set_size(LogicalSize::new(w.min(work_w).round(), h.min(work_h).round()));
 | 3440×1440 @100% | 3440×1400 | 1232 高封顶 → 1971×1232 |
 
 要换成 16:9 只改一个常量；要更"小一号"就调 `0.72`，别再去 config 写死数字。
+
+## 9. 双语界面 + 用户可配置目录
+
+### 9.1 i18n：类型化字典 > JSON 消息
+
+单窗口工具没必要上 vue-i18n：`Record<keyof typeof zh, string>` 能让**漏翻直接编译失败**，JSON 消息只会静默回落到 key。
+
+```ts
+const zh = { "nav.home": "首页", … } as const;
+export type MessageKey = keyof typeof zh;
+const en: Record<MessageKey, string> = { … };          // 少一个 key → TS 报错
+export const locale = ref<Locale>(readLocale());        // localStorage，默认 zh-CN
+export function t(key: MessageKey, params?: Record<string, string | number>) {
+  let s: string = dictionaries[locale.value][key];
+  for (const [k, v] of params ? Object.entries(params) : []) s = s.split(`{${k}}`).join(String(v));
+  return s;
+}
+```
+
+约束（踩过的）：
+
+- **模板里不许写死中文**；`t()` 读 `locale.value`，切换即重渲染。数组型数据（features/tools）存 **key** 不存文案，否则切换语言不刷新。
+- `String.replaceAll` 在 ES2020 lib 下不存在 → 用 `split/join`。
+- 语言名保持各自语言（简体中文 / English），别翻译成 "Chinese (Simplified)"。
+- 代码里拼好的消息（如 `已还原 ${hash}`）要在**动作发生时**调用 `t()`，不要存成已翻译字符串。
+- 重启验证：改一个 `src-tauri` 文件的 mtime 就能让 `tauri dev` 自动重建重启，**localStorage 会保留**，是验证持久化最省事的方式。
+
+### 9.2 用户可配置目录（Tauri 2）
+
+打开文件夹不是 `open-url` 能干的事：
+
+1. capabilities 里必须有 `opener:allow-open-path`，并给 path scope（`{"path": "**"}` 即可全放行；只写 `allow-open-url` 会报 "not allowed"）。
+2. JS 用 `openPath(dir)`；`revealItemInDir(file)` 是"在资源管理器里选中"，给目录时行为不同。
+3. **先建后存**：`useCacheFolder()` 先 `exists`/`mkdir(recursive)` 成功才写 localStorage，否则用户选到只读盘会留下一个永远打不开的路径。
+4. 打包临时文件写到这个目录（`join(await cacheDir(), name)`），别再用 `%APPDATA%`——几百 MB 的 bundle 用户想放快盘。
+5. 非管理员机器写 `C:\` 根目录会被拒绝，UI 要红字提示而不是静默失败。
+
+### 9.3 验证 UI 时别用会改窗口的脚本
+
+`app.ps1 shot` 里的 `Place()` 会 `SetWindowPos` 到 1680×1050，量到的尺寸/布局就不是打开时的样子。
+自己做点击/截图脚本时：`SetThreadDpiAwarenessContext(-4)` → `ClientToScreen(css×scale)` → `SetCursorPos` + `mouse_event`，**不动窗口**；
+原生文件夹对话框用 `WM_COMMAND + IDCANCEL(2)` 关闭，`FindWindow` 有时找不到（用 EnumWindows 按标题抓句柄）。

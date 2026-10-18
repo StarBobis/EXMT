@@ -1,16 +1,17 @@
 <script setup lang="ts">
 import { onMounted, ref } from "vue";
 import { appVersions } from "../lib/tauri";
+import { locale, t } from "../lib/i18n";
 
 const lines = ref<string[]>([]);
 
 onMounted(async () => {
   const v = await appVersions();
-  const stamp = new Date().toLocaleTimeString("zh-CN", { hour12: false });
+  const stamp = new Date().toLocaleTimeString(locale.value, { hour12: false });
   lines.value = [
-    `${stamp}  EXMT Modbox ${v.app} · Tauri ${v.tauri}`,
-    `${stamp}  shell ready — sidebar / titlebar mounted`,
-    `${stamp}  no background tasks yet; tool output will stream here`,
+    t("logs.banner", { time: stamp, app: v.app, tauri: v.tauri }),
+    t("logs.ready", { time: stamp }),
+    t("logs.idle", { time: stamp }),
   ];
 });
 </script>
@@ -19,12 +20,12 @@ onMounted(async () => {
   <section class="page">
     <header class="page-header">
       <div>
-        <h1 class="page-title">日志</h1>
-        <p class="page-subtitle">运行与诊断输出</p>
+        <h1 class="page-title">{{ t("logs.title") }}</h1>
+        <p class="page-subtitle">{{ t("logs.subtitle") }}</p>
       </div>
       <div class="page-actions">
-        <button class="btn" type="button" disabled>清空</button>
-        <button class="btn" type="button" disabled>导出</button>
+        <button class="btn" type="button" disabled>{{ t("logs.clear") }}</button>
+        <button class="btn" type="button" disabled>{{ t("logs.export") }}</button>
       </div>
     </header>
 
@@ -38,7 +39,7 @@ onMounted(async () => {
       <div class="terminal__body">
         <div v-for="(line, index) in lines" :key="index">{{ line }}</div>
         <div class="terminal__line--dim">
-          // 任务接入后，这里显示实时输出与错误堆栈<span class="terminal__cursor" />
+          {{ t("logs.hint") }}<span class="terminal__cursor" />
         </div>
       </div>
     </div>

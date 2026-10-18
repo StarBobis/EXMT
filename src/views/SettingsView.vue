@@ -3,22 +3,51 @@ import { onMounted, ref } from "vue";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { useTheme, type ThemeMode } from "../lib/theme";
 import { appVersions, isTauri } from "../lib/tauri";
+import { locale, setLocale, t } from "../lib/i18n";
+import {
+  cacheFolder,
+  chooseCacheFolder,
+  openCacheFolder as openCacheFolderInExplorer,
+  useCacheFolder,
+} from "../lib/settings";
 import AppLogo from "../components/AppLogo.vue";
 
 const { mode, setMode } = useTheme();
-const options: { value: ThemeMode; label: string }[] = [
-  { value: "system", label: "跟随系统" },
-  { value: "light", label: "浅色" },
-  { value: "dark", label: "深色" },
+const themeModes: { value: ThemeMode; key: "settings.themeSystem" | "settings.themeLight" | "settings.themeDark" }[] = [
+  { value: "system", key: "settings.themeSystem" },
+  { value: "light", key: "settings.themeLight" },
+  { value: "dark", key: "settings.themeDark" },
 ];
+
 const version = ref("0.1.0");
 const tauri = ref("—");
+const cacheError = ref("");
 
 onMounted(async () => {
   const v = await appVersions();
   version.value = v.app;
   tauri.value = v.tauri;
 });
+
+async function changeCacheFolder() {
+  try {
+    const picked = await chooseCacheFolder(t("settings.cachePick"));
+    if (!picked) return;
+    await useCacheFolder(picked);
+    cacheError.value = "";
+  } catch (e) {
+    cacheError.value = t("settings.cacheFail", { error: String(e) });
+  }
+}
+
+async function openCacheFolder() {
+  try {
+    await openCacheFolderInExplorer();
+    cacheError.value = "";
+  } catch (e) {
+    cacheError.value = t("settings.cacheFail", { error: String(e) });
+  }
+}
 
 /** 外链集中在这里，方便以后替换成正式地址 */
 const LINKS = {
@@ -41,8 +70,8 @@ async function openLink(url: string) {
   <section class="page">
     <header class="page-header">
       <div>
-        <h1 class="page-title">设置</h1>
-        <p class="page-subtitle">应用、路径与权限</p>
+        <h1 class="page-title">{{ t("settings.title") }}</h1>
+        <p class="page-subtitle">{{ t("settings.subtitle") }}</p>
       </div>
     </header>
 
@@ -50,24 +79,31 @@ async function openLink(url: string) {
       <!-- 左：设置项 7 -->
       <div class="settings__main">
         <div class="section">
-          <div class="section__title">外观</div>
+          <div class="section__title">{{ t("settings.general") }}</div>
           <div class="setting-row">
             <div class="setting-row__text">
-              <div class="setting-row__title">主题</div>
-              <div class="setting-row__desc">浅色 / 深色，或跟随 Windows 的个性化设置。</div>
+              <div class="setting-row__title">{{ t("settings.language") }}</div>
+              <div class="setting-row__desc">{{ t("settings.languageDesc") }}</div>
             </div>
             <div class="setting-row__control">
-              <div class="segmented" role="group" aria-label="主题">
+              <div class="segmented" role="group" :aria-label="t('settings.language')">
                 <button
-                  v-for="option in options"
-                  :key="option.value"
                   type="button"
                   class="segmented__item"
-                  :class="{ 'is-active': mode === option.value }"
-                  :aria-pressed="mode === option.value"
-                  @click="setMode(option.value)"
+                  :class="{ 'is-active': locale === 'zh-CN' }"
+                  :aria-pressed="locale === 'zh-CN'"
+                  @click="setLocale('zh-CN')"
                 >
-                  {{ option.label }}
+                  简体中文
+                </button>
+                <button
+                  type="button"
+                  class="segmented__item"
+                  :class="{ 'is-active': locale === 'en-US' }"
+                  :aria-pressed="locale === 'en-US'"
+                  @click="setLocale('en-US')"
+                >
+                  English
                 </button>
               </div>
             </div>
@@ -75,45 +111,92 @@ async function openLink(url: string) {
         </div>
 
         <div class="section">
-          <div class="section__title">路径与权限</div>
+          <div class="section__title">{{ t("settings.appearance") }}</div>
           <div class="setting-row">
             <div class="setting-row__text">
-              <div class="setting-row__title">文件系统</div>
-              <div class="setting-row__desc">
-                已放开任意盘符、任意目录的读取与写入，便于直接改写游戏资源。
+              <div class="setting-row__title">{{ t("settings.theme") }}</div>
+              <div class="setting-row__desc">{{ t("settings.themeDesc") }}</div>
+            </div>
+            <div class="setting-row__control">
+              <div class="segmented" role="group" :aria-label="t('settings.theme')">
+                <button
+                  v-for="option in themeModes"
+                  :key="option.value"
+                  type="button"
+                  class="segmented__item"
+                  :class="{ 'is-active': mode === option.value }"
+                  :aria-pressed="mode === option.value"
+                  @click="setMode(option.value)"
+                >
+                  {{ t(option.key) }}
+                </button>
               </div>
-            </div>
-            <div class="setting-row__control">
-              <span class="status"><span class="status__dot" />已放行</span>
-            </div>
-          </div>
-          <div class="setting-row">
-            <div class="setting-row__text">
-              <div class="setting-row__title">网络请求</div>
-              <div class="setting-row__desc">允许访问任意 http / https 地址，用于拉取更新与远端清单。</div>
-            </div>
-            <div class="setting-row__control">
-              <span class="status"><span class="status__dot" />已放行</span>
-            </div>
-          </div>
-          <div class="setting-row">
-            <div class="setting-row__text">
-              <div class="setting-row__title">游戏目录</div>
-              <div class="setting-row__desc">尚未设置，资源库接入后可在此修改。</div>
-            </div>
-            <div class="setting-row__control">
-              <span class="status"><span class="status__dot status__dot--warn" />未设置</span>
             </div>
           </div>
         </div>
 
         <div class="section">
-          <div class="section__title">运行环境</div>
+          <div class="section__title">{{ t("settings.paths") }}</div>
+          <div class="setting-row">
+            <div class="setting-row__text">
+              <div class="setting-row__title">{{ t("settings.cache") }}</div>
+              <div class="setting-row__desc">{{ t("settings.cacheDesc") }}</div>
+              <div class="pathline mono" :title="cacheFolder">{{ cacheFolder }}</div>
+              <div v-if="cacheError" class="pathline pathline--error">{{ cacheError }}</div>
+            </div>
+            <div class="setting-row__control">
+              <button
+                class="btn"
+                type="button"
+                :disabled="!isTauri"
+                @click="changeCacheFolder"
+              >
+                {{ t("settings.cacheChange") }}
+              </button>
+              <button class="btn" type="button" :disabled="!isTauri" @click="openCacheFolder">
+                <span class="glyph">&#xE8E5;</span>
+                {{ t("settings.cacheOpen") }}
+              </button>
+            </div>
+          </div>
+          <div class="setting-row">
+            <div class="setting-row__text">
+              <div class="setting-row__title">{{ t("settings.fs") }}</div>
+              <div class="setting-row__desc">{{ t("settings.fsDesc") }}</div>
+            </div>
+            <div class="setting-row__control">
+              <span class="status"><span class="status__dot" />{{ t("settings.allowed") }}</span>
+            </div>
+          </div>
+          <div class="setting-row">
+            <div class="setting-row__text">
+              <div class="setting-row__title">{{ t("settings.net") }}</div>
+              <div class="setting-row__desc">{{ t("settings.netDesc") }}</div>
+            </div>
+            <div class="setting-row__control">
+              <span class="status"><span class="status__dot" />{{ t("settings.allowed") }}</span>
+            </div>
+          </div>
+          <div class="setting-row">
+            <div class="setting-row__text">
+              <div class="setting-row__title">{{ t("settings.game") }}</div>
+              <div class="setting-row__desc">{{ t("settings.gameDesc") }}</div>
+            </div>
+            <div class="setting-row__control">
+              <span class="status">
+                <span class="status__dot status__dot--warn" />{{ t("settings.notSet") }}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div class="section">
+          <div class="section__title">{{ t("settings.runtime") }}</div>
           <div class="setting-row">
             <div class="setting-row__text">
               <div class="setting-row__title">Tauri</div>
               <div class="setting-row__desc">
-                {{ isTauri ? "桌面外壳已连接" : "浏览器预览模式" }}
+                {{ isTauri ? t("settings.envConnected") : t("settings.envBrowser") }}
               </div>
             </div>
             <div class="setting-row__control mono">{{ tauri }}</div>
@@ -126,20 +209,19 @@ async function openLink(url: string) {
         <div class="about__logo"><AppLogo class="about__mark" /></div>
         <h2 class="about__name">EXMT Modbox</h2>
         <p class="about__version mono">v{{ version }}</p>
-        <p class="about__desc">
-          面向《少女前线2：追放》的离线模型工具箱：选角色、导出 <code>.exmtmesh</code>、
-          在 Blender 里改完，一键打包回游戏。
-        </p>
+        <p class="about__desc">{{ t("settings.aboutDesc") }}</p>
 
         <div class="about__actions">
           <button class="btn btn--accent" type="button" @click="openLink(LINKS.docs)">
             <span class="glyph">&#xE82D;</span>
-            使用文档
+            {{ t("settings.aboutDocs") }}
           </button>
-          <button class="btn" type="button" @click="openLink(LINKS.guide)">替换模型教程</button>
+          <button class="btn" type="button" @click="openLink(LINKS.guide)">
+            {{ t("settings.aboutGuide") }}
+          </button>
           <button class="btn" type="button" @click="openLink(LINKS.sponsor)">
             <span class="glyph">&#xEB51;</span>
-            赞助与主页
+            {{ t("settings.aboutSponsor") }}
           </button>
         </div>
 
@@ -166,6 +248,20 @@ async function openLink(url: string) {
 
 .settings__main {
   min-width: 0;
+}
+
+/* 缓存路径：长路径要能折行，不能把右侧按钮挤掉 */
+.pathline {
+  margin-top: 6px;
+  font-size: 11.5px;
+  line-height: 17px;
+  color: var(--text-2);
+  word-break: break-all;
+  user-select: text;
+}
+
+.pathline--error {
+  color: #ff9b9b;
 }
 
 .about {

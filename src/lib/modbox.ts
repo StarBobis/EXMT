@@ -1,6 +1,7 @@
 /** App-side storage: game bundle paths, backups, installed-mod manifests. */
 import { copyFile, exists, mkdir, readDir, readTextFile, remove, stat, writeTextFile } from "@tauri-apps/plugin-fs";
 import { appDataDir, join } from "@tauri-apps/api/path";
+import { ensureCacheFolder } from "./settings";
 
 export const GAME_BUNDLES =
   "C:\\GF2Exilium\\GF2 Game\\GF2_Exilium_Data\\LocalCache\\Data\\AssetBundles_Windows";
@@ -25,10 +26,9 @@ export async function modsDir(): Promise<string> {
   return dir;
 }
 
+/** Scratch folder for packed bundles — user-configurable in Settings. */
 export async function cacheDir(): Promise<string> {
-  const dir = await join(await appDataDir(), "cache");
-  await ensureDir(dir);
-  return dir;
+  return ensureCacheFolder();
 }
 
 export interface ModRecord {

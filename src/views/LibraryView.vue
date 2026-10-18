@@ -8,6 +8,7 @@ import {
   type BackupEntry,
   type ModRecord,
 } from "../lib/modbox";
+import { t } from "../lib/i18n";
 
 const backups = ref<BackupEntry[]>([]);
 const mods = ref<ModRecord[]>([]);
@@ -27,7 +28,7 @@ async function doRestore(hash: string) {
   busy.value = hash;
   try {
     await restoreBackup(hash);
-    message.value = `已还原 ${hash.slice(0, 12)}…`;
+    message.value = t("library.restored", { hash: hash.slice(0, 12) });
   } catch (e) {
     message.value = String(e);
   } finally {
@@ -40,7 +41,7 @@ async function doDelete(id: string) {
   busy.value = id;
   try {
     await deleteMod(id);
-    message.value = "已删除 Mod 记录（游戏文件未变，可用备份还原）";
+    message.value = t("library.deleted");
   } catch (e) {
     message.value = String(e);
   } finally {
@@ -66,13 +67,13 @@ onMounted(refresh);
   <section class="page">
     <header class="page-header">
       <div>
-        <h1 class="page-title">资源库</h1>
-        <p class="page-subtitle">Mod 管理与原始文件备份</p>
+        <h1 class="page-title">{{ t("library.title") }}</h1>
+        <p class="page-subtitle">{{ t("library.subtitle") }}</p>
       </div>
       <div class="page-actions">
         <button class="btn" type="button" :disabled="!!busy" @click="refresh">
           <span class="glyph">&#xE72C;</span>
-          刷新
+          {{ t("library.refresh") }}
         </button>
       </div>
     </header>
@@ -83,15 +84,15 @@ onMounted(refresh);
 
     <article class="card">
       <div class="row" style="justify-content: space-between; align-items: center">
-        <h3 class="card__title">已安装 Mod</h3>
-        <span class="chip">{{ mods.length }} 个</span>
+        <h3 class="card__title">{{ t("library.mods") }}</h3>
+        <span class="chip">{{ t("library.count", { n: mods.length }) }}</span>
       </div>
       <p class="card__desc" style="margin-top: 6px">
-        每次安装都会先备份原始 bundle，再覆盖游戏文件。删掉记录不会还原文件，请用下方备份。
+        {{ t("library.modsDesc") }}
       </p>
 
       <div v-if="mods.length === 0" class="empty" style="padding: 28px 0">
-        <p class="empty__text">还没有安装过 Mod。到「模型」页选角色导出/安装即可。</p>
+        <p class="empty__text">{{ t("library.modsEmpty") }}</p>
       </div>
 
       <div v-else class="list" style="margin-top: 12px">
@@ -109,10 +110,10 @@ onMounted(refresh);
               :disabled="!!busy || !m.bundle"
               @click="doRestore(m.bundle!)"
             >
-              还原
+              {{ t("library.restore") }}
             </button>
             <button class="btn" type="button" :disabled="!!busy" @click="doDelete(m.id)">
-              删除记录
+              {{ t("library.delete") }}
             </button>
           </div>
         </div>
@@ -121,15 +122,16 @@ onMounted(refresh);
 
     <article class="card" style="margin-top: 16px">
       <div class="row" style="justify-content: space-between; align-items: center">
-        <h3 class="card__title">原始文件备份</h3>
-        <span class="chip">{{ backups.length }} 个</span>
+        <h3 class="card__title">{{ t("library.backups") }}</h3>
+        <span class="chip">{{ t("library.count", { n: backups.length }) }}</span>
       </div>
       <p class="card__desc" style="margin-top: 6px">
-        备份位置：<span class="mono">%APPDATA%\com.exmt.modbox\backups\</span>
+        {{ t("library.backupsPath") }}
+        <span class="mono">%APPDATA%\com.exmt.modbox\backups\</span>
       </p>
 
       <div v-if="backups.length === 0" class="empty" style="padding: 28px 0">
-        <p class="empty__text">还没有备份。第一次安装 Mod 时会自动生成。</p>
+        <p class="empty__text">{{ t("library.backupsEmpty") }}</p>
       </div>
 
       <div v-else class="list" style="margin-top: 12px">
@@ -140,7 +142,7 @@ onMounted(refresh);
           </div>
           <div class="list__actions">
             <button class="btn" type="button" :disabled="!!busy" @click="doRestore(b.hash)">
-              还原到游戏
+              {{ t("library.restoreToGame") }}
             </button>
           </div>
         </div>

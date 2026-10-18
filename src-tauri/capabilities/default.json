@@ -87,6 +87,14 @@
         { "url": "http://*:*" },
         { "url": "https://*:*" }
       ]
+    },
+    {
+      "identifier": "opener:allow-open-path",
+      "allow": [{ "path": "**" }, { "path": "**/*" }]
+    },
+    {
+      "identifier": "opener:allow-reveal-item-in-dir",
+      "allow": [{ "path": "**" }, { "path": "**/*" }]
     }
   ]
 }
