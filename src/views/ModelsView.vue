@@ -453,42 +453,9 @@ async function restore(entry: CatalogEntry) {
   border-color: rgba(255, 255, 255, 0.22);
 }
 
-/* no 立绘 for this skin: square thumbnail + labels underneath */
-.roster__item--plain {
-  display: flex;
-  flex-direction: column;
-  aspect-ratio: auto;
-}
-
+/* 所有卡片尺寸统一：没有立绘的皮肤用同一张卡片，图按比例居中显示 */
 .roster__item--plain .roster__avatar {
-  position: static;
-  width: 100%;
-  aspect-ratio: 1 / 1;
-}
-
-.roster__item--plain::after {
-  display: none;
-}
-
-.roster__item--plain .roster__name,
-.roster__item--plain .roster__skin {
-  position: static;
-  left: auto;
-  right: auto;
-  bottom: auto;
-  text-align: center;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.roster__item--plain .roster__name {
-  margin: 8px 8px 0;
-  text-shadow: none;
-}
-
-.roster__item--plain .roster__skin {
-  margin: 2px 8px 10px;
+  background: radial-gradient(120% 80% at 50% 30%, #2a3a55 0%, #131b28 70%, #0d131d 100%);
 }
 
 .roster__item--active {
@@ -517,10 +484,10 @@ async function restore(entry: CatalogEntry) {
   object-position: 50% 100%;
 }
 
-/* 头像 / 半身图（没有立绘的皮肤）：方形缩略图贴在卡片上半部分 */
+/* 头像 / 半身图（没有立绘的皮肤）：整张图按比例居中，卡片尺寸和立绘卡一致 */
 .roster__img--crop {
   object-fit: contain;
-  object-position: 50% 0%;
+  object-position: 50% 32%;
 }
 
 .roster__ph {
