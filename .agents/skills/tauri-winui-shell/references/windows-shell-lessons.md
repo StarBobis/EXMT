@@ -323,6 +323,17 @@ Blender 端只读 `current.json` → 目录 → `workspace.json`，就能"一键
 1. **索引里存的文件名带 `.bundle`**，拼路径前必须 `replace(/\.bundle$/i, "")`，否则变成 `x.bundle.bundle`，所有贴图静默失败。
 2. 失败信息别被"空状态"覆盖：先记下第一个错误，`empty` 文案只在**没有错误**时显示，否则永远查不到原因。
 
+### 10.6 App ↔ Blender 的工作空间交接
+
+- **不要硬编码缓存目录**。App 把当前工作空间写成一个 AppData 单文件：`%APPDATA%\com.exmt.modbox\EXMTConfig.json`，内容带**绝对 `dir`**、工作空间 label、所属皮肤；插件只读这个文件，缓存目录改了也不受影响。
+- 插件查找路径要给候选：`%APPDATA%\<identifier>\EXMTConfig.json` 和 `%APPDATA%\EXMTConfig.json`（Tauri `appDataDir()` 在不同版本可能带/不带 identifier）。**配置文件存在但 `workspace: null` 表示“明确没选”**，此时不要回退旧 `current.json`；只有配置文件完全不存在才回退。
+- 一个立绘多个工作空间：目录用 `<skin>__<YYYYMMDD-HHmmss>`，每次“开始制作”新建，绝不覆盖 `<skin>` 旧目录；列表扫 `*/workspace.json`，旧目录无 `workspace_id` 时用目录名兜底。选工作空间 = 选立绘：切 `selectedSkin` 并按 manifest 的 `meshes[].mesh` / `textures[].name` 恢复勾选。
+- 写配置要**串行化**（promise chain）。快速“切皮肤 → 选工作空间”时，先发出的 `write(null)` 可能后完成，把新选择覆盖掉；队列化后按调用顺序落盘。
+- 下拉标签用 `MM-DD HH:mm:ss`，**秒必须可见**；`YYYY-MM-DD HH:mm:ss` 在 220px 的下拉里会被截断到分钟，同一分钟的两个工作空间就分不清了。
+- Blender 侧“一键导入”不只是按钮：面板每次 draw 读 config 显示“当前：<label>”，操作符再读一次 config 拿绝对目录；导入后把 label 写到每个物体的自定义属性，便于回溯。
+- **已安装插件是副本，不是 dev 目录**：Blender 5.2 实际加载的是 `%APPDATA%\Blender Foundation\Blender\5.2\scripts\addons\EXMTBlender\`。改完 `C:\Dev\EXMTBlender` 要同步过去（先备份旧目录），然后 Blender 里 `Reload Scripts` 或重启；否则用户看到的还是旧面板。
+- 无头验证：`blender.exe --background --factory-startup --python test.py`，脚本 import 插件模块 → `register()` → `bpy.ops.exmt.import_workspace()`，打印 `MESH_COUNT`/`MATERIAL_COUNT`；本例 12 网格 + 12 贴图 → 13 个 Mesh（含默认 Cube）、28 个材质。
+
 ## 8. `tauri dev` 会莫名其妙退出（Vite watcher EBUSY）
 
 **现象**：`dev2.log` 反复出现

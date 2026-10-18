@@ -147,6 +147,23 @@
 
 **未决**：目前贴图归属是名称前缀推断，不是材质引用；如果后续能从 prefab/material 读到真实 slot，应替换 `texturesForMesh()`，尤其是 `face`/`eye` 这类进共享组的贴图。
 
+### 2.9 工作空间选择 + Blender 一键导入（2026-10-19）
+
+| 事实 | 证据 |
+| --- | --- |
+| App 实时把“当前选中的工作空间”写到 `%APPDATA%\com.exmt.modbox\EXMTConfig.json`（Tauri `appDataDir()/EXMTConfig.json`），格式 `exmt-config-1`，含 `workspace_root`、`updated_at`、`workspace`（id/label/dir/entry/created_at）或 `null` | 实测文件 425 B；内容 UTF-8 正常（`阿尔瓦·2` / `10-19 06:41:53`）；路径 `C:\Users\Administrator\AppData\Roaming\com.exmt.modbox\EXMTConfig.json` |
+| 选择工作空间 = 选择立绘：下拉选 `c_AlvaSSR0102` 后模型页切到“阿尔瓦·2”、12 子网格/12 贴图，并恢复该工作空间导出时的勾选；首页共享 `selectedSkin` 也会跟着变 | 截图 `C:\DevCache\tauri-logs\shot_064125.png` |
+| 一个工作空间只属于一个立绘，一个立绘可有多个工作空间：每次“开始制作”新建 `<cache>/workspace/<皮肤>__<YYYYMMDD-HHmmss>/`，不覆盖旧目录；旧版按皮肤命名的 `c_AlvaSSR01`、`c_AlvaSSR0102` 仍作为 legacy 工作空间列出并可选中 | 新目录 `c_AlvaSSR0102__20261019-064153`；旧目录保留；截图 `shot_064209.png`（状态行显示新工作空间 12+12） |
+| 工作空间下拉标签用 `MM-DD HH:mm:ss`（秒保留，年份/完整日期省略）以适配 220px 下拉框；列表按 `created_at` 倒序；旧 manifest 没有 `workspace_id`/`label` 时用目录名和 `created_at` 兜底 | `src/lib/workspaces.ts`；选中标签 `阿尔瓦·2 · 10-19 06:41:53` |
+| 写 `EXMTConfig.json` 串行化（promise chain），避免快速切皮肤时后到达的 `null` 覆盖新选择；写配置的同时维护旧 `<cache>/workspace/current.json`，删掉时移除 | `ModelsView.vue` 的 `workspaceWrite` / `persistWorkspace()` |
+| Blender 插件优先读 `EXMTConfig.json`（候选 `%APPDATA%\com.exmt.modbox\…`，其次是 `%APPDATA%\…` 兜底），只有配置文件完全不存在时才回退旧 `<workspace_dir>/current.json`；面板显示“当前：<label>”，按钮一键导入 | 修改 `C:\Dev\EXMTBlender\__init__.py`；`bl_info` 0.2.0 |
+| Blender headless 实测：读配置 → `bpy.ops.exmt.import_workspace()` → `导入 12 个网格 · 12 张贴图 · 阿尔瓦·2 · 10-19 00:09:55`，场景 12 个角色网格 + 默认 Cube，28 个材质 | 命令：`blender.exe --background --factory-startup --python C:\DevCache\exmt-workspace\blender_import_test.py` |
+| 已安装插件目录 `%APPDATA%\Blender Foundation\Blender\5.2\scripts\addons\EXMTBlender` 原本还是 10-18 的 0.1.0；已备份旧目录到 `C:\DevCache\exmt-workspace\EXMTBlender-installed-backup-20261019-064326` 并同步 dev 版（0.2.0） | 安装目录 `__init__.py` 18622 B / `mesh_io.py` 11284 B；重启 Blender 或 Reload Scripts 后生效 |
+| 从**已安装目录**加载 0.2.0 复测：config 指向新工作空间 `c_AlvaSSR0102__20261019-064153`（label `阿尔瓦·2 · 10-19 06:41:53`），导入 12 网格/12 贴图，13 Mesh（含默认 Cube）/28 材质 | 命令：`blender.exe --background --factory-startup --python C:\DevCache\exmt-workspace\blender_installed_test.py`；输出 `RESULT {'FINISHED'}` |
+| `开始制作` 的按钮 title 明确“每次制作都会新建一个工作空间，不覆盖旧的”；创建后新工作空间自动成为当前，状态行显示 label 与绝对目录 | `models.makeHint`；截图 `shot_064209.png` |
+
+**未决**：工作空间还没有删除/重命名 UI；“开始制作”只新建、不更新已有工作空间（如果以后要“覆盖当前工作空间”，需要显式按钮）；工作空间列表只扫当前缓存根目录，换缓存后旧工作空间需要靠配置里的绝对 `dir` 或手动切回旧缓存才能看到。
+
 ---
 
 ## 3. 交付物清单

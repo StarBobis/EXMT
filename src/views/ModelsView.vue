@@ -17,8 +17,20 @@ import {
   type SkinPhase,
   type TextureEntry,
 } from "../lib/preview";
-import { characterOfEntry, label, skinLabel, type CatalogEntry } from "../lib/roster";
-import { selectedSkin } from "../lib/selection";
+import {
+  characterOfEntry,
+  findEntry,
+  label,
+  skinLabel,
+  type CatalogEntry,
+} from "../lib/roster";
+import { selectedSkin, selectSkin } from "../lib/selection";
+import {
+  listWorkspaces,
+  readActiveWorkspaceId,
+  writeActiveWorkspace,
+  type WorkspaceSummary,
+} from "../lib/workspaces";
 
 // ------------------------------------------------------------------------- //
 // studio: every submesh + every texture of the selected skin, one 3D scene
@@ -33,6 +45,13 @@ const maps = ref<Record<string, string>>({});
 /** 当前查看贴图的子网格；null 时看「共享贴图」或空态。 */
 const activeMesh = ref<string | null>(null);
 const activeShared = ref(false);
+/** 工作空间：一个工作空间只属于一个立绘，一个立绘可以有多个工作空间。 */
+const workspaces = ref<WorkspaceSummary[]>([]);
+const activeWorkspace = ref<WorkspaceSummary | null>(null);
+let pendingWorkspace: WorkspaceSummary | null = null;
+let workspaceInit = false;
+/** Serialize EXMTConfig writes so a late "clear" can't overwrite a newer pick. */
+let workspaceWrite: Promise<void> = Promise.resolve();
 const busy = ref("");
 const note = ref("");
 const cacheHint = ref("");
@@ -81,6 +100,8 @@ const allPicked = computed(
     pickedMeshes.value.length === meshes.value.length &&
     pickedTextures.value.length === textures.value.length,
 );
+
+const selectedWorkspaceId = computed(() => activeWorkspace.value?.id ?? "");
 
 const hint = computed(() => {
   if (busy.value) return busy.value;
@@ -174,6 +195,130 @@ function toggleSelectAll() {
   }
 }
 
+// ------------------------------------------------------------------------- //
+// workspaces: the exported folders Blender imports
+// ------------------------------------------------------------------------- //
+async function refreshWorkspaces() {
+  if (!isTauri) return;
+  try {
+    const list = await listWorkspaces();
+    workspaces.value = list;
+    if (activeWorkspace.value) {
+      const current = list.find((ws) => ws.id === activeWorkspace.value?.id);
+      if (current) {
+        // keep the label/counts in sync with the manifest on disk
+        activeWorkspace.value = current;
+      } else {
+        activeWorkspace.value = null;
+        void persistWorkspace(null);
+      }
+    }
+  } catch {
+    // keep the previous list; the selector still works with what we had
+  }
+}
+
+async function persistWorkspace(ws: WorkspaceSummary | null): Promise<boolean> {
+  if (!isTauri) return true;
+  const run = workspaceWrite.then(() => writeActiveWorkspace(ws));
+  workspaceWrite = run.catch(() => undefined);
+  try {
+    await run;
+    return true;
+  } catch (e) {
+    status.value = {
+      kind: "err",
+      text: t("models.workspace.writeFail", { error: String(e) }),
+    };
+    return false;
+  }
+}
+
+async function setActiveWorkspace(ws: WorkspaceSummary | null): Promise<boolean> {
+  activeWorkspace.value = ws;
+  return persistWorkspace(ws);
+}
+
+async function clearActiveWorkspace() {
+  pendingWorkspace = null;
+  await setActiveWorkspace(null);
+}
+
+/** Restore the workspace's exported mesh/texture selection once its skin is loaded. */
+function applyWorkspaceSelection(ws: WorkspaceSummary) {
+  if (!meshes.value.length || loadedId !== ws.entry.id) {
+    pendingWorkspace = ws;
+    return;
+  }
+  pendingWorkspace = null;
+  const meshSet = new Set(meshes.value.map((mesh) => mesh.name));
+  const texSet = new Set(textures.value.map((tex) => tex.name));
+  pickedMeshes.value = ws.meshNames.filter((name) => meshSet.has(name));
+  pickedTextures.value = ws.textureNames.filter((name) => texSet.has(name));
+  const first =
+    pickedMeshes.value.find((name) => textureCount(name) > 0) ??
+    pickedMeshes.value[0] ??
+    null;
+  activeMesh.value = first;
+  activeShared.value = false;
+}
+
+/** Selecting a workspace is also selecting its skin (立绘). */
+async function chooseWorkspace(id: string) {
+  const ws = workspaces.value.find((item) => item.id === id);
+  if (!ws) return;
+  const entry = findEntry(ws.entry.id);
+  if (!entry) {
+    status.value = {
+      kind: "err",
+      text: t("models.workspace.missingSkin", {
+        name: ws.entry.display || ws.entry.name || ws.entry.id,
+      }),
+    };
+    return;
+  }
+  activeWorkspace.value = ws;
+  await persistWorkspace(ws);
+  if (selectedSkin.value?.id !== entry.id) {
+    pendingWorkspace = ws;
+    selectSkin(entry);
+    return;
+  }
+  applyWorkspaceSelection(ws);
+}
+
+async function onWorkspaceChange(event: Event) {
+  const id = (event.target as HTMLSelectElement).value;
+  if (!id) {
+    await clearActiveWorkspace();
+    return;
+  }
+  await chooseWorkspace(id);
+}
+
+/** Load the workspace list and restore the last active one on first activation. */
+async function initWorkspaces() {
+  await refreshWorkspaces();
+  if (workspaceInit) return;
+  workspaceInit = true;
+  if (!isTauri || activeWorkspace.value) return;
+  const id = await readActiveWorkspaceId();
+  if (!id || activeWorkspace.value) return;
+  const ws = workspaces.value.find((item) => item.id === id) ?? null;
+  if (!ws) {
+    await persistWorkspace(null);
+    return;
+  }
+  if (ws.entry.id !== selectedSkin.value?.id) {
+    // Don't let a workspace from another skin override the home selection.
+    await persistWorkspace(null);
+    return;
+  }
+  activeWorkspace.value = ws;
+  await persistWorkspace(ws);
+  applyWorkspaceSelection(ws);
+}
+
 function stamp(iso: string | null) {
   if (!iso) return "";
   const d = new Date(iso);
@@ -227,6 +372,13 @@ async function openStudio(entry: CatalogEntry) {
     // 默认全不选：用户只勾自己要改的那几个，导出和回包都只动它们
     pickedMeshes.value = [];
     pickedTextures.value = [];
+    if (pendingWorkspace) {
+      if (pendingWorkspace.entry.id === entry.id) {
+        applyWorkspaceSelection(pendingWorkspace);
+      } else {
+        pendingWorkspace = null;
+      }
+    }
     if (data.cached) cacheHint.value = t("models.studio.cached", { time: stamp(data.builtAt) });
     if (!data.meshes.length) {
       note.value = t("models.studio.noMesh");
@@ -249,6 +401,8 @@ function sync(entry: CatalogEntry | null) {
     token += 1;
     skinKey = "";
     clearStudio();
+    activeWorkspace.value = null;
+    pendingWorkspace = null;
     return;
   }
   if (entry.id === loadedId) return;
@@ -258,12 +412,23 @@ function sync(entry: CatalogEntry | null) {
 let active = false;
 onActivated(() => {
   active = true;
+  void initWorkspaces();
   sync(selectedSkin.value);
 });
 onDeactivated(() => {
   active = false;
 });
 watch(selectedSkin, (entry) => {
+  if (!entry) {
+    activeWorkspace.value = null;
+    pendingWorkspace = null;
+  } else if (
+    activeWorkspace.value &&
+    activeWorkspace.value.entry.id !== entry.id
+  ) {
+    // The user changed skin elsewhere; the old workspace no longer matches.
+    void clearActiveWorkspace();
+  }
   if (active) sync(entry);
 });
 
@@ -283,10 +448,31 @@ async function startMaking() {
   status.value = null;
   try {
     const result = await makeWorkspace(entry, label(entry), exportMeshes, exportTextures);
-    status.value = {
-      kind: "ok",
-      text: t("models.made", { meshes: result.meshes, textures: result.textures, dir: result.dir }),
-    };
+    await refreshWorkspaces();
+    const summary: WorkspaceSummary =
+      workspaces.value.find((ws) => ws.id === result.id) ?? {
+        id: result.id,
+        label: result.label,
+        dir: result.dir,
+        entry: { id: entry.id, name: entry.name, display: label(entry) },
+        createdAt: new Date().toISOString(),
+        meshNames: exportMeshes.map((mesh) => mesh.name),
+        textureNames: exportTextures.map((tex) => tex.name),
+        meshCount: result.meshes,
+        textureCount: result.textures,
+      };
+    const persisted = await setActiveWorkspace(summary);
+    if (persisted) {
+      status.value = {
+        kind: "ok",
+        text: t("models.made", {
+          meshes: result.meshes,
+          textures: result.textures,
+          label: result.label,
+          dir: result.dir,
+        }),
+      };
+    }
     // 导出完成后直接打开工作空间，省得用户自己找路径
     await openPath(result.dir).catch(() => undefined);
   } catch (e) {
@@ -310,6 +496,24 @@ async function startMaking() {
             {{ t("models.studio.counts", { meshes: meshes.length, textures: textures.length }) }}
           </span>
           <span v-if="skinCode" class="studio__code mono">{{ skinCode }}</span>
+          <label class="workspace-pick" :title="t('models.workspace.hint')">
+            <span class="workspace-pick__label">{{ t("models.workspace.label") }}</span>
+            <select
+              class="workspace-select"
+              :value="selectedWorkspaceId"
+              :disabled="!!busy || !workspaces.length"
+              :aria-label="t('models.workspace.label')"
+              :title="activeWorkspace?.label ?? t('models.workspace.none')"
+              @change="onWorkspaceChange"
+            >
+              <option value="">
+                {{ workspaces.length ? t("models.workspace.none") : t("models.workspace.empty") }}
+              </option>
+              <option v-for="ws in workspaces" :key="ws.id" :value="ws.id">
+                {{ ws.label }}
+              </option>
+            </select>
+          </label>
         </div>
         <span class="studio__hint" :title="hint">{{ hint }}</span>
         <div class="studio__bar-actions">
@@ -329,6 +533,7 @@ async function startMaking() {
           <button
             class="btn btn--accent"
             type="button"
+            :title="t('models.makeHint')"
             :disabled="!!busy || !pickedMeshes.length"
             @click="startMaking"
           >
@@ -526,6 +731,50 @@ async function startMaking() {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.workspace-pick {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  align-self: center;
+}
+
+.workspace-pick__label {
+  font-size: 11.5px;
+  color: var(--text-2);
+  white-space: nowrap;
+}
+
+.workspace-select {
+  width: 220px;
+  max-width: 100%;
+  height: 30px;
+  min-width: 0;
+  padding: 0 8px;
+  border: 1px solid var(--stroke-strong);
+  border-radius: var(--radius-sm);
+  background: var(--card-bg);
+  color: var(--text-1);
+  font: inherit;
+  font-size: 11.5px;
+  cursor: pointer;
+}
+
+.workspace-select:hover:not(:disabled) {
+  background: var(--fill-subtle-hover);
+}
+
+.workspace-select:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.workspace-select:focus,
+.workspace-select:focus-visible {
+  outline: none;
+  border-color: var(--accent);
 }
 
 .studio__hint {
@@ -953,6 +1202,14 @@ async function startMaking() {
 
   .studio__code {
     display: none;
+  }
+
+  .workspace-pick__label {
+    display: none;
+  }
+
+  .workspace-select {
+    width: 180px;
   }
 
   .studio__hint {

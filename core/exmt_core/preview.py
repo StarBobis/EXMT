@@ -371,7 +371,9 @@ def make_workspace(outdir: str, spec: dict) -> dict:
 
     manifest = {
         "format": "exmt-workspace-1",
-        "created_at": time.strftime("%Y-%m-%dT%H:%M:%S"),
+        "workspace_id": spec.get("workspace_id") or spec.get("id", ""),
+        "label": spec.get("label", ""),
+        "created_at": spec.get("created_at") or time.strftime("%Y-%m-%dT%H:%M:%S"),
         "entry": {k: spec.get(k, "") for k in ("id", "name", "display")},
         "game_bundles": spec.get("game_bundles", ""),
         "meshes": written_meshes,

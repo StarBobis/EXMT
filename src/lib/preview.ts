@@ -12,6 +12,7 @@ import catalogData from "../data/catalog.json";
 import { gameBundles, runCore } from "./core";
 import { backup, cacheFolder, refreshBackup } from "./settings";
 import { isTauri } from "./tauri";
+import { newWorkspaceIdentity, workspaceRoot } from "./workspaces";
 
 const INDEX_MAX_AGE_MS = 12 * 60 * 60 * 1000;
 
@@ -118,9 +119,12 @@ export function unassignedTextures(
 }
 
 export interface WorkspaceResult {
+  id: string;
+  label: string;
   dir: string;
   meshes: number;
   textures: number;
+  failed_textures: number;
   bytes: number;
 }
 
@@ -646,16 +650,12 @@ async function resetDerivedCaches(): Promise<void> {
 // --------------------------------------------------------------------------- //
 // workspace
 // --------------------------------------------------------------------------- //
-export async function workspaceRoot(): Promise<string> {
-  const root = await join(cacheFolder.value, "workspace");
-  await mkdir(root, { recursive: true }).catch(() => undefined);
-  return root;
-}
-
 /**
- * Write meshes + textures + manifest into `<cache>/workspace/<entry id>/` and
- * point `<cache>/workspace/current.json` at it, which is what the Blender
- * add-on reads for its one-click import.
+ * Write meshes + textures + manifest into a fresh
+ * `<cache>/workspace/<skin>__<timestamp>/` folder. A new folder per export is
+ * deliberate: one skin may own many workspaces, and an old session must not be
+ * overwritten. The active-workspace pointer (`EXMTConfig.json`) is written by
+ * the view after it knows which workspace the user selected.
  */
 export async function makeWorkspace(
   entry: { id: string; name: string; bundle: string },
@@ -664,12 +664,23 @@ export async function makeWorkspace(
   textures: TextureEntry[],
 ): Promise<WorkspaceResult> {
   if (!isTauri) throw new Error("workspace export needs the desktop shell");
+  const identity = await newWorkspaceIdentity({
+    id: entry.id,
+    name: entry.name,
+    display,
+  });
   const root = await workspaceRoot();
+  const outdir = await join(root, identity.id);
+  await mkdir(outdir, { recursive: true }).catch(() => undefined);
+
   const bundles: Record<string, string> = {};
   for (const mesh of meshes) bundles[mesh.bundle] = bundlePathOf(mesh.bundle);
   for (const tex of textures) bundles[tex.bundle] = bundlePathOf(tex.bundle);
 
   const spec = {
+    workspace_id: identity.id,
+    label: identity.label,
+    created_at: identity.createdAt,
     id: entry.id,
     name: entry.name,
     display,
@@ -678,14 +689,12 @@ export async function makeWorkspace(
     meshes: meshes.map((mesh) => ({ bundle: mesh.bundle, mesh: mesh.name })),
     textures: textures.map((tex) => ({ bundle: tex.bundle, name: tex.name })),
   };
-  const specPath = await join(root, `spec-${entry.id}.json`);
+  const specPath = await join(outdir, "spec.json");
   await writeTextFile(specPath, JSON.stringify(spec));
 
-  const outdir = await join(root, entry.id);
-  const result = (await runJson(["workspace", outdir, specPath])) as WorkspaceResult;
-  await writeTextFile(
-    await join(root, "current.json"),
-    JSON.stringify({ id: entry.id, dir: outdir, updated_at: new Date().toISOString() }, null, 1),
-  );
-  return result;
+  const result = (await runJson(["workspace", outdir, specPath])) as Omit<
+    WorkspaceResult,
+    "id" | "label"
+  >;
+  return { ...result, id: identity.id, label: identity.label };
 }
