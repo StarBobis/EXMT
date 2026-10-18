@@ -88,28 +88,6 @@ def cmd_hide_mesh(args):
     return 0
 
 
-def cmd_base_body(args):
-    """base-body <bundle> <mesh> <out.bundle|out.exmtmesh> — swap the slot for the SFW base body."""
-    from . import fitbody
-
-    bundle_path, mesh_name, out = args
-    b = open_bundle(bundle_path)
-    o = b.mesh(mesh_name)
-    tree = o.read_typetree()
-    target = M.from_tree(tree)
-    md = fitbody.fit_base_body(target)
-    if out.lower().endswith(".exmtmesh"):
-        interchange.save(md, out, {"bundle": "", "source": "basebody"})
-        print(json.dumps({"output": out, "verts": md.vertex_count, "mesh": mesh_name}))
-        return 0
-    M.to_tree(tree, md)
-    o.save_typetree(tree)
-    size = len(b.save(out))
-    print(json.dumps({"output": out, "bytes": size, "mesh": mesh_name,
-                      "verts": md.vertex_count, "indices": int(len(md.indices))}))
-    return 0
-
-
 def cmd_subdivide(args):
     """subdivide <in.exmtmesh> <out.exmtmesh> <target_vertices> — grow a mesh."""
     import numpy as np
@@ -280,7 +258,7 @@ def main(argv=None):
         "extract-all": cmd_extract_all,
         "pack": cmd_pack,
         "hide-mesh": cmd_hide_mesh,
-        "base-body": cmd_base_body,
+    
         "subdivide": cmd_subdivide,
         "retarget": cmd_retarget,
         "copy-texture": cmd_copy_texture,

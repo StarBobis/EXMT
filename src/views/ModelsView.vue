@@ -91,7 +91,8 @@ const query = ref("");
 const selectedChar = ref<Character | null>(characters.value[0] ?? null);
 const selected = ref<CatalogEntry | null>(selectedChar.value?.portraitEntry ?? null);
 const busy = ref("");
-const log = ref<{ kind: "info" | "ok" | "err"; text: string }[]>([]);
+const status = ref<{ kind: "info" | "ok" | "err"; text: string } | null>(null);
+let statusTimer: number | undefined;
 
 const filtered = computed(() => {
   const q = query.value.trim().toLowerCase();
@@ -140,8 +141,9 @@ function label(entry: CatalogEntry) {
 }
 
 function push(kind: "info" | "ok" | "err", text: string) {
-  log.value.unshift({ kind, text });
-  if (log.value.length > 40) log.value.pop();
+  status.value = { kind, text };
+  window.clearTimeout(statusTimer);
+  if (kind !== "info") statusTimer = window.setTimeout(() => (status.value = null), 6000);
 }
 
 function portraitUrl(entry: CatalogEntry) {
@@ -256,7 +258,7 @@ async function installMod(entry: CatalogEntry, target: string) {
   }
 }
 
-async function applyBuiltin(entry: CatalogEntry, part: string, mode: "basebody" | "hide") {
+async function applyHide(entry: CatalogEntry, part: string) {
   busy.value = entry.id;
   try {
     const bundles = entry.part_bundles?.[part]?.length
@@ -264,28 +266,23 @@ async function applyBuiltin(entry: CatalogEntry, part: string, mode: "basebody" 
       : [entry.bundle];
     const mesh = entry.parts[part] ?? part;
     for (const hash of bundles) {
-      push("info", `${mode === "hide" ? "隐藏" : "素体"} ${part} → ${hash.slice(0, 8)}…`);
+      push("info", `隐藏 ${part} → ${hash.slice(0, 8)}…`);
       await ensureBackup(hash);
-      const tmp = await join(await cacheDir(), `${entry.id}-${part}-${mode}-${hash.slice(0, 8)}.bundle`);
-      const res = await runCore([
-        mode === "hide" ? "hide-mesh" : "base-body",
-        bundlePath(hash),
-        mesh,
-        tmp,
-      ]);
+      const tmp = await join(await cacheDir(), `${entry.id}-${part}-hidden-${hash.slice(0, 8)}.bundle`);
+      const res = await runCore(["hide-mesh", bundlePath(hash), mesh, tmp]);
       if (res.code !== 0) throw new Error(res.stderr || res.stdout);
       await installBundle(hash, tmp);
     }
     await writeMod({
-      id: `${entry.id}-${part}-${mode}`,
+      id: `${entry.id}-${part}-hidden`,
       preset: entry.id,
       character: label(entry),
       mesh,
       bundle: bundles.join(","),
       installed_at: new Date().toISOString(),
-      kind: mode === "hide" ? "hidden" : "basebody",
+      kind: "hidden",
     });
-    push("ok", `${label(entry)} · ${part}：${mode === "hide" ? "已隐藏" : "已换成素体"}`);
+    push("ok", `${label(entry)} · ${part}：已隐藏`);
   } catch (e) {
     push("err", String(e));
   } finally {
@@ -464,33 +461,17 @@ async function restore(entry: CatalogEntry) {
               替换…
             </button>
             <button
-              v-if="key === 'body' || key === 'cloth'"
-              class="btn"
-              type="button"
-              title="用内置人偶素体替换该部位：自动贴合尺寸、续骨架权重，用作打底/占位"
-              :disabled="busy === selected.id"
-              @click="applyBuiltin(selected, key, 'basebody')"
-            >
-              内置素体
-            </button>
-            <button
               class="btn"
               type="button"
               title="隐藏这个部位"
               :disabled="busy === selected.id"
-              @click="applyBuiltin(selected, key, 'hide')"
+              @click="applyHide(selected, key)"
             >
               隐藏
             </button>
           </div>
         </div>
       </div>
-
-      <p class="parts__hint">
-        替换… = 用你自己导出的 <code>.exmtmesh</code> 覆盖 ·
-        内置素体 = 内置人偶打底（会撑起没有躯干的空洞，粗糙但能占位）·
-        隐藏 = 该部位不再渲染
-      </p>
       <div class="model-actions">
         <button
           class="btn btn--accent"
@@ -534,26 +515,10 @@ async function restore(entry: CatalogEntry) {
           <span class="status__dot status__dot--warn" />处理中…
         </span>
       </div>
+      <p v-if="status" class="status-line" :class="'status-line--' + status.kind">
+        {{ status.kind === "ok" ? "✓" : status.kind === "err" ? "✗" : "·" }} {{ status.text }}
+      </p>
     </article>
-
-    <div class="card">
-      <h3 class="card__title">操作日志</h3>
-      <div class="terminal" style="margin-top: 12px">
-        <div class="terminal__bar"><span class="terminal__dot" /><span>pipeline</span></div>
-        <div class="terminal__body" style="min-height: 140px">
-          <div v-if="log.length === 0" class="terminal__line--dim">
-            选角色 → 导出 .exmtmesh → Blender 修改 → 导出 .exmtmesh → 这里「替换…」装回来
-          </div>
-          <div
-            v-for="(line, i) in log"
-            :key="i"
-            :class="{ 'terminal__line--dim': line.kind === 'info' }"
-          >
-            {{ line.kind === "ok" ? "✓" : line.kind === "err" ? "✗" : "·" }} {{ line.text }}
-          </div>
-        </div>
-      </div>
-    </div>
       </div>
     </div>
   </section>
@@ -816,19 +781,22 @@ async function restore(entry: CatalogEntry) {
   opacity: 0.55;
 }
 
-.parts__hint {
-  margin: 10px 0 0;
-  font-size: 11.5px;
+.status-line {
+  margin: 12px 0 0;
+  font-size: 12px;
   line-height: 18px;
-  color: var(--text-3);
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--stroke, rgba(255, 255, 255, 0.08));
 }
 
-.parts__hint code {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  padding: 1px 4px;
-  border-radius: 4px;
-  background: rgba(255, 255, 255, 0.06);
+.status-line--ok {
+  color: #8ee6a8;
+}
+
+.status-line--err {
+  color: #ff9b9b;
 }
 
 .parts {
