@@ -58,8 +58,6 @@ const zh = {
   "home.env.frontend": "前端",
   "home.env.shell": "外壳",
 
-  "models.title": "模型",
-  "models.subtitle": "选角色 · 导出改 · 装回来",
   "models.search": "搜索角色…",
   "models.chars": "{n} 个角色",
   "models.roster": "{art} 立绘 · {skins} 皮肤",
@@ -204,8 +202,6 @@ const en: Record<MessageKey, string> = {
   "home.env.frontend": "Frontend",
   "home.env.shell": "Shell",
 
-  "models.title": "Models",
-  "models.subtitle": "Pick a character, export, edit, install back",
   "models.search": "Search characters…",
   "models.chars": "{n} characters",
   "models.roster": "{art} art · {skins} skins",

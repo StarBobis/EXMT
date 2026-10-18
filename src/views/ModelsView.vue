@@ -284,19 +284,17 @@ watch(
 
 <template>
   <section class="page">
-    <header class="page-header">
-      <div>
-        <h1 class="page-title">{{ t("models.title") }}</h1>
-        <p class="page-subtitle">{{ t("models.subtitle") }}</p>
-      </div>
-      <div class="page-actions">
-        <input v-model="query" class="input" type="search" :placeholder="t('models.search')" />
-        <span class="chip chip--accent">{{ t("models.chars", { n: characters.length }) }}</span>
-      </div>
-    </header>
-
     <div class="models">
       <aside class="models__list">
+        <div class="roster__tools">
+          <input
+            v-model="query"
+            class="input roster__search"
+            type="search"
+            :placeholder="t('models.search')"
+          />
+          <span class="chip chip--accent">{{ t("models.chars", { n: filtered.length }) }}</span>
+        </div>
         <div class="roster">
           <button
             v-for="c in filtered"
@@ -476,10 +474,27 @@ watch(
 }
 
 .models__list {
-  max-height: calc(100vh - 190px);
+  max-height: calc(100vh - 120px);
   overflow-y: auto;
   padding-right: 6px;
   border-right: 1px solid var(--stroke, rgba(255, 255, 255, 0.06));
+}
+
+.roster__tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.roster__search {
+  flex: 1;
+  min-width: 0;
+}
+
+.roster__tools .chip {
+  flex: none;
+  white-space: nowrap;
 }
 
 .models__detail {

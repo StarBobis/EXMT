@@ -196,6 +196,20 @@ if flags != 4 or size > 512 * 1024: return []
 - 坐标：Unity 左手系 → three.js 右手系，**在核心层镜像 z 并翻转三角形绕序**，前端什么都不用改。
 - 贴图：核心直接返回 base64 PNG（缩略图 160 px），`<img :src="'data:image/png;base64,'+png">`，省掉自定义协议和临时目录。
 - 相机：按 `bounds` 的**最大边**算距离 `d = maxDim/2/tan(fov/2)*1.3`，别用包围球半径硬套，否则模型不是被裁就是缩成一点。
+- **整个皮肤一次画完**：不要"点一个网格换一次几何"，那永远只看到零件。核心加一个 `geoset` 命令，一次返回该皮肤全部网格（7 个网格 2.8 MB JSON、一次 Bundle 解析），前端一个场景全加进去；网格列表只负责 `mesh.visible` 开关。
+- 皮肤范围按**名字前缀**收全（`c_<Skin>_`），catalog 里的"部位表"往往只列主要部位（Alva 有 7 个网格，部位表只有 hair/body），拿它当全集必然"模型不全"。
+
+### 10.3.1 贴图是"平级资产"，不是网格的附件
+
+- 按皮肤前缀**整组**取贴图，别做"这个网格用哪几张"的过滤；UI 上网格列表和贴图条并列，导出也是整套。
+- 游戏贴图基本都正方形：格子用 `padding-top:100%` + 绝对定位的 `<img>` 固定 1:1（别只靠 `aspect-ratio`，替换元素上偶发不生效），`object-fit: contain`。
+- 用**横向滚动胶片条**（固定 88 px 宽），20 张贴图也只占一行，不会把页面撑出屏幕；竖排大网格会把工作台顶到窗口外。
+
+### 10.3.2 验证桌面 App 的截图/点击（Windows）
+
+- 窗口被别的程序盖住时，`CopyFromScreen` 抓到的是别人；用 `PrintWindow(hwnd, hdc, PW_RENDERFULLCONTENT=2)` 抓自己窗口，WebView2 也能正确渲染。
+- 合成点击（`mouse_event`）在窗口不在前台时经常无效：`SetForegroundWindow` 会被系统拒绝。要么先真实点一下标题栏，要么先 `SetWindowPos(HWND_TOPMOST)` 再点。
+- 坐标换算只算一次：`CSS → 物理`（×DPI/100）→ `ClientToScreen`；截图里的像素是**物理像素**，别拿它当 CSS 直接点。
 
 ### 10.4 导出成"工作空间"而不是一堆文件
 

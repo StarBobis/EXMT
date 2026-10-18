@@ -84,12 +84,14 @@
 | 网格与贴图**不在同一个 bundle**：mesh bundle 只有 `Mesh`+`AssetBundle`（抽样 30 个全部无 Texture2D），贴图在独立的 Texture2D bundle；skin prefab 引用的 material cab 有 2/3 不在本机 9613 个 bundle 里 | 470d/872f/287d 等逐个 `open_bundle` 统计类型；`proto3.py` 扫 60 个 bundle |
 | 因此按「皮肤前缀」用**贴图名索引**反查 bundle：扫全部 bundle 的 node0（≤512 KiB 才可能是贴图包），14 进程 **9.4 s** 得到 31 869 个贴图名 / 5 027 个贴图包，缓存为 `texindex.json`（2.5 MB） | `python -m exmt_core texindex <AB> <cache>\texindex.json` → `{"bundles":9613,"textures":31869,"seconds":9.4}` |
 | 扫描只解 node0，不解 `.resS`；node0 > 512 KiB 的多为 mesh 包，直接跳过 → 全量 50 GB 不必读 | `max_sf_for_index`，`_peek_texture_names` |
-| 皮肤 = catalog `entry.parts` 里的网格；**同一个 bundle 里常混着别的皮肤/变体的网格**（如 `c_AlvaSSR01_` 的布料在 Alva 默认皮肤的 bundle 里，但不属于它） | `c_AlvaSSR01.parts = {hair, body}`，其 parts 所在包是 `cddc7a5b`，不是 `entry.bundle` |
-| 3D 预览：`geo` 把 pos/normal/uv/index 以 base64 float32 返回（18 k 顶点 ≈ 1.1 MB / 2.3 s），Unity 左手系在核心层镜像 z 并翻转三角形绕序，three.js 直接显示 | `python -m exmt_core geo <bundle> <mesh>`；实测 Vepley cloth 18 194 顶点 |
-| 贴图缩略图：一次 `thumbs` 调用加载一次 bundle（`decode_texture` 现在接受 `Bundle` 实例），每张 2 s 左右；PNG（base64）直接进 `<img>` | `python -m exmt_core thumbs <bundle> 160 <name...>` |
-| 工作空间：`<cache>\workspace\<皮肤id>\{meshes/*.exmtmesh, textures/*.png, workspace.json}`，并把 `current.json` 指向它；Blender 插件读 `current.json` 一键导入 | 实测 Alva：2 网格 + 5 贴图；Blender headless 导入后 2 mesh、1 armature、材质带 BaseColor+Normal |
-| Blender 导入会**共用第一副骨架**（后面网格的 armature 删掉、改绑到第一副），否则十个网格十副重叠骨架 | `EXMT_OT_import_workspace`；实测 body 与 hair 都挂在 `hair_arm` |
+| 皮肤范围 = 名字前缀 `c_<Skin>_`：Alva 默认皮肤的 bundle（`cddc7a5b`）里有 **7 个网格**（body / hair / cloth1-4 / emitter），全要；catalog `parts` 只写了 hair/body，**不能当全集** | `entry.bundle = cddc7a5b`；`list_meshes` 实测 7 个，`parts` 只有 2 个 |
+| 整皮肤几何一次返回：`geoset` 只解析一次 Bundle，7 个网格 2.8 MB JSON（核心 0.1 s），前端一次 IPC + 一个 three.js 场景全部画出来 | `python -m exmt_core geoset <spec.json>`；UI 截图里是完整角色 |
+| 网格与贴图**平级**：贴图按皮肤前缀整组取（Alva 20 张），不做"某网格的贴图"过滤；导出也是整套 | 20 张实测；截图里贴图条与网格列表并列 |
+| 游戏贴图都是正方形：格子用 `padding-top:100%` 固定 1:1（不依赖 `aspect-ratio`），横向胶片条，别把页面撑高 | 截图；1:1 由 padding 保证 |
+| 整套导出：7 网格 + 20 贴图 = 4.4 MB；Blender headless 导入 7 个 mesh、**1 副共用骨架**、11 张贴图进材质 | `make_workspace` + `EXMT_OT_import_workspace` 实测 |
+| `make_workspace` 的 spec 必须把**贴图所在的 bundle** 也放进 `bundles`，否则每张贴图都 `failed_textures`（曾 20/20 失败） | 第一次 CLI 验证只放网格包；UI 侧同时收集网格与贴图的 bundle |
 | 贴图索引的 bundle 名带 `.bundle` 后缀，传给核心前必须去掉，否则路径变成 `xxx.bundle.bundle`（曾导致贴图 0 张且错误被“无贴图”覆盖） | `bundlePathOf()` 与 `texturesFor()` 都做了 `replace(/\.bundle$/)` |
+| 自动化验证：pwsh 用 `PrintWindow(PW_RENDERFULLCONTENT)` 抓窗口不受遮挡影响；但合成鼠标点击在窗口被别的程序盖住时会失效（`SetForegroundWindow` 被拒），只能靠真实前台 | `pwshot.ps1` 截图成功；点击需先置顶/前台 |
 
 
 ---
