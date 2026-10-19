@@ -165,7 +165,8 @@ def cmd_bonetable(args):
     skel = S.local_table(md.name, md.bone_hashes, md.bindpose, paths=paths)
     print(json.dumps({
         "mesh": md.name,
-        "bones": [{"hash": bo["hash"], "name": bo["name"]} for bo in skel["bones"]],
+        "bones": [{"hash": bo["hash"], "name": bo["name"], "rest": bo["rest"]}
+                  for bo in skel["bones"]],
     }))
     return 0
 
