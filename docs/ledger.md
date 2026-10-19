@@ -241,6 +241,18 @@
 6. **文档站链接**：`SettingsView` 的 `LINKS` 仍是占位（本地 5200 / GitHub 仓库）。
 7. **文档站旧页**：`faq.md`（“导出的 glTF 没有贴图”）、`reference/layout.md`（`gltf.py`）、`guide/index.md`、`reference/cli.md`（`glb` 命令）、`install.md`（点「导出 glTF」）仍写着已删除的 glTF 流程，需要一轮清理。
 8. **`C:\Dev\EXMTDoc` 没有 remote**：只能本地 commit，push 需要用户提供仓库地址。
+9. **同名网格的多份拷贝只打了一份（2026-10-19 发现，未修）**
+   - 事实：同一个网格名会在**多个 bundle** 里各存一份。实测 `c_AlvaSSR0101_slg_cloth3_lod0` 同时在
+     `0e834224a797…`（阿尔瓦·2 的包）和 `a75eb9c24873…`（AlvaSSR0101 自己的包）里；
+     `c_AlvaSSR01_emitter_slg_lod0` 同时在 `0e834224…` 和 `cddc7a5b7285…` 里。
+     `catalog.json` 里 **51/240** 个角色的某个部位就写着多个包（hair 32 / body 14 / cloth 4 / plush 1），
+     而 `cloth1..4` 变体**根本没进 catalog 的 parts**，所以真实数量只会更多。
+   - 影响：工作空间里的 `bundles` 只记了**皮肤目录里那一份**所在的包 → 生成 Mod 只打这一个包。
+     如果游戏实际读的是另一个副本，就会出现"改了没效果"（老流程按 `part_bundles` 把每一份都打了一遍）。
+   - 修法（成本已验证）：扫一遍用到的 643 个备份包建 `网格名 → [所有包]` 索引（`UnityPy` 的 `o.peek_name()`
+     实测 25 个包 1.1 s → 643 个约 30 s，可缓存成 `<cache>/meshindex.json`），
+     生成 Mod 时对同名网格在每个包里各打一遍（`modpack` 已支持同网格多包，只需 spec 里多写几行）。
+   - 判据（修完要验）：改一个有多份拷贝的网格 → `mod.json` 里出现多个包，游戏里无论读哪份都是新几何。
 
 ---
 
