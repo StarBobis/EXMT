@@ -29,6 +29,35 @@ from .sf import open_bundle
 
 FORMAT = "exmt-mod-1"
 
+_BONE_NAMES = None
+
+
+def _bone_name(hash_: int):
+    """Full bone path for a hash, using the app's name index when it is available.
+
+    Without the index there is nothing to match by name, so the caller simply
+    keeps the hash-only behaviour.
+    """
+    global _BONE_NAMES
+    if _BONE_NAMES is None:
+        paths = {}
+        try:
+            from . import bonenames as _bn
+            candidates = []
+            cfg = os.path.join(os.environ.get("APPDATA", ""), "com.exmt.modbox", "EXMTConfig.json")
+            if os.path.isfile(cfg):
+                with open(cfg, encoding="utf-8") as fh:
+                    candidates.append(str((json.load(fh) or {}).get("bone_names") or ""))
+            candidates.append(r"C:\EXMTCacheFolder\bonenames.json")
+            for candidate in candidates:
+                if candidate and os.path.isfile(candidate):
+                    paths = _bn.load(candidate) or {}
+                    break
+        except Exception:
+            paths = {}
+        _BONE_NAMES = paths
+    return _BONE_NAMES.get(hash_) or _BONE_NAMES.get(str(hash_))
+
 
 def _compatible(base: dict, target: dict) -> bool:
     """May the patch file's own tree be written back as the target's tree?
@@ -71,17 +100,40 @@ def _fit_channels(md: M.MeshData, channels: list) -> None:
 
 
 def _remap_bones(md: M.MeshData, from_hashes, to_hashes) -> int:
-    """Re-index the bone slots through the hash table (drops unmatched slots)."""
+    """Re-index the bone slots through the hash table (drops unmatched slots).
+
+    A game mesh can be cooked in more than one generation and the copies disagree
+    (measured 2026-10-19, `c_VepleySSR01_slg_cloth_lod0`): one generation keeps a
+    `Hip_M` link between `Root_M` and the legs, the other deleted it, so every hash
+    below that point changes while the bone keeps its short name.  Hash alone then
+    drops 15 influences and 1954 of 12734 vertices lose every driver; falling back
+    to the short name recovers 12 of the 15 (kept weight 69.6% -> 85.8%, orphan
+    vertices 1954 -> 0).
+    """
     lookup = {int(h): i for i, h in enumerate(to_hashes)}
     slots = md.arrays.get(13)
     if slots is None:
         return 0
+
+    by_short = None
+    for i, h in enumerate(to_hashes):
+        name = _bone_name(int(h))
+        if name:
+            if by_short is None:
+                by_short = {}
+            by_short.setdefault(name.rsplit("/", 1)[-1], i)
+
     dropped = 0
     for row in range(slots.shape[0]):
         for col in range(slots.shape[1]):
             old = int(slots[row, col])
             hash_ = int(from_hashes[old]) if 0 <= old < len(from_hashes) else None
             new = lookup.get(hash_) if hash_ is not None else None
+            if new is None and hash_ is not None and by_short:
+                # same bone, re-parented between game versions
+                name = _bone_name(hash_)
+                if name:
+                    new = by_short.get(name.rsplit("/", 1)[-1])
             if new is None:
                 if float(md.arrays[12][row, col]) > 0:
                     dropped += 1

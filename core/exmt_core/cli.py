@@ -197,6 +197,29 @@ def cmd_modpack(args):
     return 0
 
 
+def cmd_matinfo(args):
+    """matinfo <bundle> <mesh> — how many submeshes/materials the game mesh has.
+
+    The renderer's material list belongs to the mesh being replaced, so a foreign
+    model with more material slots produces submeshes Unity never draws (they have
+    no material index to resolve against).  The Blender add-on reads this before
+    exporting so it can merge the extra slots down to this count.
+    """
+    from .sf import open_bundle
+
+    b = open_bundle(args[0])
+    tree = b.mesh(args[1]).read_typetree()
+    subs = tree.get("m_SubMeshes") or []
+    mats = tree.get("m_Materials") or []
+    print(json.dumps({
+        "mesh": tree.get("m_Name") or args[1],
+        "submeshes": len(subs),
+        "materials": len(mats),
+        "index_count": sum(int(s.get("indexCount") or 0) for s in subs),
+    }))
+    return 0
+
+
 def cmd_meshidx(args):
     """meshidx <bundleDir> <out.json> [limit] [workers] — mesh name -> bundles."""
     from . import meshidx
@@ -423,6 +446,7 @@ def main(argv=None):
         "modpack": cmd_modpack,
         "meshidx": cmd_meshidx,
         "texinfo": cmd_texinfo,
+        "matinfo": cmd_matinfo,
         "hide-mesh": cmd_hide_mesh,
     
         "subdivide": cmd_subdivide,
