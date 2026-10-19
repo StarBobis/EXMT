@@ -25,6 +25,7 @@ Tauri 2 + Vue 3 外壳（`src/`、`src-tauri/`）+ Python 核心（`core/exmt_co
 3. **交付前质量门必须全绿**：`C:\Users\Administrator\.bun\bin\bun.exe run check`（步骤见 playbook §4）。
    任何一步失败都不许说"完成"。
 4. 改完自己 **commit + push**；`C:\Dev\EXMTDoc` 是独立仓库，动过也要提交（它没配 remote，只能本地 commit）。
+   **只 `git add` 自己改的文件**——可能有别的会话在同一个仓库里干活，`git add -A` 会扫走别人的 WIP。
 5. **能用现成的库就别造轮子**（UnityPy `peek_name()`、`texture2ddecoder`、内置 `texconv.exe`…，清单见 playbook §5）。
 6. **`.exmtmesh` 是唯一交换格式**，必须无损往返；glTF 承载不了骨骼哈希/每骨 AABB/碰撞体/通道布局，已删除，不要再引入。
 7. 一次性脚本与临时产物放 `C:\DevCache\<任务名>\`，不进仓库根目录。
