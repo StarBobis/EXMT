@@ -23,6 +23,7 @@
 **本机工具链（已验证）**
 
 - 应用：`bun run tauri dev`，窗口标题 `EXMT Modbox`
+  ⚠️ 本机 `bun` **不在 PATH 里**：用全路径 `C:\Users\Administrator\.bun\bin\bun.exe run <script>`
 - 核心 Python：`C:\Users\Administrator\.dsh\dsh-runtimes\dsh-primary-runtime\dependencies\python\python.exe`
   （UnityPy 1.25 / lz4 / numpy / PIL / texture2ddecoder）
 - Blender：`C:\Program Files\Blender Foundation\Blender 5.2\blender.exe`（headless：`--background --factory-startup --python x.py`）

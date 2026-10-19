@@ -430,6 +430,34 @@ def cmd_workspace(args):
     return 0
 
 
+def cmd_anims(args):
+    """anims <bundle> [bonenames.json] - every AnimationClip in one bundle, summarised."""
+    from . import anim, bonenames
+
+    paths = bonenames.load(args[1]) if len(args) > 1 and args[1] else None
+    clips = anim.read_clips(args[0])
+    rows = [clip.summary(paths) for clip in clips]
+    print(json.dumps({"format": anim.FORMAT, "bundle": args[0], "count": len(rows), "clips": rows}))
+    return 0
+
+
+def cmd_animexport(args):
+    """animexport <bundle> <clip> <out.exmtanim> [bonenames.json] [rate]."""
+    from . import anim, bonenames
+
+    bundle, wanted, out = args[0], args[1], args[2]
+    paths = bonenames.load(args[3]) if len(args) > 3 and args[3] else None
+    rate = float(args[4]) if len(args) > 4 and args[4] else None
+    clips = anim.read_clips(bundle)
+    clip = next((c for c in clips if c.name == wanted), None)
+    if clip is None:
+        print(json.dumps({"error": "clip not found", "wanted": wanted,
+                          "available": [c.name for c in clips]}))
+        return 1
+    print(json.dumps(anim.export(clip, out, paths=paths, rate=rate)))
+    return 0
+
+
 def main(argv=None):
     argv = list(sys.argv[1:] if argv is None else argv)
     if not argv:
@@ -464,6 +492,8 @@ def main(argv=None):
         "restore": cmd_restore,
         "backup-size": cmd_backup_size,
         "workspace": cmd_workspace,
+        "anims": cmd_anims,
+        "animexport": cmd_animexport,
     }
     if cmd not in table:
         print("unknown command", cmd)

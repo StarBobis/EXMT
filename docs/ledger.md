@@ -23,6 +23,7 @@
 | G10 | 首页 = 角色列表 + 立绘卡牌；模型页 = 网格/3D/贴图工作台 | ✅ 完成 | 首页 78 角色（2 列头像）+ 卡牌轮播；点卡选中皮肤，「进入模型页」进工作台；模型页顶栏显示当前角色/皮肤/数量，可「换皮肤」回首页；选择持久化（见 §2.7） |
 | G11 | **骨骼完整 + 正确绑定**（用户报的两个 bug） | ✅ 完成 | workspace 合成一副完整骨架（Alva 226 根，跨网格并集）；Blender 只建一副骨架、每个网格 100% 绑上（0 未绑定组 / 0 未蒙皮顶点）；不改动往返权重与骨骼索引逐位一致；打包回 bundle 与原包全等（见 §2.10） |
 | G12 | **改完 → 生成 Mod → 一键进游戏** | ✅ 完成 | Blender 面板「生成 Mod」把工作空间里所有网格打成一个 Mod 写到 `<工作空间>/GeneratedMod/`；App 模型页「加载到游戏」一键装进游戏（先备份原始包）、「卸下 Mod」一键还原；实测安装/卸下往返，游戏包字节与备份全等（见 §2.11） |
+| G13 | **动作（AnimationClip）：立绘 → 模型页关联查询 → 随「开始制作」导出 → Blender 里播** | 🟡 进行中 | 核心解码器已跑通并自证（`core/exmt_core/anim.py`，见 §2.19）；待做：动作索引、模型页动作列表、工作空间 `animations/`、Blender 侧动作导入 |
 
 ---
 
@@ -500,6 +501,30 @@ stream 2: count x 32   weights(16) + bones(16)
 必须用 `bpy.ops.<mod>.<fn>.get_rna_type().properties`；`bpy.ops.x.y` 是函数包装器，
 **不能直接赋值**（会 `AttributeError: 'BPyOpFunction' object has no attribute ...`）——
 那是测试方法错，不是属性没注册。
+
+### 2.19 动作（AnimationClip）：数据在哪、什么格式、能不能对上骨架（2026-10-20 第一轮）
+
+用户诉求：点立绘 → 模型页能查到该皮肤的动作 → 「开始制作」把动作一起导出 → Blender 导入后播动作看蒙皮。
+
+**结论：之前完全没做（核心/CLI/前端/插件里 0 处 animation 代码）；但地基已探明，能做，且解码器已写好并自证。**
+
+| 事实 | 证据 |
+| --- | --- |
+| 动作在 bundle 里，且**命名跟着皮肤前缀**（和网格/贴图同一套规则）：`c_<皮肤>_slg_<动作>[_N]` | 643 个备份包里扫出 **224 个 AnimationClip**（9 个包含动作）；`ad1560ee…` 一个包 146 个，`c9150108…` 67 个 |
+| 备份的 643 包里只有 GrozaSR0102 有整套动作（144 个）；游戏目录里其实有 **9619 个包 / 66.3 GB**，动作包大多没进备份 | `C:\EXMTCacheFolder\game\bundles` 643 vs `LocalCache\Data\AssetBundles_Windows` 9619 |
+| 同一包里还有 `Avatar` 52 / `Animator` 51 / `AnimatorController` 6（含 `GrozaSR0102`、`GrozaSR0102_N`、`GrozaSR0102_Gen`） | 同一次扫描 |
+| 动作是**通用（generic）Transform 曲线**，不是 humanoid 肌肉：`path = crc32(变换路径)`，`attribute` 1=position(3 条曲线) 2=rotation(4) 3=scale(3) 4=euler(3)，其余绑定各 1 条 | `m_ClipBindingConstant.genericBindings`；AssetStudio `AnimationClipBindingConstant.FindBinding` 同款定义 |
+| 曲线是「一个扁平索引空间」：`[0, streamedCurveCount)` 走 streamed（稀疏三次键 `((a·dt+b)·dt+c)·dt+d`）、接着 `denseCurveCount` 条走 dense（帧优先）、剩下走 constant | **算术自证**：`Σ绑定曲线数 = 2455 = streamed 106 + dense 623 + constant 1726`（Groza `LowCoverRtoL_N`，一分不差） |
+| 解码正确性 | 258 根骨 × 61 帧，**四元数模长与 1 最大差 3.2e-4**；scale 基本为 1（个别 0.61/3.06 的挤压骨） |
+| **动作能直接驱动工作空间骨架** | 同一包里 13 个网格的骨骼表与动作路径哈希**逐骨 100% 命中**（hair 51/51、cloth1_lod1 136/136、Weapon 21/21、face 3/3 …） |
+| 骨骼名可读度 | 258 条路径里 **126 条**已被 `bonenames.json` 解成 `root/Root_M/Spine1_M/…`（其余是武器/未扫到 prefab 的链，哈希照样能对上骨骼，不影响播放） |
+| 根位移在 `root/Root_M` 骨上（`path == 0` 的绑定是 Animator 属性，不是 Transform） | 解码 x/z 位移与 clip 自带的 `m_StartX/m_StopX` 同向同量级；差值与 Root_M 的 bind 高度 0.36 一致 |
+| 动作**不参与打包**（Mod 只换网格/贴图）→ 与「未连线物体=参考」同一性质，导出后只用于看蒙皮 | 现有 `GeneratedMod` 流程只吃网格 + 贴图 |
+
+已落地：`core/exmt_core/anim.py`（`bindings_of` / `Clip.value` / `Clip.tracks` / `export` / `read_clips`）。
+验证脚本留在 `C:\DevCache\anim-recon\`（scan_anims.py / validate_anim.py / crosscheck2.py）。
+
+未决：① 动作索引要扫全库（66 GB）——用 `bonenames.py` 的「只解元数据前缀 + 只对含 AnimationClip 的包整读」两遍法，别全量解压；② streamed 三次键在键与键之间是否需要 Unity 的 inSlope 修正（当前按多项式求值，视觉上够用）；③ 一个皮肤的动作可能散在多个包（Groza 就散在 2 个）。
 
 ---
 
