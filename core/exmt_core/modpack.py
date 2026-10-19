@@ -24,6 +24,7 @@ import time
 import numpy as np
 
 from . import interchange, mesh as M
+from . import texpatch as T
 from .sf import open_bundle
 
 FORMAT = "exmt-mod-1"
@@ -147,7 +148,13 @@ def _clear(outdir: str) -> None:
 
 def build(spec: dict) -> dict:
     """`spec` = {outdir, label, workspace, bundles: {hash: pristine path},
-    meshes: [{bundle, mesh, file}]} → writes bundles + `mod.json`, returns a summary."""
+    meshes: [{bundle, mesh, file}], textures: [{bundle, name, file, format, width, height, mips}]}
+    → writes bundles + `mod.json`, returns a summary.
+
+    `textures[].file` is the **already encoded** block payload (the Blender add-on
+    runs texconv, the app reuses whatever the Mod shipped), so this side never
+    needs an image codec.
+    """
     outdir = spec["outdir"]
     os.makedirs(outdir, exist_ok=True)
     _clear(outdir)
@@ -156,23 +163,37 @@ def build(spec: dict) -> dict:
     grouped: dict = {}
     for item in spec.get("meshes") or []:
         grouped.setdefault(item["bundle"], []).append(item)
+    tex_grouped: dict = {}
+    for item in spec.get("textures") or []:
+        tex_grouped.setdefault(item["bundle"], []).append(item)
 
     written = []
     missing = []
-    for hash_, items in grouped.items():
+    for hash_ in list(dict.fromkeys(list(grouped) + list(tex_grouped))):
         source = bundles.get(hash_)
         if not source or not os.path.isfile(source):
-            missing.append({"hash": hash_, "meshes": [i["mesh"] for i in items]})
+            missing.append({"hash": hash_,
+                            "meshes": [i["mesh"] for i in grouped.get(hash_, [])],
+                            "textures": [i["name"] for i in tex_grouped.get(hash_, [])]})
             continue
         bundle = open_bundle(source)
         patched = []
-        for item in items:
+        patched_tex = []
+        for item in grouped.get(hash_, []):
             if not os.path.isfile(item["file"]):
                 missing.append({"hash": hash_, "mesh": item["mesh"], "file": item["file"]})
                 continue
             info = patch_mesh(bundle, item["mesh"], item["file"])
             patched.append(info)
-        if not patched:
+        for item in tex_grouped.get(hash_, []):
+            if not os.path.isfile(item["file"]):
+                missing.append({"hash": hash_, "texture": item["name"], "file": item["file"]})
+                continue
+            with open(item["file"], "rb") as fh:
+                payload = fh.read()
+            info = T.apply(bundle, item["name"], payload, item)
+            patched_tex.append(info)
+        if not patched and not patched_tex:
             continue
         out = os.path.join(outdir, hash_ + ".bundle")
         data = bundle.save(out)
@@ -182,6 +203,7 @@ def build(spec: dict) -> dict:
             "bytes": len(data),
             "source_bytes": os.path.getsize(source),
             "meshes": [p["mesh"] for p in patched],
+            "textures": [p["name"] for p in patched_tex],
             "verts": sum(p["verts"] for p in patched),
             "source": source,
         })
@@ -209,6 +231,34 @@ def build(spec: dict) -> dict:
             "bundles": entry["bundles"],
         })
 
+    # same idea for textures: keep the encoded payload so a merge can replay it
+    tex_rows = []
+    tex_by_file: dict = {}
+    for item in spec.get("textures") or []:
+        entry = tex_by_file.setdefault(item["file"], {
+            "name": item["name"], "format": int(item.get("format") or 0),
+            "width": int(item.get("width") or 0), "height": int(item.get("height") or 0),
+            "mips": int(item.get("mips") or 1), "bundles": [],
+        })
+        if item["bundle"] not in entry["bundles"]:
+            entry["bundles"].append(item["bundle"])
+    for file, entry in tex_by_file.items():
+        try:
+            rel = os.path.relpath(file, outdir).replace("\\", "/")
+        except ValueError:
+            rel = None
+        inside = rel is not None and not rel.startswith("../")
+        tex_rows.append({
+            "name": entry["name"],
+            "file": rel if inside else file,
+            "inside": bool(inside),
+            "format": entry["format"],
+            "width": entry["width"],
+            "height": entry["height"],
+            "mips": entry["mips"],
+            "bundles": entry["bundles"],
+        })
+
     manifest = {
         "format": FORMAT,
         "label": spec.get("label", ""),
@@ -218,6 +268,7 @@ def build(spec: dict) -> dict:
         "mesh_count": sum(len(b["meshes"]) for b in written),
         "bundles": written,
         "patches": patch_rows,
+        "textures": tex_rows,
         "missing": missing,
     }
     target = os.path.join(outdir, "mod.json")
@@ -230,6 +281,7 @@ def build(spec: dict) -> dict:
         "dir": outdir,
         "bundles": len(written),
         "meshes": manifest["mesh_count"],
+        "textures": len(tex_rows),
         "missing": len(missing),
         "bytes": sum(b["bytes"] for b in written),
         "files": [b["file"] for b in written],

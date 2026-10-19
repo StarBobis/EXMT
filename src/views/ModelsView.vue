@@ -281,7 +281,8 @@ async function refreshGenerated() {
   if (!generated.value) return;
   const records = await listMods().catch(() => []);
   const hit = records.find((rec) => rec.workspace === ws.id);
-  installedAt.value = hit?.installed_at ?? "";
+  // a disabled record still exists, but the button has to say 「加载到游戏」
+  installedAt.value = hit && hit.enabled !== false ? hit.installed_at ?? "" : "";
 }
 
 /** Local `YYYY-MM-DD HH:MM` for tooltips (the stored ISO is UTC). */
@@ -300,10 +301,18 @@ function localStamp(iso: string) {
  */
 async function loadIntoGame() {
   const ws = activeWorkspace.value;
-  const mod = generated.value;
-  if (!ws || !mod) return;
+  if (!ws) return;
   busy.value = t("models.loading");
   status.value = null;
+  // re-read mod.json: the user may have pressed 生成 Mod in Blender after this page
+  // loaded, and a stale patch list silently drops whatever changed (e.g. textures)
+  const mod = await readGeneratedMod(ws.dir);
+  generated.value = mod;
+  if (!mod) {
+    busy.value = "";
+    status.value = { kind: "err", text: t("models.noGenerated") };
+    return;
+  }
   try {
     const at = new Date().toISOString();
     const id = `ws-${ws.id}`;
@@ -318,6 +327,7 @@ async function loadIntoGame() {
       source: mod.dir,
       installed_at: at,
       patches: mod.patches ?? [],
+      textures: mod.textures ?? [],
       enabled: true,
     });
     const result = await applyMods();
@@ -330,6 +340,7 @@ async function loadIntoGame() {
             mods: result.mods,
             bundles: result.bundles,
             meshes: result.meshes,
+            textures: result.textures,
           }),
     };
   } catch (e) {

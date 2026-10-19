@@ -87,7 +87,16 @@ def texture_info(b: Bundle, name: str) -> dict:
                 "width": t.get("m_Width"),
                 "height": t.get("m_Height"),
             }
-        img = t.get("m_ImageData")
+        img = t.get("image data")
+        if img is None:
+            img = t.get("m_ImageData")
+        if img is None:
+            # UnityPy keeps a Texture2D's pixels in the typetree field
+            # `image data`; older/odd serializations expose `image_data`
+            try:
+                img = obj.read().image_data
+            except Exception:
+                img = None
         return {
             "name": name,
             "streamed": False,

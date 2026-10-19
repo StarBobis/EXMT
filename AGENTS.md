@@ -157,6 +157,12 @@ bun run check     # 见 §6
 | 2026-10-19 | 靠"物体上的自定义属性"认身份（`exmt_source`） | 身份放在**两端都稳**的地方：本体导出时给每个网格分配 `index` + `alias`（写进 `workspace.json`），Blender 端用一个**蓝图**（自定义 NodeTree）决定"哪个物体接到哪个 Submesh 槽位"。物体改名/复制/换成自己的模型都不影响；导入按工作空间建一个**集合**，方便整组选中/隐藏/删除 |
 | 2026-10-19 | Blender 5.2 里自定义 NodeTree 显示不出来（`ui_type` 直接报"没有这个属性"） | 5.2 移除了 `ui_type`，`edit_tree`/`id` 是只读的。正确写法：`space.tree_type = <bl_idname>`，然后 **`space.node_tree = <tree>`**；4.x 才用 `ui_type`/`edit_tree`。判断依据读 `space.bl_rna.properties[...].is_readonly`，别猜 |
 | 2026-10-19 | GUI 里截 Blender 的图老是拍到 splash、或者视图没框好 | `--python` 脚本执行时窗口还没布局完，`node.view_all()` 会空跑 → 用 `bpy.app.timers.register(fn, first_interval=2.0)` 推迟到 UI 稳定后再做；截图前 `SetForegroundWindow` + 发一次 `{ESC}` 关掉 splash |
+| 2026-10-19 | 蓝图里"槽位 = Submesh"把含义绑在了**线上**：想加一个"只用来参考、不导出"的模型就没地方放 | 槽位**不带含义**（`网格 1..N`）。打包集合 = 从「生成 Mod」节点出发（可穿过 `分组` 节点）走到的所有**物体节点**，目标 Submesh 取物体节点自己的 `submesh`。**没连线的物体 = 不打包**（这就是参考用法的入口）；`分组` 节点让 12 个物体只占生成节点 1 根线 |
+| 2026-10-19 | 导入后一屏节点看不出"哪些是原物体" | 物体节点全部 `parent` 到一个 Frame，名字 `<工作空间名>_original`；贴图节点另一个 Frame `<名>_textures`。**Frame 尺寸要自己按子节点包围盒算**（`NodeFrame.width/height` 可写）：`shrink=True` 只在手动拖动时重新贴合，Python 建出来永远是 160×100，节点会戳出框外 |
+| 2026-10-19 | 贴图替换"手写 BC7 编码器" | 别造轮子：内置 **texconv.exe**（`EXMTBlender/bin/`，DirectXTex 2026.5.8.1）到插件里，生成时 `-f <目标格式> -w -h -m <目标 mips>` 转成**目标贴图原本的格式**；核心只写字节（`texpatch.apply`），Mod 里存已编码的 `.bin`，App 合并只搬字节 |
+| 2026-10-19 | 贴图改完没生效，包只涨了 140 字节 | UnityPy 的 Texture2D 像素在 typetree 里叫 **`image data`**（带空格）；写 `m_ImageData`/`image_data` 会被当新键**静默丢弃**。改贴图必须写 `tree["image data"]` 并清 `m_StreamData` |
+| 2026-10-19 | 替换后的贴图看起来对、一比对全错 | 两个隐形转换：① Unity 的 Texture2D **行序自下而上**，texconv 对 PNG 输出自上而下 → 每个 mip 的块行要整体翻一次（不翻 10.1 dB，翻后 59.2 dB）；② texconv 把 Blender 的 PNG 当 sRGB，输出 UNORM 时会转成线性（31→4、219→181）→ 固定加 `-srgbi -srgbo`（恒等变换）让数字原样落盘 |
+| 2026-10-19 | App 里"加载到游戏"用的是页面打开时那份 mod.json | 用户可能在页面加载后又去 Blender 点「生成 Mod」。`loadIntoGame` 必须先 `readGeneratedMod(ws.dir)` **重新读一遍**；`applyMods` 里 `targets` 必须把**只被贴图碰过的包**也算进去（`byBundle` ∪ `texByBundle`），否则那个包整包被漏掉 |
 | 2026-10-18 | 为什么没有 docs/skill 更新 | 本文件 §1 RSI 循环 |
 ---
 

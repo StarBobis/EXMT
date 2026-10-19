@@ -338,4 +338,41 @@ space.node_tree = tree                  # 5.2 的可写指针（4.x 用 edit_tre
 
 **验证方法**：headless 里构造一个非导入物体（立方体）接到某个槽位，生成后检查该 Submesh 的补丁顶点数变成 8、其余网格逐位不变；再把一个槽位断连，确认 `packed` 少一个且该网格不在产物里。
 
+**后续修正（同一目标上被用户否过一次，值得记住）**：把 Submesh 含义放在**槽位**上，等于把身份绑在线上——"我导入一个只用来参考的模型（做身体时看会不会穿模衣服）"就没地方放：它必须占一个槽位、而占了就会被导出。正确做法是**槽位不带任何含义**（就叫 `网格 1..N`）：
+
+- 打包集合 = 从「生成 Mod」节点出发、**穿过任意"分组"节点**能走到的全部**物体节点**；
+- 每个物体节点的目标 Submesh 取它**自己**的 `submesh` 属性；
+- **没连线的物体 = 不打包**（参考用法的入口），**没连线的 Submesh = 保持原样**；
+- "分组"节点（N 入 1 出）把十几个物体收成一根线，导入时自动建好 `物体们 → 分组 → 生成 Mod`。
+
+节点一多还要**框**：把物体节点 `parent` 到一个 `NodeFrame`，名字用 `<工作空间名>_original`（贴图节点另开 `<名>_textures`）。注意 **`NodeFrame` 的尺寸要自己按子节点包围盒算**——`frame.shrink = True` 只在手动拖动时才重新贴合，Python 建出来的 frame 永远是 160×100，节点会戳出框外；5.2 里 `NodeFrame.width/height` 是可写的：
+
+```python
+left  = min(n.location.x for n in nodes); right = max(n.location.x + n.width for n in nodes)
+top   = max(n.location.y for n in nodes); bottom = min(n.location.y - n.height for n in nodes)
+frame.location = (left - pad, top + pad)
+frame.width  = (right - left) + 2 * pad
+frame.height = (top - bottom) + 2 * pad
+```
+
+---
+
+## 27. 替换 Unity 里的贴图：格式、字节数、翻转、色彩空间
+
+**目标**：让用户丢一张任意尺寸的 PNG 进来，替换掉游戏里某张 Texture2D，并且**用目标贴图原本的格式落盘**（本机实测的皮肤：3 张 BC1 漫反射 + 9 张 BC7 法线/遮罩，全部 2048²、12 mips、像素在 `.resS` 里流式存放）。
+
+**怎么做（每个坑都踩过）**：
+
+1. **别自己写 BC 编码器**：`BC7` 手写不可靠。用微软的 **texconv.exe**（DirectXTex 单文件，GitHub release 里直接有 `texconv.exe`），参数
+   `-f <DXGI名> -w <宽> -h <高> -m <mip数> -srgbi -srgbo -ft dds -o <dir> -y -nologo <png>`。
+   Unity `m_TextureFormat` → texconv 名：`10→BC1_UNORM`、`12→BC3_UNORM`、`25→BC7_UNORM`、`4→R8G8B8A8_UNORM`、`17→R16G16B16A16_FLOAT`、`24→BC6H_UF16`、`26→BC4_UNORM`、`27→BC5_UNORM`。
+2. **mip 数必须一致**：采样器会读 `m_MipCount` 声明过的每一级。先用 `texconv -m N` 生成整条链，再断言字节数等于 `Σ ceil(w/4)*ceil(h/4)*块字节`（BC1=8、BC3/BC7=16；未压缩则是 `w*h*bpp`）。数量对不上就别写。
+3. **DDS 头两种**：texconv 给 BC7 会写 `DX10` 头（128+20 字节，格式在 DXGI 字段），给 BC1/BC3 走 legacy fourCC（128 字节）。按 128 字节硬偏移会解出错位像素；两种都要认。
+4. **行序要翻**：Unity 的 Texture2D 数据是**自下而上**（预览时都要翻一次才正），texconv 从 PNG 出来是自上而下 → 把每个 mip 的**块行**整体反转（未压缩格式就是像素行）。实测不翻 10.1 dB、翻后 **59.2 dB**。
+5. **色彩空间**：texconv 把带 sRGB 标记的 PNG 当 sRGB，输出 `*_UNORM` 时会转成线性（实测 31→4、219→181，整张变暗）。固定加 `-srgbi -srgbo`（互逆 = 恒等），让 PNG 里的数字原样落盘——对 sRGB 漫反射和线性法线都成立。
+6. **写回位置**：UnityPy 里像素在 typetree 的 **`image data`**（带空格）字段。写 `m_ImageData` / `image_data` 会被当成新键**静默丢弃**（表现是"包只有几十字节变化、像素没动"）。流式贴图还要把 `m_StreamData` 清空（`path="" size=0 offset=0`）并把 `m_CompleteImageSize` 改成新长度，像素就内联进 SerializedFile 了。
+7. **让"编码好"的字节随 Mod 走**：编码放在 DCC 侧（那里有 texconv），Mod 里存**已编码的 `.bin`** + 一条 `{name, format, width, height, mips, bundles}` 记录；核心/装载器只负责写字节。这样运行时合并多个 Mod 时不需要任何图像库。
+
+**验证方法**（唯一可信的那种）：从**装好之后的目标文件**里把贴图解出来，和替换图逐像素比。实测 `PSNR(替换图, 游戏包) = 42.2 dB / 最大通道差 4`（BC1 量化误差就是这个量级），`PSNR(原图, 游戏包) = 9.4 dB`；再断言 `format/size/mips/字节数` 与资产原值一致。只看"文件变大了"一定会被骗。
+
 

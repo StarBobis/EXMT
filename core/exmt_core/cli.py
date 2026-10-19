@@ -208,6 +208,21 @@ def cmd_meshidx(args):
     return 0
 
 
+def cmd_texinfo(args):
+    """texinfo <bundlePath> [textureName] — what the asset(s) expect (size/mips/format)."""
+    from . import texpatch
+
+    rows = texpatch.list_textures(args[0])
+    if len(args) > 1:
+        for row in rows:
+            if row["name"] == args[1]:
+                print(json.dumps(row, ensure_ascii=False))
+                return 0
+        raise SystemExit("texture not found: %s" % args[1])
+    print(json.dumps(rows, ensure_ascii=False))
+    return 0
+
+
 def cmd_retarget(args):
     src_path, tpl_path, out = args
     from . import retarget as R
@@ -407,6 +422,7 @@ def main(argv=None):
         "pack": cmd_pack,
         "modpack": cmd_modpack,
         "meshidx": cmd_meshidx,
+        "texinfo": cmd_texinfo,
         "hide-mesh": cmd_hide_mesh,
     
         "subdivide": cmd_subdivide,

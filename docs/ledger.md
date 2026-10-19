@@ -260,13 +260,38 @@
 
 ---
 
+### 2.14 蓝图 v2：槽位去含义 + 分组 + Frame + 贴图替换节点（2026-10-19，插件 0.5.0）
+
+用户四条要求：**槽位不要有意义**（哪些生成由物体节点自己的 Submesh 决定，没连的=只参考不打包）、**一键导入把所有原物体装进 `<工作空间>_original` 的 Frame**、**加分组节点**（物体→分组→生成）、**加贴图替换节点**（按勾选的贴图自动建，能选替换图，并自动转成目标贴图的格式）。
+
+| 事实 | 证据 |
+| --- | --- |
+| 生成节点的槽位改成**无含义**的 `网格 1..N`：打包集合 = 从生成节点出发（可穿过任意 `分组` 节点）能走到的所有**物体节点**，目标 Submesh 取该物体节点自己的 `submesh` | `blueprint.walk_objects()` + `generate_mod`；headless 实测 12 物体 → 12 Submesh |
+| **没连线的物体节点不打包**（这就是"只导入做参考"的用法） | 实测：新加一个 `reference_cube` 物体节点（自带 submesh 0）不连线 → 仍然 `meshes: 12` |
+| 把某个物体节点从分组上断掉 → 那个 Submesh 消失、旧补丁文件被清掉 | 实测断开 `body_lod0` → `{"meshes": 11, "skipped": ["body_lod0"]}`，`patches/c_AlvaSSR0102_slg_body_lod0.exmtmesh` 已删除 |
+| 新增 `分组` 节点（N 个输入 + 1 个输出），导入时自动建立：12 个物体 → 分组 → 生成 Mod（生成节点**只连了 1 根线**） | 截图 `EXMTDoc/docs/public/img/blender-blueprint.png`；headless：`group: 12 inputs linked, 1 outputs linked`、`generate node: 1 links, 2 slots` |
+| 导入时把 12 个物体节点装进 Frame `Alva2_original`（= `<label>_original`），贴图节点装进 `Alva2_textures`；Frame 的尺寸是**按子节点包围盒算**的（`shrink` 只在你手动拖动时才重新贴合，Python 建出来永远是 160×100） | `_frame_around()`（5.2 的 `NodeFrame.width/height` 可写）；headless：`frame labels: ['Alva2_original', 'Alva2_textures']`、`objects parented to frame: 12` |
+| 新增 `贴图` 节点：一键导入按本体里勾选的贴图各建一个，节点上显示 `2048x2048 · BC7 · 12 mips` + 一个图片选择器；**选了图就替换，不选就跳过** | 截图同上；实测 12 个贴图节点、`texture_meta` 缓存 12 条（导入时用一次 `texinfo` 问本体） |
+| 贴图替换走 **texconv.exe**（内置 `EXMTBlender/bin/texconv.exe`，DirectXTex 2026.5.8.1）：`-f <目标格式> -w -h -m <mips>`，把 PNG 编码成目标贴图**原本的格式/尺寸/mip 数** | `_encode_texture`；实测 BC1 2048² 12 mips → 2796216 字节，与资产 `m_CompleteImageSize` 完全一致 |
+| 核心不碰图像：`modpack` 只写字节（`texpatch.apply`），Mod 里存**已编码**的 `patches/*.bin` + 一条 `textures[]` 记录，App 侧合并也只是把 bin 交给 modpack | `core/exmt_core/{texpatch,ddsinfo}.py`、`modbox.ts` 的 `ModTexture`/`texRows` |
+| **UnityPy 的坑**：Texture2D 的像素在 typetree 里叫 **`image data`**（带空格）；写 `m_ImageData`/`image_data` 会被当新键静默丢弃（实测包只涨 140 字节、像素没变） | `texpatch._tree_payload`/`apply`、`sf.texture_info` |
+| **方向坑**：Unity 的 Texture2D 行序是**自下而上**，texconv 对 PNG 输出是自上而下 → 必须把每个 mip 的块行整体翻一次；不翻时替换图与原图差 10.1 dB，翻后 **59.2 dB** | `texpatch.vertical_flip`；`C:\DevCache\verify_texpatch.py` |
+| **色彩坑**：texconv 把 Blender 写的 PNG 当 sRGB，输出 UNORM 时会转成线性（实测 31→4、219→181，整体变暗）→ 固定加 `-srgbi -srgbo`（恒等）让数字原样落盘 | `_encode_texture`；实测 `-srgbo` 后 mean `[127.45,32,222]` vs 源 `[127.5,31,219]`，最大差 4（BC1 量化） |
+| App 侧：`ModRecord.textures`、`applyMods` 把贴图行并进 spec（**只被贴图碰过的包也要进 `targets`**，否则整包被漏掉）、`applied.json` 记 `textures`、模型页读 `GeneratedMod/mod.json` 时**重新读一遍**（避免页面加载后又在 Blender 里生成的补丁被丢掉） | `src/lib/modbox.ts`、`src/views/ModelsView.vue`；实测 `applied.json` 两个包（11 网格 / 1 贴图） |
+
+**端到端实测（真实数据）**：Blender 里给 `c_AlvaSSR0102_slg_cloth1_d`（BC1 2048² 12 mips）选一张渐变图 → 生成 Mod（11 网格 + 1 贴图）→ App「加载到游戏」→ 从**游戏目录的包**里解出该贴图：`[127.5, 32, 222]` vs 目标 `[127.5, 31, 219]`（**42.17 dB**，最大差 4），原图对比 9.43 dB；格式仍是 BC1、2048²、12 mips、2796216 字节。卸下后两个包 SHA256 与备份**逐位相等**。
+
+**没有验证的部分**：游戏内实际观感（没进游戏看）；BC6H/BC4/BC5 目标格式（映射表里有，但手上没有这种贴图可试）；`分组` 多层嵌套（只测了一层）。
+
+---
+
 ## 3. 交付物清单
 
 | 产物 | 位置 |
 | --- | --- |
 | 应用 | `C:\Dev\EXMT`（`src/` 前端、`src-tauri/` Rust） |
-| 核心 | `core/exmt_core/`（CLI：list/meshes/extract/extract-all/bonetable/pack/**modpack**/hide-mesh/subdivide/retarget/copy-texture/set-texture/texindex/bonenames/skinfo/geo/geoset/thumbs/maps/workspace） |
-| Blender 插件 | `C:\Dev\EXMTBlender\{__init__.py, mesh_io.py, blueprint.py}`（**0.4.0**：一键导入工作空间 → 建集合 + 蓝图 / Submesh 索引 / 生成 Mod；已同步到 `%APPDATA%\Blender Foundation\Blender\5.2\scripts\addons\EXMTBlender`；**该目录不是 git 仓库**，只能靠快照：`C:\DevCache\exmt-bones\EXMTBlender-0.*`） |
+| 核心 | `core/exmt_core/`（CLI：list/meshes/extract/extract-all/bonetable/pack/**modpack**/hide-mesh/subdivide/retarget/copy-texture/set-texture/texindex/bonenames/skinfo/geo/geoset/thumbs/maps/workspace/**texinfo**；贴图替换 = `texpatch.py` + 无依赖的 `ddsinfo.py`） |
+| Blender 插件 | `C:\Dev\EXMTBlender\{__init__.py, mesh_io.py, blueprint.py, bin/texconv.exe}`（**0.5.0**：一键导入工作空间 → 集合 + 蓝图（Frame `_original`/`_textures`、物体→分组→生成、贴图替换节点）+ 生成 Mod；已同步到 `%APPDATA%\Blender Foundation\Blender\5.2\scripts\addons\EXMTBlender`；**该目录不是 git 仓库**，只能靠快照：`C:\DevCache\exmt-bones\EXMTBlender-0.*`） |
 | 文档站 | `C:\Dev\EXMTDoc`（VitePress 2，独立仓库） |
 | 本仓库 docs | `exmt-modbox.md`、`exmt-model-pipeline.md`、`exmt-characters.md`、`gf2-exilium-recon.md` |
 | skill | `.agents/skills/unity-il2cpp-game-recon/`（§18–§23）、`.agents/skills/tauri-winui-shell/` |

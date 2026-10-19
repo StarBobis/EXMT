@@ -38,6 +38,20 @@ export interface ModPatch {
   bundles: string[];
 }
 
+/** One replaced texture inside a Mod: encoded blocks plus what they replace. */
+export interface ModTexture {
+  name: string;
+  /** `.bin` payload path, relative to the Mod's `source` folder (or absolute) */
+  file: string;
+  /** every bundle that stores a copy of this texture */
+  bundles: string[];
+  /** the asset's own format (Unity TextureFormat), size and mip count */
+  format?: number;
+  width?: number;
+  height?: number;
+  mips?: number;
+}
+
 export interface ModRecord {
   id: string;
   character?: string;
@@ -53,6 +67,8 @@ export interface ModRecord {
   kind?: string;
   /** geometry patches — what makes two Mods mergeable */
   patches?: ModPatch[];
+  /** texture patches — encoded in the target's own format by the add-on */
+  textures?: ModTexture[];
   /** false = kept in the library but not applied to the game */
   enabled?: boolean;
 }
@@ -184,6 +200,8 @@ export interface GeneratedMod {
   mesh_count?: number;
   bundles: GeneratedBundle[];
   patches?: ModPatch[];
+  /** texture patches the add-on encoded in each target's own format */
+  textures?: ModTexture[];
   dir: string;
 }
 
@@ -209,7 +227,7 @@ export async function readGeneratedMod(workspaceDir: string): Promise<GeneratedM
 export interface AppliedState {
   format: string;
   updated_at: string;
-  bundles: Record<string, { mods: string[]; meshes: number }>;
+  bundles: Record<string, { mods: string[]; meshes: number; textures?: number }>;
 }
 
 async function appliedStatePath(): Promise<string> {
@@ -235,6 +253,7 @@ export interface ApplyResult {
   legacy: number;
   bundles: number;
   meshes: number;
+  textures: number;
   restored: number;
   skipped: string[];
   errors: string[];
@@ -261,6 +280,7 @@ export async function applyMods(): Promise<ApplyResult> {
     legacy: 0,
     bundles: 0,
     meshes: 0,
+    textures: 0,
     restored: 0,
     skipped: [],
     errors: [],
@@ -271,7 +291,17 @@ export async function applyMods(): Promise<ApplyResult> {
   const enabled = records.filter((rec) => rec.enabled !== false);
 
   const rows: { bundle: string; mesh: string; file: string }[] = [];
+  const texRows: {
+    bundle: string;
+    name: string;
+    file: string;
+    format?: number;
+    width?: number;
+    height?: number;
+    mips?: number;
+  }[] = [];
   const byBundle: Record<string, Set<string>> = {};
+  const texByBundle: Record<string, Set<string>> = {};
   const owner: Record<string, Set<string>> = {};
   for (const rec of enabled) {
     if (!rec.patches?.length) {
@@ -295,13 +325,37 @@ export async function applyMods(): Promise<ApplyResult> {
         used += 1;
       }
     }
+    // texture patches: the payload is already encoded in the target's own format
+    // (the add-on ran texconv), so merging only has to hand the bytes to modpack
+    for (const tex of rec.textures ?? []) {
+      const file = patchFile(rec, { mesh: tex.name, file: tex.file, bundles: tex.bundles });
+      if (!(await exists(file))) {
+        result.skipped.push(`${rec.id}:${tex.name}`);
+        continue;
+      }
+      for (const hash of tex.bundles?.length ? tex.bundles : rec.bundles ?? []) {
+        texRows.push({
+          bundle: hash,
+          name: tex.name,
+          file,
+          format: tex.format,
+          width: tex.width,
+          height: tex.height,
+          mips: tex.mips,
+        });
+        (owner[hash] ??= new Set<string>()).add(rec.id);
+        (texByBundle[hash] ??= new Set<string>()).add(tex.name);
+        used += 1;
+      }
+    }
     if (used) result.mods += 1;
   }
 
   const previous = await readAppliedState();
-  const targets = Object.keys(byBundle);
+  // a bundle can be touched only by a texture patch, so both maps contribute
+  const targets = Array.from(new Set([...Object.keys(byBundle), ...Object.keys(texByBundle)]));
 
-  if (rows.length) {
+  if (rows.length || texRows.length) {
     // every patch is applied to a fresh copy of the *original* bundle; modpack
     // writes each bundle once, so several Mods touching one bundle merge cleanly
     const outdir = `${await cacheDir()}\\merge`;
@@ -314,6 +368,7 @@ export async function applyMods(): Promise<ApplyResult> {
       game_bundles: gameBundles(),
       bundles,
       meshes: rows,
+      textures: texRows,
     };
     const specPath = `${outdir}.spec.json`;
     await writeTextFile(specPath, JSON.stringify(spec));
@@ -325,10 +380,12 @@ export async function applyMods(): Promise<ApplyResult> {
     const summary = JSON.parse(res.stdout.trim().split("\n").pop() ?? "{}") as {
       bundles?: number;
       meshes?: number;
+      textures?: number;
       missing?: number;
     };
     result.bundles = summary.bundles ?? 0;
     result.meshes = summary.meshes ?? 0;
+    result.textures = summary.textures ?? 0;
     if (summary.missing) result.errors.push(`${summary.missing} 项缺文件`);
 
     const state: AppliedState = { format: "exmt-applied-1", updated_at: new Date().toISOString(), bundles: {} };
@@ -340,6 +397,7 @@ export async function applyMods(): Promise<ApplyResult> {
       state.bundles[hash] = {
         mods: Array.from(owner[hash] ?? []),
         meshes: byBundle[hash]?.size ?? 0,
+        textures: texByBundle[hash]?.size ?? 0,
       };
     }
     // bundles that were patched before but no Mod claims them any more
