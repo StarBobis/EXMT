@@ -81,6 +81,9 @@
 | 3D 预览交互 | three.js；`enableDamping` 逐帧 `controls.update()`，滚轮自己按 `exp(-delta/400)` 步进并关掉 `enableZoom` | 自研相机数学 |
 | Blender 插件 UI 无窗口验证 | 假 layout 真调 `draw_buttons()` | 靠肉眼 / 只跑 `py_compile` |
 | 加载/保存 bundle、网格、贴图 | `core/exmt_core/*` 现有命令与函数 | 在脚本里重写一遍解析 |
+| 判断「哪些包里有动作」 | 只解元数据里的 type list（class id 74）——9613 个包 63 秒 | 把截断切片喂 `UnityPy.load`（会被判成 0 个对象或抛 EOFError） |
+| 动作的骨骼层级 / 真名字 | 同包 prefab 的 `Transform.m_Father` + `GameObject.m_Name`，路径**按后缀**哈希 | 指望 clip 自带层级（它只有 `crc32(路径)`） |
+| Blender 5.2 写动作 | `slots.new` + `layers.new` + `strips.new(type="KEYFRAME")` + `channelbag(slot).fcurves.new`，同时设 `action_slot` | `action.fcurves`（4.4 起已移除） |
 
 ---
 

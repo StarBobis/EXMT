@@ -23,7 +23,7 @@
 | G10 | 首页 = 角色列表 + 立绘卡牌；模型页 = 网格/3D/贴图工作台 | ✅ 完成 | 首页 78 角色（2 列头像）+ 卡牌轮播；点卡选中皮肤，「进入模型页」进工作台；模型页顶栏显示当前角色/皮肤/数量，可「换皮肤」回首页；选择持久化（见 §2.7） |
 | G11 | **骨骼完整 + 正确绑定**（用户报的两个 bug） | ✅ 完成 | workspace 合成一副完整骨架（Alva 226 根，跨网格并集）；Blender 只建一副骨架、每个网格 100% 绑上（0 未绑定组 / 0 未蒙皮顶点）；不改动往返权重与骨骼索引逐位一致；打包回 bundle 与原包全等（见 §2.10） |
 | G12 | **改完 → 生成 Mod → 一键进游戏** | ✅ 完成 | Blender 面板「生成 Mod」把工作空间里所有网格打成一个 Mod 写到 `<工作空间>/GeneratedMod/`；App 模型页「加载到游戏」一键装进游戏（先备份原始包）、「卸下 Mod」一键还原；实测安装/卸下往返，游戏包字节与备份全等（见 §2.11） |
-| G13 | **动作（AnimationClip）：立绘 → 模型页关联查询 → 随「开始制作」导出 → Blender 里播** | 🟡 进行中 | 核心解码器已跑通并自证（`core/exmt_core/anim.py`，见 §2.19）；待做：动作索引、模型页动作列表、工作空间 `animations/`、Blender 侧动作导入 |
+| G13 | **动作（AnimationClip）：立绘 → 模型页关联查询 → 随「开始制作」导出 → Blender 里播** | ✅ 完成（挂件未决） | 全库索引 63 秒 / 39974 个 clip；模型页「动作」栏按皮肤前缀查（Vepley 168 个）；「开始制作」导出 `animations/*.exmtanim`；Blender 导入成 Action + NLA，首帧 vs 不挂动作 **0 顶点移动**、中间帧正常变形。已知缺口：零权重挂件（脸/武器）不跟动作走（见 §2.20 未决①） |
 
 ---
 
@@ -521,10 +521,31 @@ stream 2: count x 32   weights(16) + bones(16)
 | 根位移在 `root/Root_M` 骨上（`path == 0` 的绑定是 Animator 属性，不是 Transform） | 解码 x/z 位移与 clip 自带的 `m_StartX/m_StopX` 同向同量级；差值与 Root_M 的 bind 高度 0.36 一致 |
 | 动作**不参与打包**（Mod 只换网格/贴图）→ 与「未连线物体=参考」同一性质，导出后只用于看蒙皮 | 现有 `GeneratedMod` 流程只吃网格 + 贴图 |
 
-已落地：`core/exmt_core/anim.py`（`bindings_of` / `Clip.value` / `Clip.tracks` / `export` / `read_clips`）。
-验证脚本留在 `C:\DevCache\anim-recon\`（scan_anims.py / validate_anim.py / crosscheck2.py）。
+已落地：`core/exmt_core/anim.py`（`bindings_of` / `Clip.value` / `Clip.tracks` / `export` / `hierarchy` / `open_clips` / `clip_of`）
++ `core/exmt_core/animidx.py`（两遍法全库索引）+ CLI `anims` / `animexport` / `animidx`
++ 前端模型页底部「动作」栏（懒加载、搜索、勾选）+ 工作空间导出 `animations/*.exmtanim`
++ Blender 插件 0.7.0：导入工作空间时把每个动作做成一个 Action（muted NLA 轨、第一个设为当前）。
+验证脚本留在 `C:\DevCache\anim-recon\`（scan_anims.py / validate_anim.py / crosscheck2.py / ws_test.py / workspace_anim_test.py）。
 
-未决：① 动作索引要扫全库（66 GB）——用 `bonenames.py` 的「只解元数据前缀 + 只对含 AnimationClip 的包整读」两遍法，别全量解压；② streamed 三次键在键与键之间是否需要 Unity 的 inSlope 修正（当前按多项式求值，视觉上够用）；③ 一个皮肤的动作可能散在多个包（Groza 就散在 2 个）。
+### 2.20 动作第二轮：全库索引、层级、导出、Blender 真播（2026-10-20 第二轮）
+
+**结论：整条链路打通，实机验证过「点立绘 → 查到动作 → 勾选 → 开始制作 → Blender 里播」。**
+
+| 事实 | 证据 |
+| --- | --- |
+| 全库动作索引 63 秒建完 | `python -m exmt_core animidx <游戏目录> <out>` → 9613 个包 → **39974 个 clip / 2675 个动画包**；索引 3.5 MB，落在 `<cache>\animindex.json` |
+| 覆盖到皮肤级 | catalog 240 个皮肤里 **226 个**能查到动作（Vepley 168、Alka 170、Clukay 176…）；查不到的 14 个是指挥官/变体 |
+| 第一遍为什么能这么快 | 只解包内 SerializedFile 的**元数据**（60 MB 的包 86 KB）读 type list，看有没有 class id 74；**不能把截断切片喂 UnityPy**（`check_file_type` 拒收 + 急切解析 AssetBundle 对象 → 静默 0 个对象或 EOFError） |
+| 动作的父子层级从同包 prefab 的 Transform 树恢复 | 634 Transform + 634 GameObject → 路径后缀哈希 → **258 根骨里 257 根拿到父**、258 根拿到名字；只登记完整路径时覆盖率 0% |
+| 假根会毁掉整段动作 | 后缀裁剪深度抢登记会让 5 根骨变成假根，200+ 根骨整体位移约 1 m；改成「有父优先 + 最浅裁剪」后归零（父子世界距离中位 0.0000 m、p90 0.0039 m） |
+| 同一根骨只给四元数或只给欧拉（不会都给） | 258 个 Transform：180 四元数 / 78 欧拉 / 0 双给；欧拉是度、顺序 Z→X→Y，与 rest 局部比对中位 **0.0°** |
+| 导出量级 | 30 Hz 采样 + 5 位小数：1 秒 258 根骨 ≈ **0.5 MB** JSON；4.7 秒 140 帧 |
+| Blender 侧验收 | 首帧挂动作 vs 不挂动作：**0 个顶点移动（max 0.0000 m）**；中间帧 4602 顶点移动、max 0.09–0.15 m |
+| Blender 5.2 没有 `action.fcurves` | 必须 `slots.new` + `layers.new` + `strips.new(type="KEYFRAME")` + `channelbag(slot).fcurves.new(...)`，并且要同时设 `action_slot` |
+| 界面 | 「动作」默认收成一条 26px 的栏（不打扰三栏布局），展开后 168 个名字条 + 搜索 + 全选动作；计数显示 `2/168 个动作` |
+
+未决：① **零权重挂件（脸/武器）播动作时留在原地**——它们在游戏里是挂在某根骨上的刚性挂件，网格权重全 0（face/weapon 实测全 0），看起来像"头飞了"；要给这类网格一个「挂到哪根骨」的约定。② 只勾一个子网格时骨架只有那几根骨（实测 body 32 根），动作只驱动这些骨；需要提示用户"动作要看全套就多勾几个网格"。③ 动作仍然只导出、不打包（设计如此）。④ streamed 三次键的键间 inSlope 修正没做（视觉够用）。
+
 
 ---
 
@@ -533,8 +554,8 @@ stream 2: count x 32   weights(16) + bones(16)
 | 产物 | 位置 |
 | --- | --- |
 | 应用 | `C:\Dev\EXMT`（`src/` 前端、`src-tauri/` Rust） |
-| 核心 | `core/exmt_core/`（CLI：list/meshes/extract/extract-all/bonetable/pack/**modpack**/hide-mesh/subdivide/retarget/copy-texture/set-texture/texindex/bonenames/skinfo/geo/geoset/thumbs/maps/workspace/**texinfo**；贴图替换 = `texpatch.py` + 无依赖的 `ddsinfo.py`） |
-| Blender 插件 | `C:\Dev\EXMTBlender\{__init__.py, mesh_io.py, blueprint.py, bin/texconv.exe}`（**0.5.0**：一键导入工作空间 → 集合 + 蓝图（Frame `_original`/`_textures`、物体→分组→生成、贴图替换节点）+ 生成 Mod；已同步到 `%APPDATA%\Blender Foundation\Blender\5.2\scripts\addons\EXMTBlender`；**该目录不是 git 仓库**，只能靠快照：`C:\DevCache\exmt-bones\EXMTBlender-0.*`） |
+| 核心 | `core/exmt_core/`（CLI：list/meshes/extract/extract-all/bonetable/pack/**modpack**/hide-mesh/subdivide/retarget/copy-texture/set-texture/texindex/bonenames/skinfo/geo/geoset/thumbs/maps/workspace/**texinfo**/**anims**/**animexport**/**animidx**；贴图替换 = `texpatch.py` + 无依赖的 `ddsinfo.py`；动作 = `anim.py` + `animidx.py`） |
+| Blender 插件 | `C:\Dev\EXMTBlender\{__init__.py, mesh_io.py, blueprint.py, bin/texconv.exe}`（**0.7.0**：一键导入工作空间 → 集合 + 蓝图（Frame `_original`/`_textures`、物体→分组→生成、贴图替换节点）+ 生成 Mod + **把 `animations/` 做成 Action/NLA**；`C:\Dev\EXMTBlender` 是独立 git 仓库；`%APPDATA%\Blender Foundation\Blender\5.2\scripts\addons\EXMTBlender` 是安装副本，不是仓库） |
 | 文档站 | `C:\Dev\EXMTDoc`（VitePress 2，独立仓库） |
 | 本仓库 docs | `exmt-modbox.md`、`exmt-model-pipeline.md`、`exmt-characters.md`、`gf2-exilium-recon.md` |
 | skill | `.agents/skills/unity-il2cpp-game-recon/`（§18–§23）、`.agents/skills/tauri-winui-shell/` |

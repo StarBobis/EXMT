@@ -232,14 +232,32 @@ class Clip:
 
 
 # ---------------------------------------------------------------------- export
-def export(clip: Clip, out_path: str, paths: dict | None = None, rate: float | None = None) -> dict:
-    """Write sampled tracks as JSON; returns the payload (without the sample rows)."""
+def export(clip: Clip, out_path: str, paths: dict | None = None, rate: float | None = None,
+           decimals: int = 5, parents: dict | None = None) -> dict:
+    """Write sampled tracks as JSON; returns the payload (without the sample rows).
+
+    Sampled, not raw: a clip is a *reference* to look at skinning in Blender, so
+    linear samples at `rate` (default 30 Hz — half the game's 60 Hz and half the
+    file) are enough, and keep the file readable instead of re-implementing
+    Unity's cubic keys in the add-on.  `decimals` trims float noise: rotation
+    numbers below 1e-5 are not visible on screen.
+
+    `parents` (`{path hash: parent hash}` from `hierarchy`) goes into every row:
+    the add-on has to compose world transforms down the chain to pose a bone, and
+    the hierarchy is nowhere in the clip itself.
+    """
+    rate = float(rate or min(clip.sample_rate or 30.0, 30.0))
     rows, times = clip.tracks(rate=rate, paths=paths)
+    if decimals is not None:
+        rows = [_round_row(row, decimals) for row in rows]
+    if parents:
+        for row in rows:
+            row["parent"] = int(parents.get(row["hash"], 0))
     payload = {
         "format": FORMAT,
         "name": clip.name,
         "source_clip": clip.name,
-        "sample_rate": float(rate or clip.sample_rate),
+        "sample_rate": rate,
         "start": clip.start,
         "stop": clip.stop,
         "length": clip.length,
@@ -249,7 +267,7 @@ def export(clip: Clip, out_path: str, paths: dict | None = None, rate: float | N
         "bones": rows,
     }
     with open(out_path, "w", encoding="utf-8") as fh:
-        json.dump(payload, fh)
+        json.dump(payload, fh, separators=(",", ":"))
     return {
         "format": FORMAT,
         "name": clip.name,
@@ -258,6 +276,15 @@ def export(clip: Clip, out_path: str, paths: dict | None = None, rate: float | N
         "bones": len(rows),
         "bytes": _size(out_path),
     }
+
+
+def _round_row(row: dict, decimals: int) -> dict:
+    out = dict(row)
+    for key in ("position", "rotation", "scale", "euler"):
+        rows = row.get(key)
+        if rows:
+            out[key] = [[round(v, decimals) for v in axis] for axis in rows]
+    return out
 
 
 def _size(path: str) -> int:
@@ -274,25 +301,127 @@ def load(path: str) -> dict:
         return json.load(fh)
 
 
-def read_clips(bundle_path: str) -> list:
-    """Every AnimationClip in one bundle, decoded (`[(Clip, tree)]`)."""
+def hierarchy(env) -> tuple:
+    """`({path hash: parent hash}, {path hash: path})` for one bundle's prefab.
+
+    The clip's `genericBindings` only carry `crc32(transform path)`; the bone
+    hierarchy is not in the clip at all.  It *is* in the character prefab that
+    ships in the same bundle (634 `Transform` + `GameObject` objects for Groza),
+    and the clip's path is a **suffix** of the prefab's path: the prefab starts at
+    the model object (`CF_GrozaSR0102_slg_skin/root/Root_M/…`) while the clip is
+    relative to the Animator (`root/Root_M/…`).  So every path is registered with
+    every suffix, exactly like `bonenames._add_path`.
+
+    Measured on `c_GrozaSR0102_slg_LowCoverRtoL_N`: 257 of 258 animated bones get
+    a parent (and a readable path) this way, while the name index alone knows only
+    ~126 of them because it stops after each bundle's metadata prefix.
+    """
+    import zlib
+
+    names: dict = {}
+    father: dict = {}
+    owner: dict = {}
+    for obj in env.objects:
+        kind = obj.type.name
+        if kind == "GameObject":
+            try:
+                names[obj.path_id] = (obj.read_typetree() or {}).get("m_Name") or ""
+            except Exception:
+                continue
+        elif kind == "Transform":
+            try:
+                tree = obj.read_typetree() or {}
+            except Exception:
+                continue
+            father[obj.path_id] = (tree.get("m_Father") or {}).get("m_PathID", 0)
+            owner[obj.path_id] = (tree.get("m_GameObject") or {}).get("m_PathID", 0)
+
+    def crc(text: str) -> int:
+        return zlib.crc32(text.encode()) & 0xFFFFFFFF
+
+    path_of: dict = {}
+    for tid in father:
+        parts, cur, guard = [], tid, 0
+        while cur and cur in father and guard < 64:
+            parts.append(names.get(owner.get(cur), ""))
+            cur = father[cur]
+            guard += 1
+        path = "/".join(reversed([p for p in parts if p]))
+        if path:
+            path_of[tid] = path
+
+    parents: dict = {}
+    paths: dict = {}
+    # one hash can be registered under several trim depths; the shallowest (root
+    # aligned) registration knows the parent, deeper ones cut it off.  Preferring
+    # "has a parent" over "does not" is what keeps `Weapon/bolt02` under `Weapon`
+    # instead of turning five bones into bogus roots that displace their subtrees.
+    depth: dict = {}
+    for tid, path in path_of.items():
+        parent_path = path_of.get(father.get(tid, 0), "")
+        parent_parts = parent_path.split("/") if parent_path else []
+        parts = path.split("/")
+        for start in range(len(parts)):
+            suffix = "/".join(parts[start:])
+            if not suffix:
+                continue
+            parent_suffix = "/".join(parent_parts[start:]) if len(parent_parts) > start else ""
+            h = crc(suffix)
+            candidate = crc(parent_suffix) if parent_suffix else 0
+            prev_parent = parents.get(h)
+            if prev_parent is None or (candidate and not prev_parent) or (
+                    start < depth.get(h, 1 << 30) and bool(candidate) >= bool(prev_parent)):
+                parents[h] = candidate
+                depth[h] = start
+            paths.setdefault(h, suffix)
+    return parents, paths
+
+
+def open_clips(bundle_path: str):
+    """`(env, {clip name: object})` for one bundle — names only, no typetree reads.
+
+    `read_clips` decodes every clip in the bundle (146 of them, ~1 MB of typetree
+    each, 60 MB of payload), which is right for a listing but far too much when
+    the user exported three clips.  This keeps the bundle open and names cheap;
+    `clip_of` then reads exactly one typetree.
+    """
     import UnityPy
 
     from .bundle import decrypt
 
     with open(bundle_path, "rb") as fh:
         env = UnityPy.load(decrypt(fh.read()))
-    out = []
+    table = {}
     for obj in env.objects:
         if obj.type.name != "AnimationClip":
             continue
         try:
-            tree = obj.read_typetree()
+            name = obj.peek_name()
         except Exception:
             continue
-        try:
-            out.append(Clip(tree))
-        except Exception:
-            continue
+        if name:
+            table[str(name)] = obj
+    return env, table
+
+
+def clip_of(table: dict, name: str):
+    """Decode one clip out of an `open_clips` table (None when it is not there)."""
+    obj = (table or {}).get(name)
+    if obj is None:
+        return None
+    try:
+        return Clip(obj.read_typetree())
+    except Exception:
+        return None
+
+
+def read_clips(bundle_path: str) -> list:
+    """Every AnimationClip in one bundle, decoded (`[Clip]`)."""
+    env, table = open_clips(bundle_path)
+    out = []
+    for name in table:
+        clip = clip_of(table, name)
+        if clip is not None:
+            out.append(clip)
     out.sort(key=lambda clip: clip.name)
     return out

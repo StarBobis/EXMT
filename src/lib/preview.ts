@@ -52,6 +52,20 @@ export interface TexIndex {
   textures: Record<string, string[]>;
 }
 
+export interface AnimEntry {
+  name: string;
+  /** every bundle that stores this clip (the game may read any of them) */
+  bundles: string[];
+}
+
+export interface AnimIndex {
+  format: string;
+  built_at: string;
+  bundle_dir: string;
+  clip_count: number;
+  clips: Record<string, string[]>;
+}
+
 /** Texture role suffix, used to order a submesh's maps (diffuse first). */
 const ROLE_RANK: Record<string, number> = {
   d: 0,
@@ -125,6 +139,9 @@ export interface WorkspaceResult {
   meshes: number;
   textures: number;
   failed_textures: number;
+  /** reference-only clips written to `animations/` (never packed into a Mod) */
+  animations?: number;
+  failed_animations?: number;
   /** bones in the merged skin skeleton (the union of every mesh's own table) */
   bones: number;
   /** how many of them got a real name from a local Avatar/prefab */
@@ -231,6 +248,75 @@ export function texturesFor(index: TexIndex, skinKey: string): TextureEntry[] {
   for (const [name, bundles] of Object.entries(index.textures)) {
     if (!name.startsWith(prefix) || !bundles.length) continue;
     out.push({ name, bundle: bundles[0].replace(/\.bundle$/i, "") });
+  }
+  out.sort((a, b) => a.name.localeCompare(b.name));
+  return out;
+}
+
+// --------------------------------------------------------------------------- //
+// animation index
+// --------------------------------------------------------------------------- //
+/**
+ * Clip names live in the payload (`m_Name` at each object's start), and one
+ * character's combat clip alone is ~200 KB, so a full/big scan is expensive:
+ * the core reads only each bundle's **metadata** first and fully reads just the
+ * bundles whose type table lists an AnimationClip. Measured over GF2's whole
+ * library: 9613 bundles -> 39974 clips / 2675 clip bundles in 63 s, once.
+ *
+ * It has to scan the **game** folder, not the backup: the backup only holds the
+ * bundles this app reads meshes and textures from, and that is 9 clip bundles
+ * out of 2675.
+ */
+async function animIndexPath(): Promise<string> {
+  return join(cacheFolder.value, "animindex.json");
+}
+
+async function readAnimIndex(): Promise<AnimIndex | null> {
+  const path = await animIndexPath();
+  if (!(await exists(path))) return null;
+  try {
+    const info = await stat(path);
+    const age = Date.now() - new Date(info.mtime ?? 0).getTime();
+    if (age > INDEX_MAX_AGE_MS) return null;
+    const data = JSON.parse(await readTextFile(path)) as AnimIndex;
+    if (data.bundle_dir !== gameBundles()) return null;
+    return data;
+  } catch {
+    return null;
+  }
+}
+
+let animIndexCache: AnimIndex | null = null;
+let animIndexPromise: Promise<AnimIndex> | null = null;
+
+export async function ensureAnimIndex(): Promise<AnimIndex> {
+  if (animIndexCache) return animIndexCache;
+  if (animIndexPromise) return animIndexPromise;
+  animIndexPromise = (async () => {
+    const cached = await readAnimIndex();
+    if (cached) return cached;
+    const path = await animIndexPath();
+    const res = await runCore(["animidx", gameBundles(), path]);
+    if (res.code !== 0) throw new Error((res.stderr || res.stdout).trim().slice(-500));
+    const data = JSON.parse(await readTextFile(path)) as AnimIndex;
+    return data;
+  })();
+  try {
+    animIndexCache = await animIndexPromise;
+    return animIndexCache;
+  } finally {
+    animIndexPromise = null;
+  }
+}
+
+/** Clips of one skin (`c_<skinKey>_…`), sorted by name. */
+export function animationsFor(index: AnimIndex, skinKey: string): AnimEntry[] {
+  // skinKey already starts with `c_` (see skinKeyOf) — same convention as textures
+  const prefix = `${skinKey}_`;
+  const out: AnimEntry[] = [];
+  for (const [name, bundles] of Object.entries(index.clips ?? {})) {
+    if (!name.startsWith(prefix) || !bundles.length) continue;
+    out.push({ name, bundles: bundles.map((hash) => hash.replace(/\.bundle$/i, "")) });
   }
   out.sort((a, b) => a.name.localeCompare(b.name));
   return out;
@@ -800,6 +886,7 @@ export async function makeWorkspace(
   display: string,
   meshes: SkinMesh[],
   textures: TextureEntry[],
+  animations: AnimEntry[] = [],
 ): Promise<WorkspaceResult> {
   if (!isTauri) throw new Error("workspace export needs the desktop shell");
   const identity = await newWorkspaceIdentity({
@@ -839,6 +926,21 @@ export async function makeWorkspace(
     }
   }
 
+  // animations: reference-only, but their bundles have to be readable at export
+  // time. Clips usually live in the **game** folder (the backup keeps only mesh
+  // and texture bundles), so `packSource` falls back to the live file — our Mods
+  // never rewrite animation objects, so that copy is still the game's own.
+  const animItems: { clip: string; bundle: string }[] = [];
+  for (const clip of animations) {
+    const targets = clip.bundles.length ? clip.bundles : [];
+    if (!targets.length) continue;
+    for (const hash of targets) {
+      if (!bundles[hash]) bundles[hash] = await packSource(hash);
+    }
+    // one copy is enough to read the clip; the rest are duplicates of the asset
+    animItems.push({ clip: clip.name, bundle: targets[0] });
+  }
+
   const spec = {
     workspace_id: identity.id,
     label: identity.label,
@@ -852,6 +954,7 @@ export async function makeWorkspace(
     texture_bundles: textureBundles,
     meshes: meshes.map((mesh) => ({ bundle: mesh.bundle, mesh: mesh.name })),
     textures: textures.map((tex) => ({ bundle: tex.bundle, name: tex.name })),
+    animations: animItems,
     bone_names: boneNames ?? "",
   };
   const specPath = await join(outdir, "spec.json");

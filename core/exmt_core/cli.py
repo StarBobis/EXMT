@@ -430,6 +430,16 @@ def cmd_workspace(args):
     return 0
 
 
+def cmd_animidx(args):
+    """animidx <bundleDir> <out.json> [workers] [limit] - AnimationClip name -> bundles."""
+    from . import animidx
+
+    workers = int(args[2]) if len(args) > 2 and args[2] else 6
+    limit = int(args[3]) if len(args) > 3 and args[3] else None
+    print(json.dumps(animidx.build(args[0], args[1], workers=workers, limit=limit)))
+    return 0
+
+
 def cmd_anims(args):
     """anims <bundle> [bonenames.json] - every AnimationClip in one bundle, summarised."""
     from . import anim, bonenames
@@ -494,6 +504,7 @@ def main(argv=None):
         "workspace": cmd_workspace,
         "anims": cmd_anims,
         "animexport": cmd_animexport,
+        "animidx": cmd_animidx,
     }
     if cmd not in table:
         print("unknown command", cmd)

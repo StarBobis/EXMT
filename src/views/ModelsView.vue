@@ -8,12 +8,15 @@ import type { DropdownOption } from "../lib/dropdown";
 import { navigate } from "../lib/nav";
 import { isTauri } from "../lib/tauri";
 import {
+  animationsFor,
+  ensureAnimIndex,
   loadSkin,
   makeWorkspace,
   skinKeyOf,
   textureRole,
   texturesForMesh,
   unassignedTextures,
+  type AnimEntry,
   type PreviewGeometry,
   type SkinMesh,
   type SkinPhase,
@@ -52,6 +55,14 @@ const pickedMeshes = ref<string[]>([]);
 const pickedTextures = ref<string[]>([]);
 const textures = ref<TextureEntry[]>([]);
 const maps = ref<Record<string, string>>({});
+/** 这个皮肤的动作：只做参考（Mod 不打包动作），导出给 Blender 播来看蒙皮。 */
+const animations = ref<AnimEntry[]>([]);
+const pickedAnims = ref<string[]>([]);
+const animsOpen = ref(false);
+const animQuery = ref("");
+const animBusy = ref(false);
+/** 全库动作索引很大（9613 个包 / 4 万个名字），只在用户展开时才建。 */
+const animsIndexed = ref(false);
 /** 当前查看贴图的子网格；null 时看「共享贴图」或空态。 */
 const activeMesh = ref<string | null>(null);
 const activeShared = ref(false);
@@ -112,6 +123,26 @@ const allPicked = computed(
     (meshes.value.length > 0 || textures.value.length > 0) &&
     pickedMeshes.value.length === meshes.value.length &&
     pickedTextures.value.length === textures.value.length,
+);
+
+/** 动作列表：按搜索词过滤（`c_<皮肤>_` 前缀已在 shortName 里去掉了）。 */
+const visibleAnims = computed(() => {
+  const q = animQuery.value.trim().toLowerCase();
+  if (!q) return animations.value;
+  return animations.value.filter((clip) => clip.name.toLowerCase().includes(q));
+});
+
+const allAnimsPicked = computed(
+  () =>
+    animations.value.length > 0 &&
+    pickedAnims.value.length === animations.value.length,
+);
+
+/** 按钮上的计数：选了就报选了几个，没选就报这个皮肤一共有几个。 */
+const animCountLabel = computed(() =>
+  pickedAnims.value.length
+    ? t("models.anims.picked", { n: pickedAnims.value.length, total: animations.value.length })
+    : String(animations.value.length),
 );
 
 const selectedWorkspaceId = computed(() => activeWorkspace.value?.id ?? "");
@@ -216,6 +247,54 @@ function toggleSelectAll() {
       meshes.value.find((mesh) => textureCount(mesh.name) > 0) ?? meshes.value[0];
     activateMesh(first.name);
   }
+}
+
+// ------------------------------------------------------------------------- //
+// animations: this skin's clips, exported as reference for watching skinning
+// ------------------------------------------------------------------------- //
+/**
+ * 懒加载：动作名要扫一遍游戏目录（9613 个包 / 63 秒，只解元数据），所以不跟着
+ * 皮肤一起加载，等用户真的展开「动作」才建索引；之后走 `<cache>/animindex.json`。
+ */
+async function loadAnimations() {
+  if (!skinKey || !isTauri) return;
+  const mine = token;
+  animBusy.value = true;
+  if (!animsIndexed.value) note.value = t("models.anims.indexing");
+  try {
+    const index = await ensureAnimIndex();
+    animsIndexed.value = true;
+    if (mine !== token) return;
+    animations.value = animationsFor(index, skinKey);
+    // 换皮肤后旧勾选必须丢掉，否则会把别的皮肤的动作名传进导出
+    pickedAnims.value = pickedAnims.value.filter((name) =>
+      animations.value.some((clip) => clip.name === name),
+    );
+  } catch (e) {
+    if (mine === token) status.value = { kind: "err", text: String(e) };
+  } finally {
+    if (mine === token) {
+      animBusy.value = false;
+      note.value = "";
+    }
+  }
+}
+
+async function toggleAnimsPanel() {
+  animsOpen.value = !animsOpen.value;
+  if (animsOpen.value && !animsIndexed.value) await loadAnimations();
+}
+
+function togglePickAnim(name: string) {
+  pickedAnims.value = pickedAnims.value.includes(name)
+    ? pickedAnims.value.filter((item) => item !== name)
+    : [...pickedAnims.value, name];
+}
+
+function toggleAllAnims() {
+  pickedAnims.value = allAnimsPicked.value
+    ? []
+    : animations.value.map((clip) => clip.name);
 }
 
 // ------------------------------------------------------------------------- //
@@ -476,6 +555,9 @@ function clearStudio() {
   maps.value = {};
   activeMesh.value = null;
   activeShared.value = false;
+  // 动作跟着皮肤走：列表和勾选都清掉，展开了就重新查这个皮肤的
+  animations.value = [];
+  pickedAnims.value = [];
   note.value = "";
   cacheHint.value = "";
   status.value = null;
@@ -519,6 +601,7 @@ async function openStudio(entry: CatalogEntry) {
       }
     }
     if (data.cached) cacheHint.value = t("models.studio.cached", { time: stamp(data.builtAt) });
+    if (animsOpen.value) void loadAnimations();
     if (!data.meshes.length) {
       note.value = t("models.studio.noMesh");
       // 没有子网格时至少让共享贴图可见，方便单独导出
@@ -586,6 +669,10 @@ async function startMaking() {
   const exportTextures = textures.value.filter((tex) =>
     pickedTextures.value.includes(tex.name),
   );
+  // 动作只是参考：勾了就导出到 animations/，没勾就完全不动（也不影响打包）
+  const exportAnims = animations.value.filter((clip) =>
+    pickedAnims.value.includes(clip.name),
+  );
   if (!exportMeshes.length) {
     status.value = { kind: "err", text: t("models.studio.pickOne") };
     return;
@@ -595,7 +682,13 @@ async function startMaking() {
   generated.value = null;
   installedAt.value = "";
   try {
-    const result = await makeWorkspace(entry, label(entry), exportMeshes, exportTextures);
+    const result = await makeWorkspace(
+      entry,
+      label(entry),
+      exportMeshes,
+      exportTextures,
+      exportAnims,
+    );
     await refreshWorkspaces();
     const summary: WorkspaceSummary =
       workspaces.value.find((ws) => ws.id === result.id) ?? {
@@ -616,6 +709,7 @@ async function startMaking() {
         text: t("models.made", {
           meshes: result.meshes,
           textures: result.textures,
+          anims: result.animations ?? 0,
           bones: result.bones ?? 0,
           named: result.named_bones ?? 0,
           label: result.label,
@@ -851,6 +945,63 @@ async function startMaking() {
           />
         </div>
       </div>
+
+      <!-- 动作：皮肤级参考素材。勾了就随「开始制作」导出，Blender 里播来看蒙皮 -->
+      <section class="studio__anims" :class="{ 'studio__anims--open': animsOpen }">
+        <div class="studio__anims-bar">
+          <button
+            class="studio__anims-toggle"
+            type="button"
+            :aria-expanded="animsOpen"
+            :title="t('models.anims.hint')"
+            @click="toggleAnimsPanel"
+          >
+            <span class="studio__anims-caret" aria-hidden="true">{{ animsOpen ? "▾" : "▸" }}</span>
+            {{ t("models.anims") }}
+          </button>
+          <span v-if="animsIndexed" class="chip">{{ animCountLabel }}</span>
+          <span v-else class="studio__anims-note">{{ t("models.anims.lazy") }}</span>
+          <template v-if="animsOpen">
+            <input
+              v-model="animQuery"
+              class="studio__anims-search"
+              type="search"
+              :placeholder="t('models.anims.search')"
+              :aria-label="t('models.anims.search')"
+            />
+            <button
+              class="btn studio__anims-all"
+              type="button"
+              :disabled="animBusy || !animations.length"
+              @click="toggleAllAnims"
+            >
+              {{ allAnimsPicked ? t("models.anims.clear") : t("models.anims.all") }}
+            </button>
+          </template>
+        </div>
+        <div v-if="animsOpen" class="studio__anims-list">
+          <button
+            v-for="clip in visibleAnims"
+            :key="clip.name"
+            type="button"
+            class="animchip"
+            :class="{ 'animchip--picked': pickedAnims.includes(clip.name) }"
+            :aria-pressed="pickedAnims.includes(clip.name)"
+            :title="clip.name"
+            @click="togglePickAnim(clip.name)"
+          >
+            <span class="animchip__tick" aria-hidden="true">{{ pickedAnims.includes(clip.name) ? "✓" : "" }}</span>
+            <span class="animchip__name mono">{{ shortName(clip.name) }}</span>
+          </button>
+          <p v-if="animBusy" class="studio__empty">{{ t("models.anims.loading") }}</p>
+          <p v-else-if="animsIndexed && !animations.length" class="studio__empty">
+            {{ t("models.anims.empty") }}
+          </p>
+          <p v-else-if="!visibleAnims.length" class="studio__empty">
+            {{ t("models.anims.noMatch") }}
+          </p>
+        </div>
+      </section>
     </div>
   </section>
 </template>
@@ -1362,5 +1513,140 @@ async function startMaking() {
   .texgrid {
     grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
   }
+}
+
+/* 动作：默认只占一条 26px 的栏，展开后是横向滚动的名字条 */
+.studio__anims {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  border-top: 1px solid var(--stroke);
+  padding-top: 8px;
+}
+
+.studio__anims-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.studio__anims-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 8px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-2);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.studio__anims-toggle:hover,
+.studio__anims-toggle:focus-visible {
+  outline: none;
+  background: var(--fill-subtle-hover);
+  color: var(--text-1);
+}
+
+.studio__anims-caret {
+  width: 10px;
+  font-size: 10px;
+  color: var(--text-3);
+}
+
+.studio__anims-note {
+  font-size: 11px;
+  color: var(--text-3);
+}
+
+.studio__anims-search {
+  flex: 1;
+  min-width: 120px;
+  max-width: 260px;
+  height: 26px;
+  padding: 0 8px;
+  border: 1px solid var(--stroke);
+  border-radius: 6px;
+  background: var(--fill-subtle-pressed);
+  color: var(--text-1);
+  font-size: 12px;
+}
+
+.studio__anims-search:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.studio__anims-all {
+  height: 26px;
+  padding: 0 10px;
+  font-size: 12px;
+}
+
+.studio__anims-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  max-height: 92px;
+  overflow-y: auto;
+  align-items: flex-start;
+}
+
+.animchip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 240px;
+  height: 24px;
+  padding: 0 8px 0 5px;
+  border: 1px solid var(--stroke);
+  border-radius: 999px;
+  background: var(--fill-subtle-pressed);
+  color: var(--text-2);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.animchip:hover {
+  border-color: var(--stroke-strong);
+  background: var(--fill-subtle-hover);
+  color: var(--text-1);
+}
+
+.animchip--picked {
+  border-color: var(--accent);
+  background: var(--accent-soft-strong);
+  color: var(--text-1);
+}
+
+.animchip__tick {
+  width: 13px;
+  height: 13px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 1px solid var(--stroke-strong);
+  font-size: 9px;
+  line-height: 1;
+  color: var(--accent-contrast);
+}
+
+.animchip--picked .animchip__tick {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.animchip__name {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 </style>

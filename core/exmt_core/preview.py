@@ -339,8 +339,9 @@ def make_workspace(outdir: str, spec: dict) -> dict:
     os.makedirs(outdir, exist_ok=True)
     mesh_dir = os.path.join(outdir, "meshes")
     tex_dir = os.path.join(outdir, "textures")
+    anim_dir = os.path.join(outdir, "animations")
     # 工作空间只放这一次勾选的内容：先清掉旧文件，避免上一次的残留混进来
-    for stale in (mesh_dir, tex_dir):
+    for stale in (mesh_dir, tex_dir, anim_dir):
         if os.path.isdir(stale):
             shutil.rmtree(stale)
     os.makedirs(mesh_dir, exist_ok=True)
@@ -416,6 +417,44 @@ def make_workspace(outdir: str, spec: dict) -> dict:
         except Exception as exc:  # noqa: BLE001 - one broken texture must not sink the export
             failed.append({"name": item.get("name", ""), "error": str(exc)[:200]})
 
+    # 动作：只做参考（Mod 不打包动作），但仍然随工作空间一起导出，Blender 端直接播
+    written_anims = []
+    failed_anims = []
+    if spec.get("animations"):
+        from . import anim as A
+
+        os.makedirs(anim_dir, exist_ok=True)
+        tables: dict[str, tuple] = {}
+        for item in spec.get("animations", []):
+            hash_ = item["bundle"]
+            name = item["clip"]
+            try:
+                if hash_ not in tables:
+                    env, table = A.open_clips(spec["bundles"][hash_])
+                    # the prefab in this bundle carries what the clip lacks: the
+                    # bone hierarchy (`path` hash -> parent hash) and better names
+                    parents, prefab_paths = A.hierarchy(env)
+                    tables[hash_] = (table, parents, prefab_paths)
+                table, parents, prefab_paths = tables[hash_]
+                clip = A.clip_of(table, name)
+                if clip is None:
+                    raise KeyError("clip not found in bundle")
+                fname = _safe(name) + ".exmtanim"
+                merged = dict(paths or {})
+                merged.update(prefab_paths)
+                info = A.export(clip, os.path.join(anim_dir, fname), paths=merged,
+                                parents=parents)
+                written_anims.append({
+                    "file": "animations/" + fname,
+                    "clip": name,
+                    "bundle": hash_,
+                    "seconds": round(clip.length, 3),
+                    "samples": info["samples"],
+                    "loop": clip.loop,
+                })
+            except Exception as exc:  # noqa: BLE001 - one broken clip must not sink the export
+                failed_anims.append({"clip": name, "error": str(exc)[:200]})
+
     manifest = {
         "format": "exmt-workspace-1",
         "workspace_id": spec.get("workspace_id") or spec.get("id", ""),
@@ -440,6 +479,10 @@ def make_workspace(outdir: str, spec: dict) -> dict:
         "meshes": written_meshes,
         "textures": written_textures,
         "failed_textures": failed,
+        # reference-only: the game plays its own clips, these are for watching the
+        # skinning in Blender, so they never take part in packing a Mod
+        "animations": written_anims,
+        "failed_animations": failed_anims,
     }
     with open(os.path.join(outdir, "workspace.json"), "w", encoding="utf-8") as fh:
         json.dump(manifest, fh, ensure_ascii=False, indent=1)
@@ -455,6 +498,8 @@ def make_workspace(outdir: str, spec: dict) -> dict:
         "meshes": len(written_meshes),
         "textures": len(written_textures),
         "failed_textures": len(failed),
+        "animations": len(written_anims),
+        "failed_animations": len(failed_anims),
         "bones": skel["count"],
         "named_bones": skel["named"],
         "bytes": sum(os.path.getsize(os.path.join(outdir, m["file"])) for m in written_meshes),
