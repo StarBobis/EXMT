@@ -3,7 +3,7 @@
 > 结论 + 证据 + 未决问题。**不写流水账**（不记"先跑 X 再跑 Y"）。
 > 每轮开始读这里，结束前更新这里。目标状态只在这里，不在 AGENTS.md。
 
-最近更新：2026-10-19（§2.17 材质槽 / 顶点缓冲布局 / 骨骼表代际）
+最近更新：2026-10-19（§2.18 蓝图 UI 三个 bug + 贴图预览）
 
 ---
 
@@ -450,6 +450,56 @@ stream 2: count x 32   weights(16) + bones(16)
 旧代际那两份权重和 `[0.077, 1.000]`（= 只剩 `Hip_M` 一根真被删的骨）。
 ⚠️ 早期我做过一次"只用短名"的测试，得到 60.0%（比 69.6% 还差）——那是**没有哈希优先**，
 不能作为"短名无效"的依据；顺序必须是**先哈希、后短名**。
+
+### 2.18 蓝图三个 UI bug + 贴图预览（2026-10-19 第三轮）
+
+用户报「分组节点点加槽位报错」「不知道加槽位干什么」「生成 Mod 节点上没有生成 Mod 按钮」
+「贴图节点为什么不显示预览」。四个都是真的，根因三个：
+
+#### (1) 死操作符 / 死方法调用
+
+| 按钮 | 代码写的 | 真相 |
+| --- | --- | --- |
+| `＋ 槽位` | `node.sync_slots()` | 方法早改名 `ensure_slots` → `AttributeError` |
+| `生成 Mod` | `exmt.blueprint_generate` | **该 idname 从未注册**（真名 `exmt.generate_mod`）→ 点了没反应也不报错 |
+
+后一个是**静默失败**，比报错更难发现：按钮画得出来，点下去什么都不发生。
+
+#### (2) 假警告
+
+生成节点原逻辑用 `_source_submesh()` 判断"这条线有没有指定 Submesh"，而它只认
+**直接连过来的** `物体` 节点；用户实际是 `物体 → 分组 → 生成 Mod`，于是显示
+「1 条连线没指定 Submesh」——**连线完全正确**。新增 `socket_objects()` / `socket_ok()`
+穿透分组，误报消失。
+
+**判据**：任何"检查/警告"必须和**真正干活的那条解析路径**用同一个函数，
+否则警告骗的是自己。
+
+#### (3) 贴图没有预览
+
+`workspace.json` 的 `textures[].file` 已经指向解好的 PNG（13 张，512²/2048² 都在），
+所以节点可以直接画原图：
+
+- `texture_preview(tree, name)` → `bpy.data.images.load(path, check_existing=True)`
+- 节点里 `layout.template_preview(image)`；失败降级为文字，**绝不让节点崩**
+- 标签加**用途**：按后缀判 `_rmo` 粗糙/金属/遮挡、`_da`/`_dt` 漫反射+透明、`_d` 漫反射、
+  `_n`/`_nt` 法线、`_bt`/`_e` 自发光
+- 下拉条目 label 仍保持**纯 ASCII**（中文放 description），避开 §4 那条枚举乱码
+
+#### 验证手法（可复用）
+
+真实 `UILayout` 只在绘制时存在，headless 拿不到。写一个 `FakeLayout`
+（`label/prop/row/column/box/operator/template_ID/template_preview`）直接调
+`draw_buttons()`，`operator()` 返回可赋属性的 `FakeOp`，赋值时用
+`bpy.ops.mod.fn.get_rna_type()` 校验属性名真存在。
+
+实测一轮抓到 3 个 bug，最终 **25 个节点（1 生成 + 1 分组 + 10 物体 + 13 贴图）0 失败**，
+13 个贴图节点全部画出真实预览（`c_VepleySSR01_slg_cloth01_d.png` 2048² 等）。
+
+⚠️ `bpy.types.XXX.bl_rna.properties` **不列操作符的自定义属性**，
+必须用 `bpy.ops.<mod>.<fn>.get_rna_type().properties`；`bpy.ops.x.y` 是函数包装器，
+**不能直接赋值**（会 `AttributeError: 'BPyOpFunction' object has no attribute ...`）——
+那是测试方法错，不是属性没注册。
 
 ---
 

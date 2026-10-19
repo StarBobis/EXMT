@@ -84,6 +84,10 @@ bun run check     # 见 §6
 7. 目标没达成**不要标 complete**；同一阻塞连续 3 轮才谈 blocked。
 8. 改 UI 之前先想"用户会不会嫌多"——**默认更少**。
 
+9. **改完 UI 一定用假 layout 跑一遍 `draw_buttons()`**（见 §4 那条）：
+   UI 里的死操作符 idname、写错的方法名、不存在的属性，`py_compile` 全都抓不到，
+   只在用户点下去的那一刻炸。headless 假 layout 能在交付前全部抓出来。
+
 ---
 
 ## 3. 视觉与交互规范（用户反复纠正过的）
@@ -173,6 +177,12 @@ bun run check     # 见 §6
 | 2026-10-19 | 游戏里"手臂不见了、手环浮空"，以为是权重或绑定错 | **材质槽**问题：导出的子网格编号 = 源模型槽号，而渲染器的材质列表属于**被替换的游戏网格**（GF2 只有 4 个），索引 ≥4 的子网格 Unity 根本不画。Sally 20 槽 → 6803/14568 面被丢，其中手臂/手 2255 面（`Glove` 槽 4、`Skin` 槽 6），而槽 3 `Bracelets` 活着 → 手环浮空。修：导出时按目标槽位数**合并材质槽**（新增 `exmt_core matinfo` 读目标子网格数） |
 | 2026-10-19 | 用 `len(m_DataSize) / vertex_count` 当顶点 stride | **错**：`m_DataSize` 是**三个连续流**（s0 pos+normal+tangent 40B、s1 colour+uv 20B、s2 weights+bones 32B；和 = 92B），顶点在 **s0 内**步长才是 **40**。按 92 索引只命中顶点 0（症状：y 最小值变了、最大值没变、x/z 不动 = 只缩放了第一个顶点）。判据：把**解码后的位置**去 `raw.find()`，连续偏移的差值才是真 stride |
 | 2026-10-19 | 认为"两套骨骼表"是导出/合并的问题 | 是**游戏自己的包处于两个代际**：一份有 `Hip_M` 中间层，一份删了它、腿直接挂 `Root_M`。126 根里 123 根**短名相同**、12 个短名各对应两个哈希（腿链）。`_remap_bones` 改成**先哈希、后短名兜底**：保留权重 69.6% → 85.8%，无驱动顶点 1954 → **0**。⚠️ 别把"只用短名"的 60.0% 当成"短名无效"——顺序必须是先哈希 |
+| 2026-10-19 | 蓝图「分组」节点点「＋槽位」报 `AttributeError: 'EXMTNodeGenerate' object has no attribute 'sync_slots'` | **重构漏改的死调用**：方法早改名 `ensure_slots`，`EXMT_OT_blueprint_sync` 里还叫着旧名。改名为 `ensure_slots()`，并让它同时处理「生成 Mod」和「分组」两种节点。判据：**改过方法名后必须 grep 旧名**，`py_compile` 抓不到这种错（只在运行时炸） |
+| 2026-10-19 | 用户："生成 Mod 节点上没有生成 Mod 按钮" | 按钮**在**，但 `row.operator("exmt.blueprint_generate")` 指向的 idname **从来不存在**（真名 `exmt.generate_mod`），所以点了等于没点、也不报错。判据：**UI 里每个 `operator()` 的 idname 都要能对上已注册的操作符**，用脚本批量比对（见下一条），别靠肉眼 |
+| 2026-10-19 | 怎么在没有窗口的情况下验证 UI 代码 | **用假 layout 真调 `draw_buttons()`**：写一个 `FakeLayout`，实现 `label/prop/row/column/box/operator/template_ID/template_preview`，`operator()` 返回可赋属性的 `FakeOp`（赋值时用 `bpy.ops.x.y.get_rna_type()` 校验属性名真的存在）。这样 `AttributeError`/`NameError`/写错的操作符 idname **全部在 headless 就被抓住**（实测一轮抓出 3 个 bug，25 个节点 0 失败）。注意 `bpy.types.XXX.bl_rna.properties` **不列操作符自定义属性**，要用 `bpy.ops.mod.fn.get_rna_type().properties` |
+| 2026-10-19 | 生成节点显示"1 条连线没指定 Submesh"，可连线明明是对的 | 警告只认**直接连过来的** `物体` 节点；中间隔一个「分组」就误判成无效 → **假警报**，会把人往错方向带。新增 `socket_ok()`（走 `walk_objects` 穿透分组）后误报消失。**警告逻辑必须和真正的解析逻辑用同一条路径**，否则它骗的就是自己 |
+| 2026-10-19 | 贴图节点只写贴图名字，用户记不住 `c_Xxx_slg_cloth01_d` 是哪张 | `workspace.json` 的 `textures[].file` 已经是解好的 PNG → 节点里 `layout.template_preview(image)` 画原图，并在标签里标**用途**（漫反射/法线/粗糙金属遮挡/自发光，按 `_d/_da/_n/_nt/_rmo/_bt` 后缀判）；下拉条目的 label 保持**纯 ASCII**（中文用途放 description，理由见下一条枚举乱码）。`preview` 拿不到时降级成文字标签，绝不让节点崩 |
+| 2026-10-19 | 「＋槽位」点了像没反应 | 原逻辑"只要有 1 个空闲就不加"，于是连着 5 个物体的人点了没变化。改成 `ensure_slots(count=4)`：**保证 4 个空闲输入口**，按钮名也改成「＋ 输入口」（说清楚是补输入口，不是"槽位"这种黑话）。永不裁剪用户已有的空闲口 |
 | 2026-10-19 | 枚举字段（`layout.prop(node, "xxx")`）显示成一堆乱码 | **枚举条目的 label/description 里别放非 ASCII**（我用了 `·`）：Blender 5.2 会把整格画成随机字形，而**同一段文字放在 `layout.label()` 里完全正常**——所以别以为是截图/字体问题，先换成 ASCII 空格复测（实测 `"%s  %sx%s"` 立刻正常）。贴图选择器用 `layout.template_ID(node, "image", open="image.open")` 能直接给个浏览按钮 |
 ---
 
