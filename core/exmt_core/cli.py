@@ -51,17 +51,24 @@ def cmd_meshes(args):
 
 def cmd_extract(args):
     bundle_path, mesh_name, out = args
+    from . import skeleton as S
+
     b = open_bundle(bundle_path)
     o = b.mesh(mesh_name)
     tree = o.read_typetree()
     md = M.from_tree(tree)
-    interchange.save(md, out, {"bundle": os.path.basename(bundle_path)}, tree=tree)
+    # a lone mesh ships only its own bones; the add-on still needs names that
+    # match its vertex groups, so carry the local table with the geometry
+    skel = S.local_table(md.name, md.bone_hashes, md.bindpose)
+    interchange.save(md, out, {"bundle": os.path.basename(bundle_path), "skeleton": skel}, tree=tree)
     print("exported %s -> %s (%d verts, %d bones)" % (md.name, out, md.vertex_count, len(md.bone_hashes)))
     return 0
 
 
 def cmd_extract_all(args):
     bundle_path, outdir = args
+    from . import skeleton as S
+
     os.makedirs(outdir, exist_ok=True)
     b = open_bundle(bundle_path)
     skeleton = {}
@@ -69,7 +76,10 @@ def cmd_extract_all(args):
         tree = o.read_typetree()
         md = M.from_tree(tree)
         p = os.path.join(outdir, md.name + ".exmtmesh")
-        interchange.save(md, p, {"bundle": os.path.basename(bundle_path)}, tree=tree)
+        interchange.save(md, p, {
+            "bundle": os.path.basename(bundle_path),
+            "skeleton": S.local_table(md.name, md.bone_hashes, md.bindpose),
+        }, tree=tree)
         print("exported", p)
         # the .exmtmesh already carries bindpose + bone hashes; dump them as plain
         # text too, so the rig is inspectable without opening the binary file
@@ -135,6 +145,28 @@ def cmd_subdivide(args):
     print(json.dumps({"output": out, "verts_in": md.vertex_count,
                       "verts_out": big.vertex_count, "indices": int(len(big.indices)),
                       "index_format": big.index_format}))
+    return 0
+
+
+def cmd_bonetable(args):
+    """bonetable <bundle> <mesh> [bonenames.json] — the mesh's own bone table.
+
+    The Blender add-on uses this when it has to export a *foreign* mesh (an
+    external garment) into a game mesh slot: weights are matched by bone name, so
+    the target's table has to be known before the `.exmtmesh` is written.  Pass
+    the app's bone-name index to get the same names the workspace used.
+    """
+    from . import bonenames, skeleton as S
+
+    paths = bonenames.load(args[2]) if len(args) > 2 and args[2] else None
+    b = open_bundle(args[0])
+    tree = b.mesh(args[1]).read_typetree()
+    md = M.from_tree(tree)
+    skel = S.local_table(md.name, md.bone_hashes, md.bindpose, paths=paths)
+    print(json.dumps({
+        "mesh": md.name,
+        "bones": [{"hash": bo["hash"], "name": bo["name"]} for bo in skel["bones"]],
+    }))
     return 0
 
 
@@ -347,6 +379,14 @@ def cmd_backup_size(args):
     return 0
 
 
+def cmd_bonenames(args):
+    """bonenames <bundleDir> <out.json> — crc32(transform path) -> path, from Avatars + prefabs."""
+    from . import bonenames
+
+    print(json.dumps(bonenames.build(args[0], args[1])))
+    return 0
+
+
 def cmd_workspace(args):
     """workspace <outdir> <spec.json> - export meshes + textures for Blender."""
     from . import preview
@@ -369,6 +409,7 @@ def main(argv=None):
         "meshes": cmd_meshes,
         "extract": cmd_extract,
         "extract-all": cmd_extract_all,
+        "bonetable": cmd_bonetable,
         "pack": cmd_pack,
         "hide-mesh": cmd_hide_mesh,
     
@@ -377,6 +418,7 @@ def main(argv=None):
         "copy-texture": cmd_copy_texture,
         "set-texture": cmd_set_texture,
         "texindex": cmd_texindex,
+        "bonenames": cmd_bonenames,
         "skinfo": cmd_skinfo,
         "geo": cmd_geo,
         "geoset": cmd_geoset,

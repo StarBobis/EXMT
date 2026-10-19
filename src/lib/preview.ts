@@ -125,6 +125,10 @@ export interface WorkspaceResult {
   meshes: number;
   textures: number;
   failed_textures: number;
+  /** bones in the merged skin skeleton (the union of every mesh's own table) */
+  bones: number;
+  /** how many of them got a real name from a local Avatar/prefab */
+  named_bones: number;
   bytes: number;
 }
 
@@ -214,6 +218,58 @@ export function texturesFor(index: TexIndex, skinKey: string): TextureEntry[] {
   }
   out.sort((a, b) => a.name.localeCompare(b.name));
   return out;
+}
+
+// --------------------------------------------------------------------------- //
+// bone names
+// --------------------------------------------------------------------------- //
+/**
+ * `crc32(transform path) -> path`, harvested once from every local Avatar
+ * (`m_TOS`) and prefab hierarchy. The game gives meshes only bone hashes, so
+ * this is the one way to print real bone names — and, because the hash covers
+ * the whole path, a hit also proves the parent chain.
+ */
+async function boneNamesPath(): Promise<string> {
+  return join(cacheFolder.value, "bonenames.json");
+}
+
+/** Where the bone-name index lives — the Blender add-on reads it via the config. */
+export async function boneNamesIndexPath(): Promise<string> {
+  return boneNamesPath();
+}
+
+let boneNamesPromise: Promise<string | null> | null = null;
+
+/**
+ * Path of the bone-name index, building it on first use (≈13 s, then cached).
+ *
+ * Scans the **game** folder, not the backup: names come from Avatars and prefabs
+ * (`crc32(transform path)`), and the backup only holds the bundles this app
+ * reads meshes and textures from — 418 paths there versus 50 005 in the game
+ * folder, i.e. almost no bone would get a real name.
+ */
+export async function ensureBoneNames(): Promise<string | null> {
+  if (boneNamesPromise) return boneNamesPromise;
+  boneNamesPromise = (async () => {
+    const path = await boneNamesPath();
+    const source = gameBundles();
+    try {
+      if (await exists(path)) {
+        const data = JSON.parse(await readTextFile(path)) as { bundle_dir?: string };
+        if (data.bundle_dir === source) return path;
+      }
+      const res = await runCore(["bonenames", source, path]);
+      if (res.code !== 0) return null;
+      return path;
+    } catch {
+      return null;
+    }
+  })();
+  try {
+    return await boneNamesPromise;
+  } finally {
+    boneNamesPromise = null;
+  }
 }
 
 // --------------------------------------------------------------------------- //
@@ -644,6 +700,7 @@ async function resetDerivedCaches(): Promise<void> {
   skinMemory.clear();
   meshCache.clear();
   await remove(await indexPath()).catch(() => undefined);
+  await remove(await boneNamesPath()).catch(() => undefined);
   await remove(await join(cacheFolder.value, "skins"), { recursive: true }).catch(() => undefined);
 }
 
@@ -677,6 +734,10 @@ export async function makeWorkspace(
   for (const mesh of meshes) bundles[mesh.bundle] = bundlePathOf(mesh.bundle);
   for (const tex of textures) bundles[tex.bundle] = bundlePathOf(tex.bundle);
 
+  // real bone names come from an Avatar/prefab index; without it the skeleton is
+  // still complete, just named by hash
+  const boneNames = await ensureBoneNames();
+
   const spec = {
     workspace_id: identity.id,
     label: identity.label,
@@ -688,6 +749,7 @@ export async function makeWorkspace(
     bundles,
     meshes: meshes.map((mesh) => ({ bundle: mesh.bundle, mesh: mesh.name })),
     textures: textures.map((tex) => ({ bundle: tex.bundle, name: tex.name })),
+    bone_names: boneNames ?? "",
   };
   const specPath = await join(outdir, "spec.json");
   await writeTextFile(specPath, JSON.stringify(spec));

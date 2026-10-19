@@ -479,6 +479,8 @@ async function startMaking() {
         text: t("models.made", {
           meshes: result.meshes,
           textures: result.textures,
+          bones: result.bones ?? 0,
+          named: result.named_bones ?? 0,
           label: result.label,
           dir: result.dir,
         }),

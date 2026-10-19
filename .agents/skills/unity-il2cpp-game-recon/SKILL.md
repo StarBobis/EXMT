@@ -241,4 +241,5 @@ Memory.scanSync(base, size, '55 6E 69 74 79 46 53 00');   // "UnityFS\0"
 
 - [UnityFS 与混淆恢复](references/asset-format-and-obfuscation.md)
 - [SerializedFile 内改 Mesh（换衣服/换网格）](references/sf-mesh-editing.md) — §21 绑定空间重定向、§22 批量提贴图、§23 骨骼只有哈希
+- [残缺骨架合并成完整骨架（导出到 DCC）](references/unity-skeleton-merge.md) — 每网格 bindpose 是子集、`crc32(transform 路径)` 验哈希、Avatar/prefab 取名字与父链、绑定与往返验收清单
 - [Frida for IL2CPP 运行时手册](references/frida-il2cpp-runtime.md)

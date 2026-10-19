@@ -86,8 +86,8 @@ const zh = {
   "viewer.zoomOut": "缩小",
   "models.make": "开始制作",
   "models.makeHint": "每次制作都会新建一个工作空间，不覆盖旧的工作空间",
-  "models.making": "正在导出到工作空间…",
-  "models.made": "已导出 {meshes} 个子网格、{textures} 张贴图 · 工作空间 {label} → {dir}",
+  "models.making": "正在导出到工作空间…（首次会建立骨骼名称索引）",
+  "models.made": "已导出 {meshes} 个子网格、{textures} 张贴图 · 骨架 {bones} 根（{named} 根有名字）· 工作空间 {label} → {dir}",
 
   "library.title": "资源库",
   "library.subtitle": "Mod 管理与原始文件备份",
@@ -261,8 +261,8 @@ const en: Record<MessageKey, string> = {
   "viewer.zoomOut": "Zoom out",
   "models.make": "Start building",
   "models.makeHint": "Each build creates a new workspace and keeps the older ones",
-  "models.making": "Exporting to the workspace…",
-  "models.made": "Exported {meshes} submeshes and {textures} textures · workspace {label} → {dir}",
+  "models.making": "Exporting to the workspace… (the first run also indexes bone names)",
+  "models.made": "Exported {meshes} submeshes and {textures} textures · {bones} bones ({named} named) · workspace {label} → {dir}",
 
   "library.title": "Library",
   "library.subtitle": "Mod management and original-file backups",

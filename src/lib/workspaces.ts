@@ -17,6 +17,7 @@ import {
   writeTextFile,
 } from "@tauri-apps/plugin-fs";
 import { cacheFolder } from "./settings";
+import { boneNamesIndexPath } from "./preview";
 import { isTauri } from "./tauri";
 
 export interface WorkspaceEntry {
@@ -58,6 +59,8 @@ interface ExmtConfig {
   app: string;
   updated_at: string;
   workspace_root: string;
+  /** where the Blender add-on finds crc32(transform path) -> path */
+  bone_names?: string;
   workspace: {
     id: string;
     label: string;
@@ -228,6 +231,7 @@ export async function writeActiveWorkspace(
     app: "EXMT Modbox",
     updated_at: new Date().toISOString(),
     workspace_root: root,
+    bone_names: await boneNamesIndexPath().catch(() => ""),
     workspace: workspace
       ? {
           id: workspace.id,

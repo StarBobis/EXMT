@@ -3,7 +3,7 @@
 > 结论 + 证据 + 未决问题。**不写流水账**（不记"先跑 X 再跑 Y"）。
 > 每轮开始读这里，结束前更新这里。目标状态只在这里，不在 AGENTS.md。
 
-最近更新：2026-10-19
+最近更新：2026-10-19（§2.10 骨骼合并与绑定修复）
 
 ---
 
@@ -21,6 +21,7 @@
 | G8 | 设置页：中/英双语 + 全局缓存文件夹 | ✅ 完成 | 语言切换立即生效并跨重启保持；缓存默认 `C:\EXMTCacheFolder`，可改、可在资源管理器中打开 |
 | G9 | 模型工作台：3D 预览 + 贴图墙 + 工作空间导出 | ✅ 完成 | 选立绘卡片 → 只看该皮肤的网格/贴图；three.js 预览可旋转缩放；「开始制作」导出 `<cache>\workspace\<皮肤>\`，Blender 插件一键导入（见 §2.6） |
 | G10 | 首页 = 角色列表 + 立绘卡牌；模型页 = 网格/3D/贴图工作台 | ✅ 完成 | 首页 78 角色（2 列头像）+ 卡牌轮播；点卡选中皮肤，「进入模型页」进工作台；模型页顶栏显示当前角色/皮肤/数量，可「换皮肤」回首页；选择持久化（见 §2.7） |
+| G11 | **骨骼完整 + 正确绑定**（用户报的两个 bug） | ✅ 完成 | workspace 合成一副完整骨架（Alva 226 根，跨网格并集）；Blender 只建一副骨架、每个网格 100% 绑上（0 未绑定组 / 0 未蒙皮顶点）；不改动往返权重与骨骼索引逐位一致；打包回 bundle 与原包全等（见 §2.10） |
 
 ---
 
@@ -165,6 +166,28 @@
 
 **未决**：工作空间还没有删除/重命名 UI；“开始制作”只新建、不更新已有工作空间（如果以后要“覆盖当前工作空间”，需要显式按钮）；工作空间列表只扫当前缓存根目录，换缓存后旧工作空间需要靠配置里的绝对 `dir` 或手动切回旧缓存才能看到。
 
+### 2.10 骨骼：合并完整骨架 + 真正绑定（2026-10-19）
+
+用户报的两个 bug：① 导入后骨骼没绑定到模型；② 「开始制作」导出的骨骼不完全（Blender 里只有一部分）。
+
+| 事实 | 证据 |
+| --- | --- |
+| **每个 Mesh 只带自己用的那几根骨**：同一个 bundle（`0e834224…`）里 Alva 的 12 个网格分别带 3 / 4 / 8 / 13 / 26 / 28 / 32 / 35 / 46 / 56 / 70 根，**并集 226 根** | `C:\DevCache\exmt-bones\inspect_meshes.py` 逐个 `.exmtmesh` 统计 `bindpose`/`bone_hashes`/权重里出现的最大骨骼索引 |
+| 所以“骨骼不完全”不是导出丢字段，而是**按网格看**：每个 `.exmtmesh` 只有它自己那张表；而老的 `import_workspace` 只留第一副骨架（body，56 根）并把它给所有网格用 → 别的网格 57…70 号骨在骨架里根本不存在 | 老 workspace 实测 + `EXMT_OT_import_workspace` 的 `first_arm` 复用逻辑 |
+| “骨骼没绑定”的根因是**顶点组名 ≠ 骨骼名**：骨骼 `b%03d`（`b000`），顶点组 `b%d`（`b0`）→ Armature 修改器找不到同名骨骼，**0 个顶点**受骨骼驱动 | Blender 5.2 headless 复现：12 个网格 `groups=56..70 / matched=0 / weighted=0`（`blender_repro.py`） |
+| **骨骼哈希 = `crc32(完整 transform 路径)`**，不是叶子名：`c_<Char>_slg_skinAvatar` 的 `m_TOS` 里 `(hash, path)` **30/30 全中**；武器网格同理（`cw_NikketaSSR01_WL_lod0` 的 rootHash = `crc32("Weapon")`，但其余 4 根骨 ≠ `crc32(叶子名)`） | `hash_scheme.py`、`hash_fn.py` |
+| 本地 9613 个 bundle 里 **53 个带 `Avatar`**、418 个带 `SkinnedMeshRenderer`；`Avatar.m_TOS` 直接给“哈希 → 真名 + 父链”，prefab 的 Transform 树给同样的路径（去掉 prefab 多加的祖先） | `scan_types.py`（只解压 SF 元数据前缀即可列类型，9613 个 **14 s**）、`find_avatar.py`、`find_prefab.py` |
+| Alva 自己的 prefab/Avatar **不在本地**（53 个 Avatar 里没有 `c_Alva*`），但跨角色共享的人形主链路径字符串相同 → 226 根里 **104 根**拿到真名 + 父链（`Spine1_M`→`Root_M`、`Head_M`→`Neck_M`、`Knee_L`→`HipPart1_L`…） | `bonenames.json`（50005 条，**13.2 s** 建成，冲突 0）；workspace 实测 `named=104, parented=103` |
+| 修法：workspace 端先按哈希**求并集**合成一副骨架（`skeleton.json`），每个 `.exmtmesh` 里带“局部索引 → 骨架索引”映射；Blender 端只建**一副** 226 根骨的骨架，按映射给每个网格建**同名**顶点组 + 父级 + Armature 修改器 | `core/exmt_core/skeleton.py`、`preview.make_workspace`；`EXMTBlender` 的 `build_armature` / `_apply_weights` / `EXMT_OT_import_workspace` |
+| 验证：12 个网格 **0 个未绑定组、0 个未蒙皮顶点**；`Spine1_M` 转 25° 时 body **4618/4618** 顶点跟着动（老代码是 0） | `blender_verify.py`，截图 `C:\DevCache\exmt-bones\shots\rig_skeleton.png` / `rig_posed.png` |
+| 不改动直接导出：**权重与骨骼索引逐行逐位一致**（`diffW=0 diffB=0`，含只有 2 个影响槽的网格） | `blender_verify.py` |
+| 往返逐位一致的两个坑：等权重的影响槽必须按**索引升序**排（游戏数据如此，老代码 `sort(reverse=True)` 把并列项换了位）；权重和已经 ≈1 时**不要再归一化**（否则差 1 ULP）。修好前 579 个元素差 1.2e-7 | 对比 `src` / `got` 的 `bones`、`weights` |
+| 打包回 bundle：从重打包的 bundle 再解一次，**数组 + typtree 全等**（`m_BindPose` / `m_BoneNameHashes` 原样保留） | `compare_mesh.py`：`all arrays identical`、`tree differing fields=[]` |
+| 外部衣服（glTF 进来的物体，没有自己的骨骼表）：`bonetable` 给目标网格的骨骼表（带同一个名字索引），导出时先把顶点组名还原成哈希、再映射到目标索引 | `blender_foreign.py`：`dropped_influences=0`，权重与索引全等 |
+| 骨骼名称索引存在 `<cache>/bonenames.json`，App 首次「开始制作」时自动建（约 13 s，之后复用）；索引路径写进 `EXMTConfig.json` 的 `bone_names`，Blender 插件据此调 `bonetable` | `src/lib/preview.ts` 的 `ensureBoneNames()`、`src/lib/workspaces.ts`、`__init__.py` 的 `target_bone_table()` |
+
+**名字/层级的边界**：本地没有该角色 prefab 时，只有跨角色共享的骨骼能命名（Alva 104/226），其余保持 `bone_<8 位哈希>` 且**不猜父级**（宁可平铺也不乱接链）。在 Blender 里把骨骼改名后导出，会按“不属于该网格的权重”计入 `dropped_influences` 并在面板上报数量。
+
 ---
 
 ## 3. 交付物清单
@@ -172,11 +195,11 @@
 | 产物 | 位置 |
 | --- | --- |
 | 应用 | `C:\Dev\EXMT`（`src/` 前端、`src-tauri/` Rust） |
-| 核心 | `core/exmt_core/`（CLI：list/meshes/extract/extract-all/pack/hide-mesh/subdivide/retarget/copy-texture/set-texture） |
-| Blender 插件 | `C:\Dev\EXMTBlender\{__init__.py,mesh_io.py}` |
+| 核心 | `core/exmt_core/`（CLI：list/meshes/extract/extract-all/bonetable/pack/hide-mesh/subdivide/retarget/copy-texture/set-texture/texindex/bonenames/workspace） |
+| Blender 插件 | `C:\Dev\EXMTBlender\{__init__.py,mesh_io.py}`（0.3.0，已同步到 `%APPDATA%\Blender Foundation\Blender\5.2\scripts\addons\EXMTBlender`；旧版备份在 `C:\DevCache\exmt-bones\EXMTBlender-installed-backup-*`） |
 | 文档站 | `C:\Dev\EXMTDoc`（VitePress 2，独立仓库） |
 | 本仓库 docs | `exmt-modbox.md`、`exmt-model-pipeline.md`、`exmt-characters.md`、`gf2-exilium-recon.md` |
-| skill | `.agents/skills/unity-il2cpp-game-recon/`（§18–§22）、`.agents/skills/tauri-winui-shell/` |
+| skill | `.agents/skills/unity-il2cpp-game-recon/`（§18–§23）、`.agents/skills/tauri-winui-shell/` |
 
 ---
 
@@ -185,12 +208,13 @@
 1. **body 槽独立身体（G5）**
    - 现状：外部 VRoid 身体（T-Pose）装进 body 槽后炸模；三种权重策略都失败（最近顶点 / 最近骨骼 envelope / +拉普拉斯平滑）。
    - 结论：必须做**绑定空间重定向** `v' = Σ w_i (GameBind_i⁻¹ · SourceBind_i) v`。
-   - 缺：游戏侧骨骼无名字，需要"人形骨骼链 + 左右对称 + 静止位置"反推对应；或在 Blender 里用约束烘焙。
-   - 下一步：在 Blender 中把 VRM 骨架摆成游戏 bind pose → 烘焙 → DataTransfer 权重 → 导出。
-2. **骨骼命名**：可用候选词表（`Bip001 Pelvis` / `J_Bip_C_Hips` / `Hips`…）算 CRC32 与 `m_BoneNameHashes` 对撞。
+   - 新条件（2026-10-19）：骨架现在**完整**了（226 根，含名字与部分父链），所以 Blender 侧可以把外部骨架摆成游戏 bind pose → 烘焙 → DataTransfer 权重 → 导出；比之前"没有骨架"时可行得多。
+   - 下一步：在 Blender 里用 `skeleton.json` 的 `rest` 对齐外部骨架，再走 `传递权重并绑定骨架`。
+2. **骨骼命名（部分解决）**：`crc32(路径)` 已被证明，索引已能给出 104/226（Alva）。要更高覆盖需要有该角色 prefab/Avatar 的 bundle；本地没有就只能保持 `bone_<hash>`。**改名后导出会丢权重**（面板报数量）。
 3. **贴图写入只支持 DXT1**：法线/RMO 是 BC7，换贴图需要 BC7 编码器（或整段替换同尺寸 BC7）。
-4. **设置页右侧 about 面板**：已实现（7:3 + sticky），但截图里没确认渲染，需要用干净窗口复验。
-5. **文档站链接**：`SettingsView` 的 `LINKS` 仍是占位（本地 5200 / GitHub 仓库）。
+4. **导入不做轴向转换**：游戏是 Y-up，导入 Blender（Z-up）后模型沿 +Y 躺着（bbox 实测高 1.589 在 Y 轴）。要做就得同时改导出端（`matrix_world` 会把旋转烘进顶点），本轮没动。
+5. **设置页右侧 about 面板**：已实现（7:3 + sticky），但截图里没确认渲染，需要用干净窗口复验。
+6. **文档站链接**：`SettingsView` 的 `LINKS` 仍是占位（本地 5200 / GitHub 仓库）。
 
 ---
 

@@ -306,12 +306,19 @@ def _safe(name: str) -> str:
 
 
 def make_workspace(outdir: str, spec: dict) -> dict:
-    """Write meshes + textures + workspace.json for the Blender add-on.
+    """Write meshes + textures + skeleton + workspace.json for the Blender add-on.
 
     `spec` = {id, name, display, bundles: {hash: path}, meshes: [{bundle, mesh}],
-              textures: [{bundle, name}]}
+              textures: [{bundle, name}], bone_names: <bonenames.json path>}
+
+    每个网格自带的骨骼只是它自己用的那几根（Alva 12 个网格分别 3…70 根，并集
+    226 根），所以这里先把所有网格的骨骼按 CRC32 哈希合成一副骨架写进
+    `skeleton.json`，再让每个 `.exmtmesh` 带上"局部索引 → 骨架索引"的映射。
+    Blender 端因此只建一副完整骨架，并且能把每个网格正确绑上去。
+    `bone_names` 指向骨骼名称索引（Avatar/prefab 的 crc32(路径) → 路径），有它
+    就能给出真名字与父子关系。
     """
-    from . import interchange, mesh as M
+    from . import interchange, mesh as M, skeleton as S
     from . import textures as T
     from .sf import open_bundle
 
@@ -326,24 +333,45 @@ def make_workspace(outdir: str, spec: dict) -> dict:
     os.makedirs(tex_dir, exist_ok=True)
 
     bundles: dict[str, object] = {}
-    written_meshes = []
+    loaded = []
     for item in spec.get("meshes", []):
         hash_ = item["bundle"]
         if hash_ not in bundles:
             bundles[hash_] = open_bundle(spec["bundles"][hash_])
         bundle = bundles[hash_]
         tree = bundle.mesh(item["mesh"]).read_typetree()
-        md = M.from_tree(tree)
+        loaded.append((hash_, tree, M.from_tree(tree)))
+
+    # one skeleton for the whole skin: union of every mesh's bone table
+    paths = spec.get("bone_paths") or None
+    if not paths and spec.get("bone_names"):
+        from . import bonenames
+
+        paths = bonenames.load(spec["bone_names"]) or None
+    skel = S.merge([(md.name, md.bone_hashes, md.bindpose) for _h, _t, md in loaded],
+                   paths=paths)
+    skel["id"] = spec.get("id", "") or spec.get("name", "")
+
+    written_meshes = []
+    for hash_, tree, md in loaded:
         fname = _safe(md.name) + ".exmtmesh"
         path = os.path.join(mesh_dir, fname)
-        interchange.save(md, path, {"bundle": hash_}, tree=tree)
+        view = S.for_file(skel, md.name)
+        interchange.save(md, path, {"bundle": hash_, "skeleton": view}, tree=tree)
         written_meshes.append({
             "file": "meshes/" + fname,
             "mesh": md.name,
             "bundle": hash_,
             "verts": int(md.vertex_count),
-            "bones": int(len(md.bone_hashes)),
+            "bones": len(view["local"]),
         })
+
+    skeleton_file = "skeleton.json"
+    with open(os.path.join(outdir, skeleton_file), "w", encoding="utf-8") as fh:
+        json.dump({"format": S.FORMAT, "id": skel["id"], "count": skel["count"],
+                   "named": skel["named"], "conflicts": skel["conflicts"],
+                   "bones": skel["bones"], "meshes": skel["local"]},
+                  fh, ensure_ascii=False, indent=1)
 
     written_textures = []
     failed = []
@@ -376,6 +404,12 @@ def make_workspace(outdir: str, spec: dict) -> dict:
         "created_at": spec.get("created_at") or time.strftime("%Y-%m-%dT%H:%M:%S"),
         "entry": {k: spec.get(k, "") for k in ("id", "name", "display")},
         "game_bundles": spec.get("game_bundles", ""),
+        "skeleton": {
+            "file": skeleton_file,
+            "bones": skel["count"],
+            "named": skel["named"],
+            "conflicts": len(skel["conflicts"]),
+        },
         "meshes": written_meshes,
         "textures": written_textures,
         "failed_textures": failed,
@@ -388,5 +422,7 @@ def make_workspace(outdir: str, spec: dict) -> dict:
         "meshes": len(written_meshes),
         "textures": len(written_textures),
         "failed_textures": len(failed),
+        "bones": skel["count"],
+        "named_bones": skel["named"],
         "bytes": sum(os.path.getsize(os.path.join(outdir, m["file"])) for m in written_meshes),
     }
