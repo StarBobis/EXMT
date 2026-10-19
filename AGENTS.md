@@ -70,7 +70,8 @@ bun run check     # 见 §6
 
 ## 2. 硬规则（都违反过，写下来别再犯）
 
-1. 改完自行 **commit + push**；`C:\Dev\EXMTDoc` 是独立仓库，动过也要提交。
+1. 改完自行 **commit + push**；`C:\Dev\EXMTDoc` 是独立仓库，动过也要提交
+   （**该仓库没有配 remote**，只能本地 commit；要 push 得先让用户给仓库地址）。
 2. **能用现成的库就别造轮子**：
    - 读贴图名用 UnityPy 的 `o.peek_name()`，不要 `read_typetree()` 全解析（实测 15 分钟 → 41 秒）
    - 解码用 `texture2ddecoder`，别手写 BC1/BC7

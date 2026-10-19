@@ -215,6 +215,8 @@
 4. **导入不做轴向转换**：游戏是 Y-up，导入 Blender（Z-up）后模型沿 +Y 躺着（bbox 实测高 1.589 在 Y 轴）。要做就得同时改导出端（`matrix_world` 会把旋转烘进顶点），本轮没动。
 5. **设置页右侧 about 面板**：已实现（7:3 + sticky），但截图里没确认渲染，需要用干净窗口复验。
 6. **文档站链接**：`SettingsView` 的 `LINKS` 仍是占位（本地 5200 / GitHub 仓库）。
+7. **文档站旧页**：`faq.md`（“导出的 glTF 没有贴图”）、`reference/layout.md`（`gltf.py`）、`guide/index.md`、`reference/cli.md`（`glb` 命令）、`install.md`（点「导出 glTF」）仍写着已删除的 glTF 流程，需要一轮清理。
+8. **`C:\Dev\EXMTDoc` 没有 remote**：只能本地 commit，push 需要用户提供仓库地址。
 
 ---
 
