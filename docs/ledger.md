@@ -3,7 +3,7 @@
 > 结论 + 证据 + 未决问题。**不写流水账**（不记"先跑 X 再跑 Y"）。
 > 每轮开始读这里，结束前更新这里。目标状态只在这里，不在 AGENTS.md。
 
-最近更新：2026-10-19（§2.10 骨骼合并与绑定修复）
+最近更新：2026-10-19（§2.16 外部模型权重被丢光 / 空骨架 / 多副本骨骼表分裂）
 
 ---
 
@@ -311,6 +311,78 @@
 
 **顺手修的两处 UI**：贴图节点的图片选择器改成 `layout.template_ID(node, "image", open="image.open")`（多一个浏览按钮，截图 `blender-screen.png`）；枚举条目的 label/description 去掉非 ASCII——**Blender 5.2 会把带 `·` 的枚举字段整格画成乱码**，而同样文字放 `layout.label()` 完全正常（先用 PrintWindow 抓、再用屏幕抓排除了"截图伪影"，换成 ASCII 空格后立刻正常）。
 
+### 2.16 外部模型权重被静默丢光 + 空骨架 + 多副本骨骼表分裂（2026-10-19）
+
+用户报告："游戏内完全不显示我的模型"，并质疑"是不是没绑定到骨骼上"。
+
+**症状 → 根因链**（全程数据，不是推断）：
+
+| 环节 | 观测 | 判定 |
+| --- | --- | --- |
+| 安装 | 6 个包 mtime 16:36:13…18，size 与 `mod.json` 的 `bytes` 逐字节相等 | 安装**成功**，不是没装上 |
+| Blender | `Sally_outfit` 有 126 顶点组、**Armature 修改器指向 `Sally_causal_2.0_arm`，该骨架 `bones=0`** | 预览坏（但这不是游戏不显示的原因） |
+| 顶点组 | `Sally_outfit` 的 126 组名 vs 目标 `cloth_lod0` 的 126 组名 | **完全一致**（交集 126）；但 `Sally_outfit` **没有 `exmt_bones` 属性** |
+| 导出的 patch | `bone_hashes=0`、无 `bindpose`、**权重行和全 0.0**、越界索引 50936、实际生效骨骼 **0** | **网格没有任何蒙皮** → Unity 画不出来 |
+| 根因 | `__init__.py` 生成 Mod 的循环调用 `mesh_io.export_mesh(obj, path, {...})` **不传 `bone_table`**；`_bone_slots()` 的 `own` 来自物体的 `exmt_bones`，外部导入的物体没有 → `target=[]` → `resolve()` 返回 None → **每条权重都被 `dropped += 1`** | 插件 bug，不是用户操作错 |
+
+**新增可复用判据 —— 判"权重有没有真的进导出的文件"看四个数**（任一为 0 就是废数据）：
+
+1. `weights.sum(axis=1)` 全部 ≈ 1.0（行和）
+2. `bones.max() < len(bone_hashes)`（索引不越界）
+3. `bone_hashes` 非空、`bindpose` 存在
+4. 参与加权的**不同骨骼槽数** > 0（本例修复后 96）
+
+**修法**（三处，都在插件侧）：
+
+| 改动 | 内容 |
+| --- | --- |
+| `mesh_io._bone_slots` | `target` 为空时从**场景里已导入的 EXMT 网格**借一张骨骼表（`_scene_bone_table()` 取最大的那张）。实测场景回退 = 126 项、完整覆盖 Sally 的 126 组 |
+| `__init__.py` 生成循环 | 显式 `bone_table = target_bone_table(row["bundle"], mesh_name)`（物体无 `exmt_bones` 时）；导出后若 `groups > 0 and influenced == 0` **直接报错**，不再静默产出空壳 |
+| `mesh_io.export_mesh` | `dropped` 原来写在顶点循环**内部**（每轮重置 → 永远 0），提到循环外；返回值新增 `influenced` / `groups` |
+
+**新增 `mesh_io.reuse_rig()`**：把 Armature 修改器指向真正含这些骨骼的骨架（场景里已有 `c_VepleySSR01`（163 根）就直接复用；没有才按骨骼表新建）。导出不读修改器，改它只为让视口说真话 —— 用户正是被"转骨骼模型不动"误导成"没绑定"。
+
+**修复验证**（桌面 `维普蕾.blend`，headless）：
+
+| | 修复前 | 修复后 |
+| --- | --- | --- |
+| 权重行和 | 0.0000 | **1.0000** |
+| 有效顶点 | **0 / 12734** | **12734 / 12734** |
+| `bone_hashes` | 0 | **126** |
+| `bindpose` | 无 | **(126,4,4)** |
+| 参与骨骼槽 | 0 | **96** |
+| 修改器指向 | `Sally_causal_2.0_arm`（0 根） | **`c_VepleySSR01`（163 根）** |
+
+`dropped_influences=1777` 属正常：MMD 模型很多顶点带 4 根以上骨骼影响，游戏只吃 4 根。
+
+**装回游戏后从游戏目录的包里解顶点流复验**：
+
+```
+470d4627 c_VepleySSR01_slg_cloth_lod0  verts=12734  weight rowsum=[1.0000,1.0000]  zero_rows=0     bone_table=126  OK
+65c50de0 c_VepleySSR01_slg_cloth_lod0  verts=12734  weight rowsum=[1.0000,1.0000]  zero_rows=0     bone_table=126  OK
+2d3d2990 c_VepleySSR01_slg_cloth_lod1  verts=12734  weight rowsum=[0.0000,1.0000]  zero_rows=1954  bone_table=124  WARN
+```
+
+**新事实（比 UV/可读性分裂更狠，必须记）——同一网格在不同包里烘焙成两套骨骼表：**
+
+| 网格 | 副本 | 骨骼表 | 差异 | 按哈希重映射后 |
+| --- | --- | --- | --- | --- |
+| `cloth_lod0` | `470d4627` / `65c50de0` | 126 | 与 patch 全等 | 权重 100% 保留 |
+| `cloth_lod0` | `872f1c4f` | 126 | 与 patch **差 15 根** | 保留 69.6%，**1954 顶点（15.3%）全影响丢失 → 塌到原点** |
+| `cloth_lod1` | `470d4627` / `fc7bed44` | 124 | 与 patch 全等 | 权重 100% 保留 |
+| `cloth_lod1` | `2d3d2990` | 124 | 与 patch **差 15 根** | 同上 |
+
+这 15 根骨的差异**不是骨骼不同，是层级重组**（用 `bonenames.json` 解出全路径）：
+
+```
+旧表: root/Root_M/Hip_M/Hip_R/HipPart1_R/Knee_R/...        （Hip_M 是 Hip_R/Hip_L 的父）
+新表: root/Root_M/Hip_R/HipPart1_R/Knee_R/...              （Hip_M 被删，Hip_R/Hip_L 直接挂 Root_M）
+```
+
+短名（`Hip_R`/`Knee_L`/`Toe_L`…）相同，但**按短名匹配反而更差（60.0% < 69.6%）**——校验时不要想当然用短名兜底。
+丢失权重高度集中在 `Hip_M`（1809/3871）与腿部链 → 成衣下半身。
+**当前处理**：优先保证 4 个匹配副本 100%，`872f1c4f` / `2d3d2990` 暂保留 WARN（若游戏加载到它们，需针对该副本的表另出一份 patch）。
+
 ---
 
 ## 3. 交付物清单
@@ -354,6 +426,13 @@
 8. **`C:\Dev\EXMTDoc` 没有 remote**：只能本地 commit，push 需要用户提供仓库地址。
 9. ~~**同名网格的多份拷贝只打了一份**~~ → **已修（2026-10-19，见 §2.12）**：`meshidx` 建 `网格名 → 所有包`
    索引（13.5 s / 643 个包），工作空间写 `mesh_bundles`，生成 Mod 时每个拷贝都打；跨包差异用"目标包的 tree 为底 + 按哈希重映射骨骼"处理。
+
+5. **多副本骨骼表分裂（§2.16 发现）**：`c_VepleySSR01_slg_cloth_lod0/lod1` 各有 3 份拷贝，
+   其中 `872f1c4f93f07d6ba65b103ae5d1a337`（lod0）与 `2d3d29900ee567995b28c489c4654abd`（lod1）
+   的骨骼表与另两份差 15 根（`Hip_M` 被删、层级重组）。
+   现状：4 份权重 100%，这 2 份 69.6%、1954 顶点塌到原点。
+   待定：① 先确认游戏实际加载哪一份；② 要全覆盖就得**按副本的表各导一份 patch**
+   （核心 `patch_mesh` 目前不支持一个 mesh 一份多表 patch）。
 
 ---
 
