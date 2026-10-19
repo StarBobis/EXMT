@@ -5,7 +5,8 @@
   "type": "module",
   "description": "EXMT Modbox — a Tauri-based mod toolbox",
   "scripts": {
-    "dev": "vite",
+    "dev": "node scripts/dev.mjs",
+    "dev:force": "vite",
     "build": "vue-tsc --noEmit && vite build",
     "preview": "vite preview",
     "tauri": "tauri",

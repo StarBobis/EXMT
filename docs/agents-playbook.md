@@ -28,6 +28,9 @@
 
 - 应用：`bun run tauri dev`，窗口标题 `EXMT Modbox`
   ⚠️ 本机 `bun` **不在 PATH 里**：一律用全路径 `C:\Users\Administrator\.bun\bin\bun.exe run <script>`
+  ⚠️ `beforeDevCommand` 是 `node scripts/dev.mjs`：1420 上**已有 Vite 就直接复用**（打印 `reusing it` 并 exit 0），
+  端口空才自己起，端口被别的程序占则 exit 1 并报出占用进程。所以**不要把残留的 dev server 当错误**；
+  但收尾时要关掉自己起的（见铁律 13 与 skill `tauri-winui-shell` §9）。
 - 核心 Python：`C:\Users\Administrator\.dsh\dsh-runtimes\dsh-primary-runtime\dependencies\python\python.exe`
   （UnityPy 1.25 / lz4 / numpy / PIL / texture2ddecoder）
 - Blender：`C:\Program Files\Blender Foundation\Blender 5.2\blender.exe`
@@ -103,7 +106,8 @@
 
 ```powershell
 $bun = 'C:\Users\Administrator\.bun\bin\bun.exe'
-& $bun run tauri dev                   # 跑应用
+& $bun run tauri dev                   # 跑应用（1420 上已有 Vite 会自动复用）
+node scripts/dev.mjs                  # 只起前端（同样复用已有 Vite；--force 用 bun run dev:force）
 & $bun run check                       # 质量门
 cd core; & $py -m exmt_core <cmd>      # 核心 CLI（cwd 必须在 core）
 C:\DevCache\gf2\app2.ps1 shot -out p.png

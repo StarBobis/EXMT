@@ -357,3 +357,46 @@ file watcher error: EBUSY: resource busy or locked, watch
 4. 判断窗口是否真的起来了：`Get-Process exmt-modbox | Select MainWindowTitle`，不要只看 job 状态。
 
 **教训**：后台 job 显示 `completed` 不等于"应用在跑"；Tauri dev 的 job 结束 = 窗口没了。
+
+---
+
+## 9. `Port 1420 is already in use`：让 beforeDevCommand **复用**已有 dev server
+
+**现象**：`bun run tauri dev` 直接退出：
+
+```
+error when starting dev server:
+Error: Port 1420 is already in use
+error: script "dev" exited with code 1
+Error The "beforeDevCommand" terminated with a non-zero status code.
+```
+上一次会话/另一个终端里还留着一个 `vite`（最常见：agent 自己的后台 job 没关）。
+
+**为什么不该"直接杀掉再启动"**：Tauri 只要求 `devUrl` 能应答，**不要求 dev server 是它自己起的**。
+所以已经有 Vite 在 1420 上时，`beforeDevCommand` 只要 exit 0，Tauri 就会直接连上去，
+HMR 一样工作（同一份工作树）。
+
+**做法**：把 `beforeDevCommand` 换成一个"探测-复用-否则启动"的小脚本（Node 自带 http，无依赖）：
+
+```jsonc
+// package.json
+"scripts": { "dev": "node scripts/dev.mjs", "dev:force": "vite" }
+// src-tauri/tauri.conf.json
+"beforeDevCommand": "node scripts/dev.mjs"
+```
+
+`scripts/dev.mjs` 三态：
+
+| 探测 `GET /@vite/client` | 含义 | 行为 |
+| --- | --- | --- |
+| 200 | 已有 Vite（自己起的 / 上一次留下的 / `vite` CLI） | 打印 `reusing it`，**exit 0**，Tauri 连上去 |
+| `ECONNREFUSED`（127.0.0.1 和 ::1 都试） | 端口空 | `spawn(process.execPath, ["node_modules/vite/bin/vite.js"], {stdio:"inherit"})`，转发 SIGINT/SIGTERM |
+| 其它响应 | 端口被**别的**程序占了 | **exit 1** 并打印 `Get-NetTCPConnection -LocalPort 1420`，绝不"凑合着连" |
+
+要点：
+- 判据必须是"这个端口上是不是**我们的** Vite"（`/@vite/client` 200），不能只看端口有没有人听——
+  否则会把随便一个 404 服务当成 dev server，界面白屏。
+- 用 `process.execPath` 启动 vite，不依赖 `bun`/`node` 在 PATH 上（Tauri 的子进程 PATH 未必和你终端一致）。
+- **自己验收**：三态各跑一次——空端口能起、已有 Vite 打印 reusing 且 exit 0、假服务 exit 1。
+  只测第一种等于没测（这正是"端口被占"这次翻车的同一类错误）。
+- 收尾时把自己起的 dev server（尤其 agent 的后台 job）关掉，别把 1420 留给用户。
