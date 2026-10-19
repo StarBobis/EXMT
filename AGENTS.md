@@ -176,7 +176,7 @@ bun run check     # 见 §6
 - **中文回答**，技术名词可保留英文。
 - 不要不说话光干活，不说话的话不算工作量！实时告诉用户你的进度！！
 - 任务完成后必须调用 https://wxpusher.zjiecode.com/api/send/message/SPT_AfgXTrmEG2qVazzIEtkeWWwbKm39/Hello%20WxPusher        给用户发消息！结尾内容可自定义！
-  （**消息要短**：URL 里塞长中文会 400，40 字以内稳；POST `/api/send/message` 用这个 SPT_ token 会回 `appToken不正确`，只能走 GET 路径）
+  （**只能发 ASCII**：URL 路径里只要出现中文就 400，多短都一样——实测 `蓝图v2+贴图替换做好了` 也被拒，`EXMT: blueprint v2 + texture replace done` 成功。POST `/api/send/message` 用这个 SPT_ token 会回 `appToken不正确`，只能走 GET 路径）
 ---
 
 ## 6. 质量门 `bun run check`
