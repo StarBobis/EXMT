@@ -37,4 +37,6 @@
 - **中文回答**，技术名词可保留英文。
 - 不要不说话光干活，不说话的话不算工作量！实时告诉用户你的进度！！
 - 任务完成后必须调用 https://wxpusher.zjiecode.com/api/send/message/SPT_AfgXTrmEG2qVazzIEtkeWWwbKm39/Hello%20WxPusher        给用户发消息！结尾内容可自定义！
-  （**只能发 ASCII**：URL 路径里只要出现中文就 400，多短都一样——实测 `蓝图v2+贴图替换做好了` 也被拒，`EXMT: blueprint v2 + texture replace done` 成功。POST `/api/send/message` 用这个 SPT_ token 会回 `appToken不正确`，只能走 GET 路径）
+  （**只能发 ASCII**：URL 路径里只要出现中文就 400，多短都一样——实测 `蓝图v2+贴图替换做好了` 也被拒，`EXMT: blueprint v2 + texture replace done` 成功。POST `/api/send/message` 用这个 SPT_ token 会回 `appToken不正确`，只能走 GET 路径。
+  2026-10-20 补：路径里**连 `:` `;` `,` `/`(=%2F) 都不要留**（一次带这些字符的消息直接 400，未逐字符定位）；
+  稳妥字符集 = 字母/数字/空格(`%20`)/`.`/`-`，例：`EXMT%20AGENTS.md%20slimmed%20to%20rules%20-%20check%20green`）

@@ -79,4 +79,7 @@
 | 2026-10-19 | 枚举字段（`layout.prop(node, "xxx")`）显示成一堆乱码 | **枚举条目的 label/description 里别放非 ASCII**（我用了 `·`）：Blender 5.2 会把整格画成随机字形，而**同一段文字放在 `layout.label()` 里完全正常**——所以别以为是截图/字体问题，先换成 ASCII 空格复测（实测 `"%s  %sx%s"` 立刻正常）。贴图选择器用 `layout.template_ID(node, "image", open="image.open")` 能直接给个浏览按钮 |
 | 2026-10-20 | 用户："AGENTS.md 不应该是流水线，而是约束和规则；流水账改到 docs 下面" | **AGENTS.md 只放短的可执行约束**（铁律 + 写回规则 + 指针，≤120 行）。环境/质量门细节 → `docs/agents-playbook.md`；UI 规范与偏好 → `docs/agents-ui-spec.md`；逐条纠正 → `docs/agents-corrections.md`。**新知识一律别往 AGENTS.md 堆**，只把"结论性规则"折进去 |
 | 2026-10-20 | `bun` 不在 PATH，直接 `bun run check` 会失败 | 一律用全路径 `C:\Users\Administrator\.bun\bin\bun.exe run <script>`（见 playbook 工具链与速查） |
-| 2026-10-20 | 仓库里有**另一个会话在同时提交**：本轮中途 HEAD 从 `9df403b` 变成 `7adac3d`，`core/` 一直带着别人的未提交改动 | 提交只 `git add <本轮改的文件>`，绝不用 `git add -A` / `git commit -a`；push 前先 `git log --oneline -3` 确认基线；README/status 里看到的 `M` 不一定是自己的 |
+| 2026-10-20 | 微信推送"只发 ASCII"还不够：带 `:` `;` `,` `%2F` 的消息仍然 400 | 路径里只用 字母/数字/空格(`%20`)/`.`/`-`；别用标点（见 `agents-ui-spec.md` 用户偏好末条） |
+| 2026-10-20 | 用户：「维护和更新skills是第一优先级」 | 每轮写回先问"这条能不能进 `.agents/skills/`"（新领域就新建 skill，已有 skill 就补）；skill 里的内容必须能脱离本项目复用；`docs/` 只放只对本项目有意义的东西 |
+| 2026-10-20 | 仓库里有**另一个会话在同时提交**：本轮中途 HEAD 从 `9df403b` 变成 `7adac3d`，`core/` 一直带着别人的未提交改动 | 提交只 `git add <本轮改的文件>`，绝不用 `git add -A` / `git commit -a`；push 前先 `git log --oneline -3` 确认基线；`git status` 里看到的 `M` 不一定是自己的 |
+| 2026-10-20 | 用编辑工具往表格里插行时，`old_string` 只截了已有行的**行首**，结果把那行截成了半截（`\| ：本轮中途…`），同一个坑犯两次 | **追加表格行一律锚定整行或追加到文件末尾**；改完必须脚本校验每行都匹配 `^\| (20\|日期\|---)`（本轮 `bad_rows=0` 就是这条） |

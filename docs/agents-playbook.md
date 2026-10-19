@@ -88,8 +88,8 @@
 
 | 复用半径 | 写哪 | 例 |
 | --- | --- | --- |
+| **换目标也用得上（第一优先级）** | `.agents/skills/<skill>/references/*.md`（新领域新建 skill） | `peek_name()` 批量提贴图；UnityFS 只加密前 32KB；指令文件分层法 |
 | 只对本项目有意义 | `docs/<目标>-dossier.md` 或 `docs/ledger.md` | 维普蕾的 bundle 哈希、哪个槽几根骨 |
-| 换目标也用得上 | `.agents/skills/<skill>/references/*.md` | `peek_name()` 批量提贴图；UnityFS 只加密前 32KB |
 | 用户纠正 / 协作方式 | `docs/agents-corrections.md`，再把结论折成规则进 `AGENTS.md` / `docs/agents-ui-spec.md` | 不要多余按钮、不要日志面板、布局要 WinUI |
 | 目标状态 / 阻塞 / 未决 | `docs/ledger.md` | G13 动作导出进行中 |
 
