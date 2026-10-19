@@ -363,8 +363,30 @@ def make_workspace(outdir: str, spec: dict) -> dict:
         from . import bonenames
 
         paths = bonenames.load(spec["bone_names"]) or None
-    skel = S.merge([(md.name, md.bone_hashes, md.bindpose) for _h, _t, md in loaded],
-                   paths=paths)
+    tables = [(md.name, md.bone_hashes, md.bindpose) for _h, _t, md in loaded]
+    # 动作是按**整副角色骨架**做的，而骨架 = 勾选网格的并集。只勾一个身体时骨架只有
+    # 32 根骨、动作驱动 213 根 → 在 Blender 里就是一团扭曲。所以带动作时按皮肤全部网格
+    # 的并集建骨（只多解骨骼表，不导出这些网格）。
+    extra = spec.get("skeleton_meshes") or []
+    if extra:
+        seen = {(item["bundle"], item["mesh"]) for item in spec.get("meshes", [])}
+        for item in extra:
+            key = (item["bundle"], item["mesh"])
+            if key in seen:
+                continue
+            seen.add(key)
+            hash_ = item["bundle"]
+            if hash_ not in spec.get("bundles", {}):
+                continue
+            try:
+                if hash_ not in bundles:
+                    bundles[hash_] = open_bundle(spec["bundles"][hash_])
+                tree = bundles[hash_].mesh(item["mesh"]).read_typetree()
+                md = M.from_tree(tree)
+                tables.append((md.name, md.bone_hashes, md.bindpose))
+            except Exception:  # noqa: BLE001 - a broken extra mesh must not sink the export
+                continue
+    skel = S.merge(tables, paths=paths)
     skel["id"] = spec.get("id", "") or spec.get("name", "")
 
     written_meshes = []
@@ -443,7 +465,8 @@ def make_workspace(outdir: str, spec: dict) -> dict:
                 merged = dict(paths or {})
                 merged.update(prefab_paths)
                 info = A.export(clip, os.path.join(anim_dir, fname), paths=merged,
-                                parents=parents)
+                                parents=parents,
+                                skeleton_hashes={int(b["hash"]) for b in skel["bones"]})
                 written_anims.append({
                     "file": "animations/" + fname,
                     "clip": name,
@@ -451,6 +474,9 @@ def make_workspace(outdir: str, spec: dict) -> dict:
                     "seconds": round(clip.length, 3),
                     "samples": info["samples"],
                     "loop": clip.loop,
+                    # 动作能不能驱动这副骨架：骨骼数 / 命中数（导出时就把话说清楚）
+                    "bones": info["bones"],
+                    "matched": info["matched"],
                 })
             except Exception as exc:  # noqa: BLE001 - one broken clip must not sink the export
                 failed_anims.append({"clip": name, "error": str(exc)[:200]})

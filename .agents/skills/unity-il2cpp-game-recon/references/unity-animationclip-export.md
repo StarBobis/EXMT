@@ -118,17 +118,24 @@ clip 只存 `crc32(路径)`，**不含父子关系**；没有层级就没法把�
 - **不要做坐标轴转换**：如果网格和骨架都是按 Unity 坐标（Y 上）导入的，动作也照 Unity 坐标用。
 - 姿势 = 逐骨合成世界矩阵：`W(bone) = W(parent) · L(bone)`，`L = T·R·S`；
   clip 没驱动的骨用它的**静止局部** `L_rest = W_rest(parent)⁻¹ · W_rest(bone)`。
-- Blender 要的是 **pose basis**：`basis = (W(blender_parent) · rest_parent⁻¹ · bone_rest)⁻¹ · W(bone)`。
-  注意括号里要用 **Blender 自己的父子链**（它的父可能是推断出来的、甚至为空），
-  而不是 clip 的父子链；两条链不一致时用错会得到 1 m 级的假位移。
-- **验收自证（最强的一条）**：把动作放在第 1 帧、再和"完全不挂动作"的网格对比顶点位置，
-  应该 **0 个顶点移动**（GF2 实测 max 0.0000 m）。动作首帧通常≈绑定姿势，这一条同时验证了
-  rest 矩阵、层级、basis 三个环节；换到中间帧再看顶点是否动、动多少。
+- **别让 DCC 的 rest 参与蒙皮**：Blender 里用 head + Y + roll 反推的 `bone.matrix_local`
+  和游戏的绑定姿态**常常不是一回事**（实测 32 根骨里 18 根差 10–179°，纯 roll；位移/缩放都一致，
+  所以静止时看不出来）。正确做法是按游戏的 **deform = W(bone) · W_rest(bone)⁻¹** 算，再换算成姿势矩阵：
+  `pose = deform · matrix_local`，`basis = (parent_pose · parent_matrix_local⁻¹ · matrix_local)⁻¹ · pose`。
+  这样插件搭出来的骨架多歪都不影响蒙皮结果。
+- **骨架骨数必须 ≥ 动作驱动骨数**：动作是按整副角色做的，而"DCC 里的骨架"往往是"你导出了哪些网格"的
+  并集。实测只导一个身体子网格 = 32 根骨 vs 动作 213 根 → 71% 的位移无处可去，剩下的骨被牵连，
+  摆起来就是一团扭曲。带动作导出时骨架要按**该角色全部网格**的并集建（只多解骨骼表，不多导出网格）。
+- **验收别用"顶点动没动"**：首帧≈绑定姿势，误差在这个姿势下互相抵消，动没动都看不出问题。
+  用**边缘拉伸的绝对毫米数**：1.7 m 人体上，中位 0.1–0.2 mm、p95 2–3 mm 才算对；
+  相对百分比会被 2–3 mm 的衣服缝线放大到 200%，没意义。
+  另外两条自查：`matrix_local⁻¹ · 游戏rest` 的旋转角 ≈0；动作 `bones/matched` ≈1。
 - Blender **5.2 没有 `action.fcurves`**（4.4 起是分层动作）。正确写法：
   `act.slots.new(id_type="OBJECT", name=...)` → `act.layers.new(...)` →
   `strips.new(type="KEYFRAME")` → `strip.channelbag(slot, ensure=True).fcurves.new(path, index=...)`；
   赋值要 `obj.animation_data.action = act` **且** `obj.animation_data.action_slot = slot`。
   快速填曲线：`kp.add(n)` + `kp.foreach_set("co", 扁平 [frame, value, ...])` + `curve.update()`。
+- headless 渲染验证时先清场：`--factory-startup` 自带 2 m Cube，会挡在相机前被当成"模型坏了"。
 - **零权重的网格不会跟着动**：脸、武器这类刚性挂件在游戏里是挂在某根骨上的，
   网格权重全 0（GF2 实测 face/weapon 全 0），播动作时它们留在原地 → 看起来"头飞了"。
   这类网格要给一个「挂到哪根骨」的约定，别当成蒙皮网格。

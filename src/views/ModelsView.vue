@@ -688,6 +688,8 @@ async function startMaking() {
       exportMeshes,
       exportTextures,
       exportAnims,
+      // 带动作时骨架要按这个皮肤全部网格的并集建（动作驱动整副骨架）
+      exportAnims.length ? meshes.value : exportMeshes,
     );
     await refreshWorkspaces();
     const summary: WorkspaceSummary =

@@ -887,6 +887,8 @@ export async function makeWorkspace(
   meshes: SkinMesh[],
   textures: TextureEntry[],
   animations: AnimEntry[] = [],
+  /** every mesh of the skin, used to build the rig even when not exported */
+  skeletonMeshes: SkinMesh[] = meshes,
 ): Promise<WorkspaceResult> {
   if (!isTauri) throw new Error("workspace export needs the desktop shell");
   const identity = await newWorkspaceIdentity({
@@ -940,6 +942,13 @@ export async function makeWorkspace(
     // one copy is enough to read the clip; the rest are duplicates of the asset
     animItems.push({ clip: clip.name, bundle: targets[0] });
   }
+  if (animItems.length) {
+    // the rig takes the union of *all* the skin's meshes, so their bundles must
+    // be readable even when that mesh is not part of the export
+    for (const mesh of skeletonMeshes) {
+      if (!bundles[mesh.bundle]) bundles[mesh.bundle] = await packSource(mesh.bundle);
+    }
+  }
 
   const spec = {
     workspace_id: identity.id,
@@ -955,6 +964,11 @@ export async function makeWorkspace(
     meshes: meshes.map((mesh) => ({ bundle: mesh.bundle, mesh: mesh.name })),
     textures: textures.map((tex) => ({ bundle: tex.bundle, name: tex.name })),
     animations: animItems,
+    // 动作按整副角色骨架做的：带动作时骨架要取**这个皮肤全部网格**的并集，
+    // 否则只勾一个身体 → 32 根骨 vs 动作 213 根，播起来就是一团扭曲
+    skeleton_meshes: animations.length
+      ? skeletonMeshes.map((mesh) => ({ bundle: mesh.bundle, mesh: mesh.name }))
+      : [],
     bone_names: boneNames ?? "",
   };
   const specPath = await join(outdir, "spec.json");

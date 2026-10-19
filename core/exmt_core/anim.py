@@ -233,7 +233,8 @@ class Clip:
 
 # ---------------------------------------------------------------------- export
 def export(clip: Clip, out_path: str, paths: dict | None = None, rate: float | None = None,
-           decimals: int = 5, parents: dict | None = None) -> dict:
+           decimals: int = 5, parents: dict | None = None,
+           skeleton_hashes: set | None = None) -> dict:
     """Write sampled tracks as JSON; returns the payload (without the sample rows).
 
     Sampled, not raw: a clip is a *reference* to look at skinning in Blender, so
@@ -274,6 +275,11 @@ def export(clip: Clip, out_path: str, paths: dict | None = None, rate: float | N
         "file": out_path,
         "samples": len(times),
         "bones": len(rows),
+        # how many of the clip's bones exist in the workspace skeleton: a clip from
+        # another body variant (or an export that only ticked one submesh) drives
+        # bones the rig does not have, and the pose then looks broken in Blender
+        "matched": (len([r for r in rows if int(r["hash"]) in skeleton_hashes])
+                    if skeleton_hashes is not None else None),
         "bytes": _size(out_path),
     }
 
