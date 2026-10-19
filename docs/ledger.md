@@ -180,7 +180,7 @@
 | Alva 自己的 prefab/Avatar **不在本地**（53 个 Avatar 里没有 `c_Alva*`），但跨角色共享的人形主链路径字符串相同 → 226 根里 **104 根**拿到真名 + 父链（`Spine1_M`→`Root_M`、`Head_M`→`Neck_M`、`Knee_L`→`HipPart1_L`…） | `bonenames.json`（50005 条，**13.2 s** 建成，冲突 0）；workspace 实测 `named=104, parented=103` |
 | 修法：workspace 端先按哈希**求并集**合成一副骨架（`skeleton.json`），每个 `.exmtmesh` 里带“局部索引 → 骨架索引”映射；Blender 端只建**一副** 226 根骨的骨架，按映射给每个网格建**同名**顶点组 + 父级 + Armature 修改器 | `core/exmt_core/skeleton.py`、`preview.make_workspace`；`EXMTBlender` 的 `build_armature` / `_apply_weights` / `EXMT_OT_import_workspace` |
 | 验证：12 个网格 **0 个未绑定组、0 个未蒙皮顶点**；`Spine1_M` 转 25° 时 body **4618/4618** 顶点跟着动（老代码是 0） | `blender_verify.py`，截图 `C:\DevCache\exmt-bones\shots\rig_skeleton.png` / `rig_posed.png` |
-| 不改动直接导出：**权重与骨骼索引逐行逐位一致**（`diffW=0 diffB=0`，含只有 2 个影响槽的网格） | `blender_verify.py` |
+| 不改动直接导出：**权重与骨骼索引逐行逐位一致**（`diffW=0 diffB=0`，含只有 2 个影响槽的网格）；导出的文件自带骨骼表（`bone_hashes`/`bindpose`），再导入能重建骨架（226 根 / 组全命中 / 13768 顶点全受驱动） | `blender_verify.py` |
 | 往返逐位一致的两个坑：等权重的影响槽必须按**索引升序**排（游戏数据如此，老代码 `sort(reverse=True)` 把并列项换了位）；权重和已经 ≈1 时**不要再归一化**（否则差 1 ULP）。修好前 579 个元素差 1.2e-7 | 对比 `src` / `got` 的 `bones`、`weights` |
 | 打包回 bundle：从重打包的 bundle 再解一次，**数组 + typtree 全等**（`m_BindPose` / `m_BoneNameHashes` 原样保留） | `compare_mesh.py`：`all arrays identical`、`tree differing fields=[]` |
 | 外部衣服（glTF 进来的物体，没有自己的骨骼表）：`bonetable` 给目标网格的骨骼表（带同一个名字索引），导出时先把顶点组名还原成哈希、再映射到目标索引 | `blender_foreign.py`：`dropped_influences=0`，权重与索引全等 |
@@ -196,7 +196,7 @@
 | --- | --- |
 | 应用 | `C:\Dev\EXMT`（`src/` 前端、`src-tauri/` Rust） |
 | 核心 | `core/exmt_core/`（CLI：list/meshes/extract/extract-all/bonetable/pack/hide-mesh/subdivide/retarget/copy-texture/set-texture/texindex/bonenames/workspace） |
-| Blender 插件 | `C:\Dev\EXMTBlender\{__init__.py,mesh_io.py}`（0.3.0，已同步到 `%APPDATA%\Blender Foundation\Blender\5.2\scripts\addons\EXMTBlender`；旧版备份在 `C:\DevCache\exmt-bones\EXMTBlender-installed-backup-*`） |
+| Blender 插件 | `C:\Dev\EXMTBlender\{__init__.py,mesh_io.py}`（0.3.0，已同步到 `%APPDATA%\Blender Foundation\Blender\5.2\scripts\addons\EXMTBlender`；**该目录不是 git 仓库**，只能靠快照：旧版备份 `C:\DevCache\exmt-bones\EXMTBlender-installed-backup-*`，0.3.0 快照 `C:\DevCache\exmt-bones\EXMTBlender-0.3.0-*`） |
 | 文档站 | `C:\Dev\EXMTDoc`（VitePress 2，独立仓库） |
 | 本仓库 docs | `exmt-modbox.md`、`exmt-model-pipeline.md`、`exmt-characters.md`、`gf2-exilium-recon.md` |
 | skill | `.agents/skills/unity-il2cpp-game-recon/`（§18–§23）、`.agents/skills/tauri-winui-shell/` |
