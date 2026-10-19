@@ -1,11 +1,14 @@
 <script setup lang="ts">
 import { onMounted, ref } from "vue";
 import {
+  applyMods,
   deleteMod,
   listBackups,
   listMods,
+  readAppliedState,
   restoreBackup,
-  uninstallBundles,
+  setModEnabled,
+  type AppliedState,
   type BackupEntry,
   type ModRecord,
 } from "../lib/modbox";
@@ -13,6 +16,7 @@ import { t } from "../lib/i18n";
 
 const backups = ref<BackupEntry[]>([]);
 const mods = ref<ModRecord[]>([]);
+const applied = ref<AppliedState | null>(null);
 const busy = ref("");
 const message = ref("");
 
@@ -20,6 +24,7 @@ async function refresh() {
   try {
     backups.value = await listBackups();
     mods.value = await listMods();
+    applied.value = await readAppliedState();
   } catch (e) {
     message.value = String(e);
   }
@@ -38,14 +43,19 @@ async function doRestore(hash: string) {
   }
 }
 
-/** Undo a whole Mod: put every bundle it replaced back, then drop its record. */
-async function doUninstall(rec: ModRecord) {
-  const hashes = rec.bundles?.length ? rec.bundles : rec.bundle ? [rec.bundle] : [];
+/**
+ * 启用/停用一份 Mod。停用不是"删掉"：整合器会把它的补丁从运行时状态里去掉，
+ * 如果那个包没有别的 Mod 再改它，就还原成原始文件。
+ */
+async function toggle(rec: ModRecord) {
   busy.value = rec.id;
   try {
-    const restored = await uninstallBundles(hashes);
-    await deleteMod(rec.id);
-    message.value = t("library.uninstalled", { n: restored, name: rec.character || rec.id });
+    const result = await setModEnabled(rec.id, rec.enabled === false);
+    message.value = t("library.applied", {
+      mods: result.mods,
+      bundles: result.bundles,
+      restored: result.restored,
+    });
   } catch (e) {
     message.value = String(e);
   } finally {
@@ -54,10 +64,32 @@ async function doUninstall(rec: ModRecord) {
   }
 }
 
-async function doDelete(id: string) {
-  busy.value = id;
+/** 重新整合一遍（改了补丁文件、或想确认游戏状态时用）。 */
+async function reapply() {
+  busy.value = "apply";
   try {
-    await deleteMod(id);
+    const result = await applyMods();
+    message.value = result.errors.length
+      ? result.errors.join("；")
+      : t("library.applied", {
+          mods: result.mods,
+          bundles: result.bundles,
+          restored: result.restored,
+        });
+  } catch (e) {
+    message.value = String(e);
+  } finally {
+    busy.value = "";
+    await refresh();
+  }
+}
+
+async function doDelete(rec: ModRecord) {
+  busy.value = rec.id;
+  try {
+    // 先停用（它改过的包要还回去），再删记录
+    if (rec.enabled !== false) await setModEnabled(rec.id, false);
+    await deleteMod(rec.id);
     message.value = t("library.deleted");
   } catch (e) {
     message.value = String(e);
@@ -115,6 +147,12 @@ onMounted(refresh);
       <p class="card__desc" style="margin-top: 6px">
         {{ t("library.modsDesc") }}
       </p>
+      <p v-if="applied?.updated_at" class="card__desc" style="margin-top: 4px">
+        {{ t("library.merged", {
+          bundles: Object.keys(applied.bundles).length,
+          time: fmtTime(applied.updated_at),
+        }) }}
+      </p>
 
       <div v-if="mods.length === 0" class="empty" style="padding: 28px 0">
         <p class="empty__text">{{ t("library.modsEmpty") }}</p>
@@ -122,22 +160,26 @@ onMounted(refresh);
 
       <div v-else class="list" style="margin-top: 12px">
         <div v-for="m in mods" :key="m.id" class="list__row">
+          <label class="list__check" :title="t('library.enableHint')">
+            <input
+              type="checkbox"
+              :checked="m.enabled !== false"
+              :disabled="!!busy || !m.patches?.length"
+              @change="toggle(m)"
+            />
+          </label>
           <div class="list__main">
             <div class="list__title">{{ m.character || m.preset || m.id }}</div>
             <div class="list__meta mono">
-              {{ m.mesh }} · {{ bundleLabel(m) }} · {{ fmtTime(m.installed_at) }}
+              {{ m.mesh }} · {{ m.patches?.length ?? 0 }} 个补丁 · {{ bundleLabel(m) }} ·
+              {{ fmtTime(m.installed_at) }}
             </div>
           </div>
           <div class="list__actions">
-            <button
-              class="btn"
-              type="button"
-              :disabled="!!busy || !(m.bundles?.length || m.bundle)"
-              @click="doUninstall(m)"
-            >
-              {{ t("library.restore") }}
+            <button class="btn" type="button" :disabled="!!busy" @click="reapply">
+              {{ t("library.apply") }}
             </button>
-            <button class="btn" type="button" :disabled="!!busy" @click="doDelete(m.id)">
+            <button class="btn" type="button" :disabled="!!busy" @click="doDelete(m)">
               {{ t("library.delete") }}
             </button>
           </div>
@@ -192,6 +234,19 @@ onMounted(refresh);
   border-radius: 8px;
   background: var(--card-subtle, rgba(255, 255, 255, 0.03));
   border: 1px solid var(--stroke, rgba(255, 255, 255, 0.06));
+}
+
+.list__check {
+  display: flex;
+  align-items: center;
+  flex: 0 0 auto;
+}
+
+.list__check input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--accent, #4cc2ff);
+  cursor: pointer;
 }
 
 .list__title {

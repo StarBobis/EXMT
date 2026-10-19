@@ -2,7 +2,7 @@
 import { copyFile, exists, mkdir, readDir, readTextFile, remove, stat, writeTextFile } from "@tauri-apps/plugin-fs";
 import { appDataDir, join } from "@tauri-apps/api/path";
 import { ensureCacheFolder } from "./settings";
-import { gameBundles } from "./core";
+import { gameBundles, runCore } from "./core";
 
 export function bundlePath(hash: string): string {
   return `${gameBundles()}\\${hash}.bundle`;
@@ -29,6 +29,15 @@ export async function cacheDir(): Promise<string> {
   return ensureCacheFolder();
 }
 
+/** One edited mesh inside a Mod: what to patch, and where it has to land. */
+export interface ModPatch {
+  mesh: string;
+  /** `.exmtmesh` path, relative to the Mod's `source` folder (or absolute) */
+  file: string;
+  /** every bundle that stores a copy of this mesh */
+  bundles: string[];
+}
+
 export interface ModRecord {
   id: string;
   character?: string;
@@ -42,6 +51,10 @@ export interface ModRecord {
   source?: string;
   installed_at?: string;
   kind?: string;
+  /** geometry patches — what makes two Mods mergeable */
+  patches?: ModPatch[];
+  /** false = kept in the library but not applied to the game */
+  enabled?: boolean;
 }
 
 /** Copy the pristine bundle aside the first time we touch it. */
@@ -170,6 +183,7 @@ export interface GeneratedMod {
   created_at?: string;
   mesh_count?: number;
   bundles: GeneratedBundle[];
+  patches?: ModPatch[];
   dir: string;
 }
 
@@ -185,6 +199,183 @@ export async function readGeneratedMod(workspaceDir: string): Promise<GeneratedM
   } catch {
     return null;
   }
+}
+
+// --------------------------------------------------------------------------- //
+// merging: the game state is *pristine + every enabled Mod*, never "last write
+// wins". Two Mods that touch the same bundle (68 of the scanned bundles hold more
+// than one skin) would otherwise silently overwrite each other.
+// --------------------------------------------------------------------------- //
+export interface AppliedState {
+  format: string;
+  updated_at: string;
+  bundles: Record<string, { mods: string[]; meshes: number }>;
+}
+
+async function appliedStatePath(): Promise<string> {
+  return join(await cacheDir(), "applied.json");
+}
+
+export async function readAppliedState(): Promise<AppliedState> {
+  const empty: AppliedState = { format: "exmt-applied-1", updated_at: "", bundles: {} };
+  try {
+    const path = await appliedStatePath();
+    if (!(await exists(path))) return empty;
+    const data = JSON.parse(await readTextFile(path)) as AppliedState;
+    return { ...empty, ...data, bundles: data.bundles ?? {} };
+  } catch {
+    return empty;
+  }
+}
+
+export interface ApplyResult {
+  /** Mods that contributed patches to this merge */
+  mods: number;
+  /** Older records (installed before merging existed) — left untouched */
+  legacy: number;
+  bundles: number;
+  meshes: number;
+  restored: number;
+  skipped: string[];
+  errors: string[];
+}
+
+/** Absolute path of a patch's `.exmtmesh` inside its Mod folder. */
+function patchFile(rec: ModRecord, patch: ModPatch): string {
+  if (/^[A-Za-z]:[\\/]/.test(patch.file)) return patch.file;
+  return `${rec.source ?? ""}\\${patch.file.replace(/\//g, "\\")}`;
+}
+
+/**
+ * Rebuild every touched bundle from the pristine copy plus the patches of all
+ * enabled Mods, then write the results once.
+ *
+ * `modpack` does the packing — it takes the pristine bundle and a list of
+ * `{bundle, mesh, file}` rows, so merging is just "give it the union of every
+ * Mod's rows, in install order". Bundles that no longer belong to any enabled
+ * Mod are restored from their backups.
+ */
+export async function applyMods(): Promise<ApplyResult> {
+  const result: ApplyResult = {
+    mods: 0,
+    legacy: 0,
+    bundles: 0,
+    meshes: 0,
+    restored: 0,
+    skipped: [],
+    errors: [],
+  };
+  const records = (await listMods()).sort((a, b) =>
+    String(a.installed_at ?? "").localeCompare(String(b.installed_at ?? "")),
+  );
+  const enabled = records.filter((rec) => rec.enabled !== false);
+
+  const rows: { bundle: string; mesh: string; file: string }[] = [];
+  const byBundle: Record<string, Set<string>> = {};
+  const owner: Record<string, Set<string>> = {};
+  for (const rec of enabled) {
+    if (!rec.patches?.length) {
+      // legacy record (installed before merging existed): it is already in the
+      // game and has no patch files, so there is nothing to replay
+      result.legacy += 1;
+      result.skipped.push(rec.id);
+      continue;
+    }
+    let used = 0;
+    for (const patch of rec.patches) {
+      const file = patchFile(rec, patch);
+      if (!(await exists(file))) {
+        result.skipped.push(`${rec.id}:${patch.mesh}`);
+        continue;
+      }
+      for (const hash of patch.bundles?.length ? patch.bundles : rec.bundles ?? []) {
+        rows.push({ bundle: hash, mesh: patch.mesh, file });
+        (byBundle[hash] ??= new Set<string>()).add(patch.mesh);
+        (owner[hash] ??= new Set<string>()).add(rec.id);
+        used += 1;
+      }
+    }
+    if (used) result.mods += 1;
+  }
+
+  const previous = await readAppliedState();
+  const targets = Object.keys(byBundle);
+
+  if (rows.length) {
+    // every patch is applied to a fresh copy of the *original* bundle; modpack
+    // writes each bundle once, so several Mods touching one bundle merge cleanly
+    const outdir = `${await cacheDir()}\\merge`;
+    const bundles: Record<string, string> = {};
+    for (const hash of targets) bundles[hash] = await pristineSource(hash);
+    const spec = {
+      outdir,
+      label: "merged",
+      workspace: "merge",
+      game_bundles: gameBundles(),
+      bundles,
+      meshes: rows,
+    };
+    const specPath = `${outdir}.spec.json`;
+    await writeTextFile(specPath, JSON.stringify(spec));
+    const res = await runCore(["modpack", specPath]);
+    if (res.code !== 0) {
+      result.errors.push((res.stderr || res.stdout || "modpack 失败").slice(-300));
+      return result;
+    }
+    const summary = JSON.parse(res.stdout.trim().split("\n").pop() ?? "{}") as {
+      bundles?: number;
+      meshes?: number;
+      missing?: number;
+    };
+    result.bundles = summary.bundles ?? 0;
+    result.meshes = summary.meshes ?? 0;
+    if (summary.missing) result.errors.push(`${summary.missing} 项缺文件`);
+
+    const state: AppliedState = { format: "exmt-applied-1", updated_at: new Date().toISOString(), bundles: {} };
+    for (const hash of targets) {
+      const built = `${outdir}\\${hash}.bundle`;
+      if (!(await exists(built))) continue;
+      await ensureBackup(hash);
+      await copyFile(built, bundlePath(hash));
+      state.bundles[hash] = {
+        mods: Array.from(owner[hash] ?? []),
+        meshes: byBundle[hash]?.size ?? 0,
+      };
+    }
+    // bundles that were patched before but no Mod claims them any more
+    for (const hash of Object.keys(previous.bundles)) {
+      if (state.bundles[hash]) continue;
+      if (await backupExists(hash)) {
+        await restoreBackup(hash);
+        result.restored += 1;
+      }
+    }
+    await writeTextFile(await appliedStatePath(), JSON.stringify(state, null, 2));
+    return result;
+  }
+
+  // nothing enabled: put the game back to original
+  for (const hash of Object.keys(previous.bundles)) {
+    if (await backupExists(hash)) {
+      await restoreBackup(hash);
+      result.restored += 1;
+    }
+  }
+  await writeTextFile(
+    await appliedStatePath(),
+    JSON.stringify({ format: "exmt-applied-1", updated_at: new Date().toISOString(), bundles: {} }, null, 2),
+  );
+  return result;
+}
+
+/** Enable or disable one Mod and re-apply the whole set. */
+export async function setModEnabled(id: string, enabled: boolean): Promise<ApplyResult> {
+  const records = await listMods();
+  const rec = records.find((item) => item.id === id);
+  if (!rec) throw new Error(`找不到 Mod：${id}`);
+  rec.enabled = enabled;
+  await writeMod(rec);
+  return applyMods();
 }
 
 export interface InstallResult {

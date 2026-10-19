@@ -150,7 +150,10 @@ bun run check     # 见 §6
 | 2026-10-19 | 说“修好了”之前没在 Blender 里真跑过 | 骨骼/权重类改动**必须**用真实工作空间数据 headless 验证：① 受驱动顶点数 == 顶点数；② 转一根主链骨骼网格真的跟着动；③ 不改动往返 `weights`/`bones` 逐位相等；④ 打包回 bundle 再解出来与原包全等 |
 | 2026-10-19 | 打包保真只看“数组相等”不够 | ① 子网格 `localAABB` 要按**被引用的顶点**算，别用 `pos[min:max+1]`（会把没引用的顶点算进盒体，和游戏自己写的数对不上）；② Blender 会重算法线/切线（实测中位 2°/11°，"没动过也会变"），导入必须设 **custom split normals** + 把切线存成网格属性、导出优先读回；③ 判据用**角度分位数**，不要用裸 float 差（1e-7 和 90° 在 `max abs` 里长得一样）|
 | 2026-10-19 | 视图里异步读“依赖别的异步结果”的状态 | `refreshGenerated()` 原本写在 `initWorkspaces()` 开头，那时 `activeWorkspace` 还没恢复 → 按钮永远灰着。**依赖 A 的 B 必须放在 A 之后**：恢复完工作空间再读它的 `GeneratedMod`，`onActivated` 也要补一次 |
-| 2026-10-19 | 用 `app.ps1` 截图/点击老是错位、右侧截不到 | 那个脚本是 **DPI-unaware** 的：`GetWindowRect`/`ClientToScreen` 与 `CopyFromScreen` 相差缩放比（本机 150%），窗口比屏幕大时右边根本进不了图。用 DPI-aware 的 `C:\DevCache\gf2\app2.ps1`（先 `SetProcessDpiAwarenessContext`、把窗口摆到 (8,8) 再截）：坐标 = 截图物理像素 − client 原点（本机 (19,10)） |
+| 2026-10-19 | 用 `app.ps1` 截图/点击老是错位、右侧截不到 | 那个脚本是 **DPI-unaware** 的：`GetWindowRect`/`ClientToScreen` 与 `CopyFromScreen` 相差缩放比（本机 150%），窗口比屏幕大时右边根本进不了图。用 DPI-aware 的 `C:\DevCache\gf2\app2.ps1`（先 `SetProcessDpiAwarenessContext`、把窗口摆到 (8,8) 再截）：坐标 = 截图物理像素 − client 原点（本机 (19,10)）。**侧栏是折叠的（48px）**，导航图标在 client x≈27 |
+| 2026-10-19 | 连点几下，后面几次总是点空 | ① 消息条一出现会把下面的列表整体下移 → **每次点击前重新截图**，别复用上一次的坐标；② HMR 之后 WebView 里的状态可能是旧的（按钮一直是灰的、点不动）→ 先 `Ctrl+R` 重载再判断，别急着改代码 |
+| 2026-10-19 | 以为"多装一个 Mod 不会冲突" | **一个包只能有一份文件**：后装的就是覆盖先装的。运行时状态必须由「原始包 + 所有启用 Mod 的补丁」**重新算一遍**（`applyMods`）；Mod 要能合并就必须留下**补丁文件**（`GeneratedMod/patches/*.exmtmesh`），不能只留打好的包 |
+| 2026-10-19 | 同一网格在多个包里，直接照抄 `.exmtmesh` 的整棵树 | 各副本可能**烘焙得不一样**（实测同一网格一个 UV 是 float16 且 `m_IsReadable=false`，另一个 float32 且可读）。只有「通道布局 + 可读标志 + 骨骼哈希表」全同才用文件里的树；否则以**目标包的树为底**，只写几何，并按哈希重映射骨骼索引 |
 | 2026-10-18 | 为什么没有 docs/skill 更新 | 本文件 §1 RSI 循环 |
 
 ---

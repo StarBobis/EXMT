@@ -289,6 +289,59 @@ export async function ensureBoneNames(): Promise<string | null> {
 }
 
 // --------------------------------------------------------------------------- //
+// mesh index: mesh name -> every bundle that stores a copy
+// --------------------------------------------------------------------------- //
+/**
+ * A mesh is not necessarily stored once: 68 of the 643 bundles this app reads
+ * hold meshes of more than one skin. Patching only the copy the catalog happens
+ * to name would leave the game free to load an unmodified copy, so the workspace
+ * records every bundle for every mesh it exports.
+ */
+async function meshIndexPath(): Promise<string> {
+  return join(cacheFolder.value, "meshindex.json");
+}
+
+let meshIndexPromise: Promise<Record<string, string[]> | null> | null = null;
+
+/**
+ * Mesh-name index, built on first use (~40 s over the 643 backed-up bundles).
+ *
+ * The **backup** folder is the right target here (unlike the bone names, which
+ * only exist in the game folder's Avatars and prefabs): it holds every bundle
+ * this app can pack into, including the extra copies of a mesh, and it does not
+ * change while the user is working.
+ */
+export async function ensureMeshIndex(): Promise<Record<string, string[]> | null> {
+  if (meshIndexPromise) return meshIndexPromise;
+  meshIndexPromise = (async () => {
+    const path = await meshIndexPath();
+    const source = backup.value.ready ? backup.value.dir : gameBundles();
+    try {
+      if (await exists(path)) {
+        const data = JSON.parse(await readTextFile(path)) as {
+          game_bundles?: string;
+          meshes?: Record<string, string[]>;
+        };
+        if (data.game_bundles === source && data.meshes) return data.meshes;
+      }
+      const res = await runCore(["meshidx", source, path]);
+      if (res.code !== 0) return null;
+      const data = JSON.parse(await readTextFile(path)) as {
+        meshes?: Record<string, string[]>;
+      };
+      return data.meshes ?? null;
+    } catch {
+      return null;
+    }
+  })();
+  try {
+    return await meshIndexPromise;
+  } finally {
+    meshIndexPromise = null;
+  }
+}
+
+// --------------------------------------------------------------------------- //
 // per-skin cache: <cache>/skins/<skinKey>/{meta,meshes,geometry,thumbs}.json
 // --------------------------------------------------------------------------- //
 const SKIN_CACHE_VERSION = 1;
@@ -753,6 +806,17 @@ export async function makeWorkspace(
   // real bone names come from an Avatar/prefab index; without it the skeleton is
   // still complete, just named by hash
   const boneNames = await ensureBoneNames();
+  // every copy of every exported mesh, so a Mod lands wherever the game looks
+  const meshIndex = await ensureMeshIndex();
+  const meshBundles: Record<string, string[]> = {};
+  for (const mesh of meshes) {
+    const found = meshIndex?.[mesh.name] ?? [];
+    const targets = found.length ? Array.from(new Set(found)) : [mesh.bundle];
+    meshBundles[mesh.name] = targets;
+    for (const hash of targets) {
+      if (!bundles[hash]) bundles[hash] = await packSource(hash);
+    }
+  }
 
   const spec = {
     workspace_id: identity.id,
@@ -763,6 +827,7 @@ export async function makeWorkspace(
     display,
     game_bundles: gameBundles(),
     bundles,
+    mesh_bundles: meshBundles,
     meshes: meshes.map((mesh) => ({ bundle: mesh.bundle, mesh: mesh.name })),
     textures: textures.map((tex) => ({ bundle: tex.bundle, name: tex.name })),
     bone_names: boneNames ?? "",

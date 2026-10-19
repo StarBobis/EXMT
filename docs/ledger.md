@@ -214,6 +214,33 @@
 
 ---
 
+### 2.12 多个 Mod 整合 + 同名网格的所有拷贝（2026-10-19）
+
+用户问：「加载多个不同角色的 Mod 会不会冲突，到底加载哪个包？」——会，而且原因是**文件级覆盖**，不是加载顺序。
+
+| 事实 | 证据 |
+| --- | --- |
+| 643 个备份包里 **68 个装着多个角色的网格**（`0e834224…` 里同时有 `c_AlvaSSR01` / `c_AlvaSSR0101` / `c_AlvaSSR0102`）；两个 Mod 改到同一个包时，后装的把先装的整包覆盖 | 扫包统计 + `C:\DevCache\verify_merge.py`：先装 A（头发 +5 cm）再装 B（身体 +3 cm）→ 头发回到 0.0016，A 白改了 |
+| 改法：**Mod 不再等于"打好的包"**，而是**补丁集合**——`modpack` 现在把每个补丁的 `mesh / file / bundles` 写进 `mod.json`，Blender 把导出的 `.exmtmesh` 留在 `<工作空间>/GeneratedMod/patches/`。运行时状态 = 原始包 + **所有启用 Mod 的补丁**，一次打包一次写入（`applyMods`） | `core/exmt_core/modpack.py` 的 `patches`、`EXMTBlender.gener_generate_mod`、`src/lib/modbox.ts` 的 `applyMods/patchFile/setModEnabled`；状态文件 `<cache>/applied.json` |
+| **实测（真 App）**：仓库里同时启用「测试 Mod：头发 +5 cm」和「阿尔瓦·2（12 个补丁）」→ 点「重新整合」→ `applied.json` 的同一个包下同时列出两个 Mod，游戏文件里头发 X `0.0016 → 0.0516` | 截图 `C:\DevCache\tauri-logs\library1.png`/`library3.png`；游戏包几何量测 |
+| 停用只去掉它自己的改动：取消勾选测试 Mod → 游戏文件头发回到 `0.0016`，`applied.json` 只剩工作空间那份 | 同上 |
+| 全部停用 → 游戏包回到 `3642020` 字节且**与备份 SHA256 相等**；`applied.json` 变成 `{bundles:{}}` | 文件哈希比对 |
+| 资源库页现在是 Mod 管理页：每行一个勾选框（启用/停用即重算）+「重新整合」+「删除记录」，并显示「当前游戏状态：N 个包被改写 · 整合于 …」。旧版记录（没有补丁文件，装于本轮之前）显示 `0 个补丁`、勾选框置灰、保持原状不动 | `src/views/LibraryView.vue` |
+| 状态行数字只数**真正参与整合**的 Mod（`ApplyResult.mods`）；旧记录单独计 `legacy`，避免"3 个 Mod 整合成 1 个包"这种假数 | `modbox.applyMods` |
+
+**同名网格的所有拷贝**（上一轮 §4-9 的问题，本轮修完）：
+
+| 事实 | 证据 |
+| --- | --- |
+| `meshidx` 扫 643 个备份包建 `网格名 → [所有包]`：**13.5 s**，2544 个网格名里 **240 个有多份拷贝**（9.4%）；`c_AlvaSSR0101_slg_cloth3_lod0` 同时在 `0e834224…` 和 `a75eb9c24873…` | `python -m exmt_core meshidx <backupDir> <json>`，结果 `<cache>/meshindex.json` |
+| 工作空间现在写 `mesh_bundles`（每个网格的所有包），Blender 生成 Mod 时对每个拷贝各打一行 → 改一次，所有副本一起变 | `preview.make_workspace`、`generate_mod`、`modpack.build`（同网格多包） |
+| **跨包不能照抄整棵树**：两个拷贝的布局可能不同（实测同一网格：一个 UV0 是 float16 + `m_IsReadable=false`，另一个 float32 + 可读；`m_BindPose`/`m_BonesAABB` 也有末位差）。`patch_mesh` 改为：只有在「通道布局 + 可读标志 + 骨骼哈希表」全同的时候才用文件自带的 tree，否则**以目标包的 tree 为底**，只写几何，并把骨骼索引按哈希重映射到目标的表（`dropped_bones` 报告丢失） | `core/exmt_core/modpack.py` 的 `_compatible/_fit_channels/_remap_bones`；`C:\DevCache\verify_multicopy2.py`：两个包都拿到 +4 cm，两边的 UV 格式与 `m_IsReadable` **都保持原样** |
+| 多拷贝打包实测：一个网格打两个包 → `bundles=2, meshes=2, missing=0`，每个包里都是改后的几何 | `C:\DevCache\verify_multicopy.py` |
+
+**没有验证的部分**：游戏内实际效果（本轮仍只到文件/几何层）；两个 Mod 改**同一个网格**时谁赢（当前按 `installed_at` 升序、后装的覆盖，未在 UI 上提示）。
+
+---
+
 ## 3. 交付物清单
 
 | 产物 | 位置 |
@@ -241,18 +268,8 @@
 6. **文档站链接**：`SettingsView` 的 `LINKS` 仍是占位（本地 5200 / GitHub 仓库）。
 7. **文档站旧页**：`faq.md`（“导出的 glTF 没有贴图”）、`reference/layout.md`（`gltf.py`）、`guide/index.md`、`reference/cli.md`（`glb` 命令）、`install.md`（点「导出 glTF」）仍写着已删除的 glTF 流程，需要一轮清理。
 8. **`C:\Dev\EXMTDoc` 没有 remote**：只能本地 commit，push 需要用户提供仓库地址。
-9. **同名网格的多份拷贝只打了一份（2026-10-19 发现，未修）**
-   - 事实：同一个网格名会在**多个 bundle** 里各存一份。实测 `c_AlvaSSR0101_slg_cloth3_lod0` 同时在
-     `0e834224a797…`（阿尔瓦·2 的包）和 `a75eb9c24873…`（AlvaSSR0101 自己的包）里；
-     `c_AlvaSSR01_emitter_slg_lod0` 同时在 `0e834224…` 和 `cddc7a5b7285…` 里。
-     `catalog.json` 里 **51/240** 个角色的某个部位就写着多个包（hair 32 / body 14 / cloth 4 / plush 1），
-     而 `cloth1..4` 变体**根本没进 catalog 的 parts**，所以真实数量只会更多。
-   - 影响：工作空间里的 `bundles` 只记了**皮肤目录里那一份**所在的包 → 生成 Mod 只打这一个包。
-     如果游戏实际读的是另一个副本，就会出现"改了没效果"（老流程按 `part_bundles` 把每一份都打了一遍）。
-   - 修法（成本已验证）：扫一遍用到的 643 个备份包建 `网格名 → [所有包]` 索引（`UnityPy` 的 `o.peek_name()`
-     实测 25 个包 1.1 s → 643 个约 30 s，可缓存成 `<cache>/meshindex.json`），
-     生成 Mod 时对同名网格在每个包里各打一遍（`modpack` 已支持同网格多包，只需 spec 里多写几行）。
-   - 判据（修完要验）：改一个有多份拷贝的网格 → `mod.json` 里出现多个包，游戏里无论读哪份都是新几何。
+9. ~~**同名网格的多份拷贝只打了一份**~~ → **已修（2026-10-19，见 §2.12）**：`meshidx` 建 `网格名 → 所有包`
+   索引（13.5 s / 643 个包），工作空间写 `mesh_bundles`，生成 Mod 时每个拷贝都打；跨包差异用"目标包的 tree 为底 + 按哈希重映射骨骼"处理。
 
 ---
 

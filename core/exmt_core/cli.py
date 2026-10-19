@@ -197,6 +197,17 @@ def cmd_modpack(args):
     return 0
 
 
+def cmd_meshidx(args):
+    """meshidx <bundleDir> <out.json> [limit] [workers] — mesh name -> bundles."""
+    from . import meshidx
+
+    bundle_dir, out = args[0], args[1]
+    limit = int(args[2]) if len(args) > 2 else 0
+    workers = int(args[3]) if len(args) > 3 else 6
+    print(json.dumps(meshidx.build(bundle_dir, out, limit, workers), ensure_ascii=False))
+    return 0
+
+
 def cmd_retarget(args):
     src_path, tpl_path, out = args
     from . import retarget as R
@@ -395,6 +406,7 @@ def main(argv=None):
         "bonetable": cmd_bonetable,
         "pack": cmd_pack,
         "modpack": cmd_modpack,
+        "meshidx": cmd_meshidx,
         "hide-mesh": cmd_hide_mesh,
     
         "subdivide": cmd_subdivide,

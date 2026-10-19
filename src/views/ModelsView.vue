@@ -28,11 +28,10 @@ import {
 } from "../lib/roster";
 import { selectedSkin, selectSkin } from "../lib/selection";
 import {
-  installGeneratedMod,
+  applyMods,
   listMods,
   readGeneratedMod,
-  uninstallBundles,
-  deleteMod,
+  setModEnabled,
   writeMod,
   type GeneratedMod,
 } from "../lib/modbox";
@@ -293,7 +292,12 @@ function localStamp(iso: string) {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-/** 生成 Mod → 加载到游戏：备份原始包后替换，重启游戏生效。 */
+/**
+ * 生成 Mod → 加载到游戏。
+ *
+ * 不再"直接覆盖游戏文件"：把这份 Mod 登记进 Mod 库并启用，然后由整合器把**所有启用
+ * 的 Mod** 一起打进一份新的包。这样两个 Mod 改到同一个包时不会互相覆盖。
+ */
 async function loadIntoGame() {
   const ws = activeWorkspace.value;
   const mod = generated.value;
@@ -301,27 +305,32 @@ async function loadIntoGame() {
   busy.value = t("models.loading");
   status.value = null;
   try {
-    const result = await installGeneratedMod(mod);
     const at = new Date().toISOString();
+    const id = `ws-${ws.id}`;
     await writeMod({
-      id: `ws-${ws.id}`,
+      id,
       kind: "workspace",
       character: ws.entry.display || ws.entry.name || ws.label,
-      mesh: `${result.meshes} 个网格`,
+      mesh: `${mod.mesh_count ?? 0} 个网格`,
       bundle: mod.bundles[0]?.hash,
       bundles: mod.bundles.map((b) => b.hash),
       workspace: ws.id,
       source: mod.dir,
       installed_at: at,
+      patches: mod.patches ?? [],
+      enabled: true,
     });
+    const result = await applyMods();
     installedAt.value = at;
     status.value = {
-      kind: "ok",
-      text: t("models.loaded", {
-        bundles: result.bundles,
-        meshes: result.meshes,
-        size: (result.bytes / 1048576).toFixed(1),
-      }),
+      kind: result.errors.length ? "err" : "ok",
+      text: result.errors.length
+        ? t("models.loadFail", { error: result.errors.join("；") })
+        : t("models.loaded", {
+            mods: result.mods,
+            bundles: result.bundles,
+            meshes: result.meshes,
+          }),
     };
   } catch (e) {
     status.value = { kind: "err", text: t("models.loadFail", { error: String(e) }) };
@@ -330,22 +339,18 @@ async function loadIntoGame() {
   }
 }
 
-/** 卸下：把原始包放回去。 */
+/** 卸下：停用这份 Mod，整合器会把没人再改的包还原成原始文件。 */
 async function unloadFromGame() {
   const ws = activeWorkspace.value;
   if (!ws) return;
   busy.value = t("models.unloading");
   try {
-    const records = await listMods().catch(() => []);
-    const hit = records.find((rec) => rec.workspace === ws.id);
-    const restored = await uninstallBundles(hit?.bundles ?? []);
-    if (hit) await deleteMod(hit.id);
+    const id = `ws-${ws.id}`;
+    const result = await setModEnabled(id, false);
     installedAt.value = "";
     status.value = {
-      kind: restored ? "ok" : "err",
-      text: restored
-        ? t("models.unloaded", { n: restored })
-        : t("models.unloadEmpty"),
+      kind: "ok",
+      text: t("models.unloaded", { n: result.restored, mods: result.mods }),
     };
   } catch (e) {
     status.value = { kind: "err", text: String(e) };
