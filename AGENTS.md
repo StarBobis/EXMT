@@ -167,6 +167,7 @@ bun run check     # 见 §6
 | 2026-10-19 | 贴图只打了一个包 | 贴图和网格一样会多拷贝：全库 **3824 个贴图名里 72 个在多个包**（`RampMap_Linear_RGBAHalf` 542 份）。索引一次扫描同时收 Mesh + Texture2D，工作空间写 `texture_bundles`（与 `mesh_bundles` 对称），生成时**每个拷贝各出一行**；索引文件缺新字段要判成过期重建 |
 | 2026-10-19 | 生成 Mod 时界面卡死一分钟 | 三步都要：① **编码缓存**（源图路径+mtime+size + 目标格式；`image.is_dirty` 不算命中）；② texconv **并行**（线程池，一张 2048² BC7 = 5 s，12 张 60 s → 35 s）；③ 操作符改 **modal 分步**（`Generation.start()/step()`，每个 tick 收一个结果），进度写状态栏**并画在生成节点的 label 上**（状态栏只有 20 px、截图都拍不到），Esc 取消；`execute()` 保留同步路径给 headless |
 | 2026-10-19 | 用 `is` 比较 Blender 的 `node.parent` | **永远用 `==`**：`parent` 每次访问返回新的 Python 包装对象，`node.parent is frame` 会对"自己所属的那个 frame"返回 False（实测 re-import 直接 `min() iterable argument is empty` 崩掉） |
+| 2026-10-19 | 枚举字段（`layout.prop(node, "xxx")`）显示成一堆乱码 | **枚举条目的 label/description 里别放非 ASCII**（我用了 `·`）：Blender 5.2 会把整格画成随机字形，而**同一段文字放在 `layout.label()` 里完全正常**——所以别以为是截图/字体问题，先换成 ASCII 空格复测（实测 `"%s  %sx%s"` 立刻正常）。贴图选择器用 `layout.template_ID(node, "image", open="image.open")` 能直接给个浏览按钮 |
 ---
 
 ## 5. 用户偏好速查

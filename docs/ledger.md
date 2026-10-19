@@ -309,6 +309,8 @@
 
 **仍然没做的**：游戏内实际观感（没进游戏）；BC6H/BC4/BC5 目标格式；`分组` 多层嵌套；Blender 4.x。
 
+**顺手修的两处 UI**：贴图节点的图片选择器改成 `layout.template_ID(node, "image", open="image.open")`（多一个浏览按钮，截图 `blender-screen.png`）；枚举条目的 label/description 去掉非 ASCII——**Blender 5.2 会把带 `·` 的枚举字段整格画成乱码**，而同样文字放 `layout.label()` 完全正常（先用 PrintWindow 抓、再用屏幕抓排除了"截图伪影"，换成 ASCII 空格后立刻正常）。
+
 ---
 
 ## 3. 交付物清单
