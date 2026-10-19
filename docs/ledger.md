@@ -3,7 +3,7 @@
 > 结论 + 证据 + 未决问题。**不写流水账**（不记"先跑 X 再跑 Y"）。
 > 每轮开始读这里，结束前更新这里。目标状态只在这里，不在 AGENTS.md。
 
-最近更新：2026-10-19（§2.18 蓝图 UI 三个 bug + 贴图预览）
+最近更新：2026-10-20（AGENTS.md 拆成「规则层」+ `docs/agents-playbook|ui-spec|corrections.md` 细节层；§2.19 动画解码在 G13）
 
 ---
 
@@ -596,5 +596,7 @@ stream 2: count x 32   weights(16) + bones(16)
 ## 5. 本轮之后的检查点
 
 - 每次改 `AGENTS.md` / `docs` / skill：在本文件顶部更新"最近更新"。
+  （写回位置：规则 → `AGENTS.md`；环境/质量门 → `docs/agents-playbook.md`；
+  UI 与偏好 → `docs/agents-ui-spec.md`；逐条纠正 → `docs/agents-corrections.md`；通用手法 → `.agents/skills/`）
 - 每次得到新的"游戏事实"：追加到 §2，带证据来源。
 - 每次解决/新增未决：更新 §4。
