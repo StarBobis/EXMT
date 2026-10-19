@@ -130,6 +130,16 @@ def load(path: str, template: dict | None = None) -> tuple[M.MeshData, dict]:
     width = 2 if int(info["index_format"]) == 0 else 4
     subs = [{"firstByte": int(first[i]) * width, "indexCount": int(cnt[i]), "topology": 0,
              "baseVertex": 0, "firstVertex": 0, "vertexCount": 0, "localAABB": {}} for i in range(len(cnt))]
+    # the file only stores first/count; the target's per-submesh metadata (local
+    # culling AABB, base/first vertex, topology) has to survive the round trip
+    template_subs = (template or {}).get("m_SubMeshes") or []
+    for i in range(min(len(subs), len(template_subs))):
+        src_sub = template_subs[i] or {}
+        for field in ("topology", "baseVertex", "firstVertex", "vertexCount"):
+            if src_sub.get(field) is not None:
+                subs[i][field] = src_sub[field]
+        if src_sub.get("localAABB"):
+            subs[i]["localAABB"] = src_sub["localAABB"]
 
     raw = {}
     for name in ("raw_stream", "raw_index", "raw_baked_convex", "raw_baked_tri"):
@@ -152,7 +162,13 @@ def load(path: str, template: dict | None = None) -> tuple[M.MeshData, dict]:
 
 
 def rebuild_submeshes(md: M.MeshData, first, count) -> None:
-    """Recompute submesh descriptors for a (possibly new) index buffer."""
+    """Recompute submesh descriptors for a (possibly new) index buffer.
+
+    The per-submesh `localAABB` is what Unity culls with, so it must cover the
+    vertices this submesh *references* — `pos[min:max+1]` would also pull in
+    unreferenced ones and inflate the box (which then shows up as a diff against
+    the game's own numbers on an untouched mesh).
+    """
     pos = md.arrays.get(0)
     width = 2 if md.index_format == 0 else 4
     subs = []
@@ -165,7 +181,9 @@ def rebuild_submeshes(md: M.MeshData, first, count) -> None:
         idx = md.indices[f:f + n].astype(np.uint32)
         lo = int(idx.min())
         hi = int(idx.max()) + 1
-        if pos is not None and hi > 0:
+        if pos is not None and n:
+            aabb = M.aabb_from_vertices(np.asarray(pos[idx], dtype=np.float32))
+        elif pos is not None and hi > 0:
             aabb = M.aabb_from_vertices(np.asarray(pos[lo:hi], dtype=np.float32))
         else:
             aabb = md.aabb

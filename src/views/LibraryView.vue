@@ -5,6 +5,7 @@ import {
   listBackups,
   listMods,
   restoreBackup,
+  uninstallBundles,
   type BackupEntry,
   type ModRecord,
 } from "../lib/modbox";
@@ -37,6 +38,22 @@ async function doRestore(hash: string) {
   }
 }
 
+/** Undo a whole Mod: put every bundle it replaced back, then drop its record. */
+async function doUninstall(rec: ModRecord) {
+  const hashes = rec.bundles?.length ? rec.bundles : rec.bundle ? [rec.bundle] : [];
+  busy.value = rec.id;
+  try {
+    const restored = await uninstallBundles(hashes);
+    await deleteMod(rec.id);
+    message.value = t("library.uninstalled", { n: restored, name: rec.character || rec.id });
+  } catch (e) {
+    message.value = String(e);
+  } finally {
+    busy.value = "";
+    await refresh();
+  }
+}
+
 async function doDelete(id: string) {
   busy.value = id;
   try {
@@ -58,6 +75,14 @@ function fmtTime(s?: string) {
 function fmtSize(n: number) {
   if (!n) return "—";
   return (n / 1024 / 1024).toFixed(1) + " MB";
+}
+
+/** `2 个包 · 0e834224a7…` so a multi-bundle Mod stays readable. */
+function bundleLabel(rec: ModRecord) {
+  const list = rec.bundles?.length ? rec.bundles : rec.bundle ? [rec.bundle] : [];
+  if (!list.length) return "—";
+  const first = `${list[0].slice(0, 12)}…`;
+  return list.length > 1 ? `${list.length} 个包 · ${first}` : first;
 }
 
 onMounted(refresh);
@@ -100,15 +125,15 @@ onMounted(refresh);
           <div class="list__main">
             <div class="list__title">{{ m.character || m.preset || m.id }}</div>
             <div class="list__meta mono">
-              {{ m.mesh }} · {{ m.bundle?.slice(0, 12) }}… · {{ fmtTime(m.installed_at) }}
+              {{ m.mesh }} · {{ bundleLabel(m) }} · {{ fmtTime(m.installed_at) }}
             </div>
           </div>
           <div class="list__actions">
             <button
               class="btn"
               type="button"
-              :disabled="!!busy || !m.bundle"
-              @click="doRestore(m.bundle!)"
+              :disabled="!!busy || !(m.bundles?.length || m.bundle)"
+              @click="doUninstall(m)"
             >
               {{ t("library.restore") }}
             </button>

@@ -404,6 +404,9 @@ def make_workspace(outdir: str, spec: dict) -> dict:
         "created_at": spec.get("created_at") or time.strftime("%Y-%m-%dT%H:%M:%S"),
         "entry": {k: spec.get(k, "") for k in ("id", "name", "display")},
         "game_bundles": spec.get("game_bundles", ""),
+        # the pristine bundle each mesh came from: packing a Mod must start from
+        # the original file, never from a bundle a previous Mod already replaced
+        "bundles": spec.get("bundles") or {},
         "skeleton": {
             "file": skeleton_file,
             "bones": skel["count"],
@@ -416,6 +419,12 @@ def make_workspace(outdir: str, spec: dict) -> dict:
     }
     with open(os.path.join(outdir, "workspace.json"), "w", encoding="utf-8") as fh:
         json.dump(manifest, fh, ensure_ascii=False, indent=1)
+    # keep the spec next to the workspace: the add-on reads it to find the pristine
+    # bundle each mesh came from, so packing works without the app being involved
+    spec_copy = os.path.join(outdir, "spec.json")
+    if not os.path.exists(spec_copy):
+        with open(spec_copy, "w", encoding="utf-8") as fh:
+            json.dump(spec, fh, ensure_ascii=False, indent=1)
 
     return {
         "dir": outdir,

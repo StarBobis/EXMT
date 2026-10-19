@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onActivated, onDeactivated, ref, watch } from "vue";
+import { computed, onActivated, onDeactivated, onMounted, onUnmounted, ref, watch } from "vue";
 import { openPath } from "@tauri-apps/plugin-opener";
 import { t } from "../lib/i18n";
 import Dropdown from "../components/Dropdown.vue";
@@ -28,6 +28,15 @@ import {
 } from "../lib/roster";
 import { selectedSkin, selectSkin } from "../lib/selection";
 import {
+  installGeneratedMod,
+  listMods,
+  readGeneratedMod,
+  uninstallBundles,
+  deleteMod,
+  writeMod,
+  type GeneratedMod,
+} from "../lib/modbox";
+import {
   listWorkspaces,
   readActiveWorkspaceId,
   writeActiveWorkspace,
@@ -50,6 +59,9 @@ const activeShared = ref(false);
 /** 工作空间：一个工作空间只属于一个立绘，一个立绘可以有多个工作空间。 */
 const workspaces = ref<WorkspaceSummary[]>([]);
 const activeWorkspace = ref<WorkspaceSummary | null>(null);
+/** Blender 侧「生成 Mod」写出的 <工作空间>/GeneratedMod 内容。 */
+const generated = ref<GeneratedMod | null>(null);
+const installedAt = ref("");
 let pendingWorkspace: WorkspaceSummary | null = null;
 let workspaceInit = false;
 /** Serialize EXMTConfig writes so a late "clear" can't overwrite a newer pick. */
@@ -248,12 +260,98 @@ async function persistWorkspace(ws: WorkspaceSummary | null): Promise<boolean> {
 
 async function setActiveWorkspace(ws: WorkspaceSummary | null): Promise<boolean> {
   activeWorkspace.value = ws;
+  await refreshGenerated();
   return persistWorkspace(ws);
 }
 
 async function clearActiveWorkspace() {
   pendingWorkspace = null;
   await setActiveWorkspace(null);
+}
+
+// ------------------------------------------------------------------------- //
+// generated mod: Blender packs the edits into <workspace>/GeneratedMod
+// ------------------------------------------------------------------------- //
+/** Look for a staged Mod next to the active workspace and its installed state. */
+async function refreshGenerated() {
+  generated.value = null;
+  installedAt.value = "";
+  const ws = activeWorkspace.value;
+  if (!isTauri || !ws) return;
+  generated.value = await readGeneratedMod(ws.dir).catch(() => null);
+  if (!generated.value) return;
+  const records = await listMods().catch(() => []);
+  const hit = records.find((rec) => rec.workspace === ws.id);
+  installedAt.value = hit?.installed_at ?? "";
+}
+
+/** Local `YYYY-MM-DD HH:MM` for tooltips (the stored ISO is UTC). */
+function localStamp(iso: string) {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+/** 生成 Mod → 加载到游戏：备份原始包后替换，重启游戏生效。 */
+async function loadIntoGame() {
+  const ws = activeWorkspace.value;
+  const mod = generated.value;
+  if (!ws || !mod) return;
+  busy.value = t("models.loading");
+  status.value = null;
+  try {
+    const result = await installGeneratedMod(mod);
+    const at = new Date().toISOString();
+    await writeMod({
+      id: `ws-${ws.id}`,
+      kind: "workspace",
+      character: ws.entry.display || ws.entry.name || ws.label,
+      mesh: `${result.meshes} 个网格`,
+      bundle: mod.bundles[0]?.hash,
+      bundles: mod.bundles.map((b) => b.hash),
+      workspace: ws.id,
+      source: mod.dir,
+      installed_at: at,
+    });
+    installedAt.value = at;
+    status.value = {
+      kind: "ok",
+      text: t("models.loaded", {
+        bundles: result.bundles,
+        meshes: result.meshes,
+        size: (result.bytes / 1048576).toFixed(1),
+      }),
+    };
+  } catch (e) {
+    status.value = { kind: "err", text: t("models.loadFail", { error: String(e) }) };
+  } finally {
+    busy.value = "";
+  }
+}
+
+/** 卸下：把原始包放回去。 */
+async function unloadFromGame() {
+  const ws = activeWorkspace.value;
+  if (!ws) return;
+  busy.value = t("models.unloading");
+  try {
+    const records = await listMods().catch(() => []);
+    const hit = records.find((rec) => rec.workspace === ws.id);
+    const restored = await uninstallBundles(hit?.bundles ?? []);
+    if (hit) await deleteMod(hit.id);
+    installedAt.value = "";
+    status.value = {
+      kind: restored ? "ok" : "err",
+      text: restored
+        ? t("models.unloaded", { n: restored })
+        : t("models.unloadEmpty"),
+    };
+  } catch (e) {
+    status.value = { kind: "err", text: String(e) };
+  } finally {
+    busy.value = "";
+  }
 }
 
 /** Restore the workspace's exported mesh/texture selection once its skin is loaded. */
@@ -310,24 +408,38 @@ async function onWorkspaceChange(id: string) {
 /** Load the workspace list and restore the last active one on first activation. */
 async function initWorkspaces() {
   await refreshWorkspaces();
-  if (workspaceInit) return;
+  if (workspaceInit) {
+    // already restored: just re-check what Blender may have written meanwhile
+    await refreshGenerated();
+    return;
+  }
   workspaceInit = true;
-  if (!isTauri || activeWorkspace.value) return;
+  if (!isTauri || activeWorkspace.value) {
+    await refreshGenerated();
+    return;
+  }
   const id = await readActiveWorkspaceId();
-  if (!id || activeWorkspace.value) return;
+  if (!id || activeWorkspace.value) {
+    await refreshGenerated();
+    return;
+  }
   const ws = workspaces.value.find((item) => item.id === id) ?? null;
   if (!ws) {
     await persistWorkspace(null);
+    await refreshGenerated();
     return;
   }
   if (ws.entry.id !== selectedSkin.value?.id) {
     // Don't let a workspace from another skin override the home selection.
     await persistWorkspace(null);
+    await refreshGenerated();
     return;
   }
   activeWorkspace.value = ws;
   await persistWorkspace(ws);
   applyWorkspaceSelection(ws);
+  // only now is there a workspace whose GeneratedMod can be looked up
+  await refreshGenerated();
 }
 
 function stamp(iso: string | null) {
@@ -429,6 +541,13 @@ onActivated(() => {
 onDeactivated(() => {
   active = false;
 });
+// Blender writes GeneratedMod while this window is in the background: pick it up
+// when the user comes back instead of making them re-select the workspace.
+function onWindowFocus() {
+  if (active) void refreshGenerated();
+}
+onMounted(() => window.addEventListener("focus", onWindowFocus));
+onUnmounted(() => window.removeEventListener("focus", onWindowFocus));
 watch(selectedSkin, (entry) => {
   if (!entry) {
     activeWorkspace.value = null;
@@ -457,6 +576,8 @@ async function startMaking() {
   }
   busy.value = t("models.making");
   status.value = null;
+  generated.value = null;
+  installedAt.value = "";
   try {
     const result = await makeWorkspace(entry, label(entry), exportMeshes, exportTextures);
     await refreshWorkspaces();
@@ -537,6 +658,28 @@ async function startMaking() {
           <button class="btn" type="button" @click="navigate('home')">
             <span class="glyph">&#xE72B;</span>
             {{ t("models.changeSkin") }}
+          </button>
+          <button
+            v-if="installedAt"
+            class="btn"
+            type="button"
+            :title="t('models.unloadHint', { time: localStamp(installedAt) })"
+            :disabled="!!busy"
+            @click="unloadFromGame"
+          >
+            <span class="glyph">&#xE777;</span>
+            {{ t("models.unload") }}
+          </button>
+          <button
+            v-else
+            class="btn"
+            type="button"
+            :title="generated ? t('models.loadHint') : t('models.loadEmpty')"
+            :disabled="!!busy || !generated"
+            @click="loadIntoGame"
+          >
+            <span class="glyph">&#xE896;</span>
+            {{ t("models.load") }}
           </button>
           <button
             class="btn btn--accent"

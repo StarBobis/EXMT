@@ -22,6 +22,7 @@
 | G9 | 模型工作台：3D 预览 + 贴图墙 + 工作空间导出 | ✅ 完成 | 选立绘卡片 → 只看该皮肤的网格/贴图；three.js 预览可旋转缩放；「开始制作」导出 `<cache>\workspace\<皮肤>\`，Blender 插件一键导入（见 §2.6） |
 | G10 | 首页 = 角色列表 + 立绘卡牌；模型页 = 网格/3D/贴图工作台 | ✅ 完成 | 首页 78 角色（2 列头像）+ 卡牌轮播；点卡选中皮肤，「进入模型页」进工作台；模型页顶栏显示当前角色/皮肤/数量，可「换皮肤」回首页；选择持久化（见 §2.7） |
 | G11 | **骨骼完整 + 正确绑定**（用户报的两个 bug） | ✅ 完成 | workspace 合成一副完整骨架（Alva 226 根，跨网格并集）；Blender 只建一副骨架、每个网格 100% 绑上（0 未绑定组 / 0 未蒙皮顶点）；不改动往返权重与骨骼索引逐位一致；打包回 bundle 与原包全等（见 §2.10） |
+| G12 | **改完 → 生成 Mod → 一键进游戏** | ✅ 完成 | Blender 面板「生成 Mod」把工作空间里所有网格打成一个 Mod 写到 `<工作空间>/GeneratedMod/`；App 模型页「加载到游戏」一键装进游戏（先备份原始包）、「卸下 Mod」一键还原；实测安装/卸下往返，游戏包字节与备份全等（见 §2.11） |
 
 ---
 
@@ -190,13 +191,36 @@
 
 ---
 
+### 2.11 改完 → 生成 Mod → 一键进游戏（2026-10-19）
+
+用户要的闭环：「如果我想修改完之后，点击生成 Mod，游戏里直接就能看效果」。做法：**Blender 侧把工作空间里所有网格打成一个 Mod 写到工作空间目录，App 侧一个键装进游戏**（不直接写游戏目录，先落盘、可检查、可重装）。
+
+| 事实 | 证据 |
+| --- | --- |
+| 在此之前 App **根本没有安装入口**：`src/lib/modbox.ts` 里的 `installBundle` / `writeMod` / `ensureBackup` 全是被死代码，`src/` 没有任何地方调用；「资源库」只能从旧备份还原（那条路是给老的替换流程用的） | 全仓库 `grep installBundle` 只命中定义处 |
+| 新核心命令 `modpack <spec.json>`：按 bundle 分组，**一个包只写一次**（同包里改了几个网格不会互相覆盖），输出 `<outdir>/<bundle hash>.bundle` + `mod.json`（`format: exmt-mod-1`，含每个包的哈希/字节数/网格名/来源路径） | `core/exmt_core/modpack.py`、`cli.py` 的 `cmd_modpack`；`patch_mesh()` 从 `cmd_pack` 抽出来，两条路共用 |
+| 打包必须从**原始字节**开始：工作空间的 `bundles` 映射现在只写原始副本（`<cache>/game/bundles` → 旧备份 → 游戏目录），否则连点两次「生成 Mod」会把上一次的改动烤进第二次；App 的 `packSource()` 与备份用同一套优先级 | `src/lib/preview.ts` 的 `packSource()`、`modbox.ensureBackup()`；实测用户那份 workspace 的 `spec.json` 原本指向游戏目录（因为 `backup.ready` 当时为 false），已改成优先原始副本 |
+| 工作空间现在自带 `bundles`（`workspace.json`）+ 核心写一份 `spec.json` 进工作空间 → **Blender 侧不依赖 App 在跑** | `preview.make_workspace`；`C:\EXMTCacheFolder\workspace\c_AlvaSSR0102__20261019-084927\spec.json` |
+| Blender 面板新增「生成 Mod」：按对象上的 `exmt_source` 找到本工作空间的网格 → 导出到临时目录 → 调 `modpack`；场景里被删掉的网格**不打包**并报数（原包保持不动） | `EXMTBlender/__init__.py` 的 `EXMT_OT_generate_mod` / `generate_mod()`；headless 实测：12 个网格 → 1 个包 3.7 MB，删掉 `cloth4` 后 → 11 个网格 + `skipped: ['…cloth4_lod0']` |
+| App 模型页新增「加载到游戏」：读 `<工作空间>/GeneratedMod/mod.json` → 备份原始包（**只备份一次**）→ 覆盖游戏包 → 写一条记录 `%APPDATA%\com.exmt.modbox\mods\ws-<工作空间>.json`；装过之后按钮变成「卸下 Mod」，一键还原 | `src/views/ModelsView.vue`、`src/lib/modbox.ts` 的 `readGeneratedMod/installGeneratedMod/uninstallBundles` |
+| **实测（真实 App + 真实游戏目录）**：点「加载到游戏」→ 游戏包 `0e834224….bundle` 从 3642020 → 3695969 字节，备份 `3642020` 出现在 `%APPDATA%\com.exmt.modbox\backups\`（`source` 指向 `<cache>/game/bundles` 原始副本），状态行 `✓ 已装进游戏：1 个包 / 12 个网格 / 3.5 MB · 重启游戏生效`；点「卸下 Mod」→ 游戏包回到 3642020 字节且**与备份逐字节相同**（SHA256 相等），记录删除 | `app2.ps1` 驱动 + 截图 `C:\DevCache\tauri-logs\installed.png` / `uninstalled.png`；文件哈希比对 |
+| 打包保真 ①：**每子网格 `localAABB` 以前是按“索引区间”算的**（`pos[min:max+1]`），把区间里没被这个子网格引用的顶点也算进去 → 盒体偏大、和游戏自己写的数不一样（12 个网格里 2 个因此不相等）。改成**按被引用的顶点**算后，未改动的工作空间 12/12 网格**字段零差异、顶点数据逐字节相同** | `C:\DevCache\exmt-bones\verify_modpack.py`（`fields differing=0`） |
+| 打包保真 ②：只改一个网格（头发 X +5 cm）→ 只有它的顶点数据变，其余 11 个仍然逐字节相同；包里的几何确实是改后的 | `verify_modpack_edit.py`（`changed == [hair]`、`X center 0.0016 → 0.0516`） |
+| 打包保真 ③：**Blender 往返会重算法线/切线**（实测中位数偏 2.26° / 11.40°，切线还有 2 个符号翻转），也就是"没动过也会变一点"。修法：导入时把游戏法线设成 **custom split normals**，切线存成网格属性（`exmt_tangent` + `exmt_tangent_w`），导出优先读它们（顶点数变了才回退到重算）→ 重建后 **p90 法线 0.01°、切线 0.00°、w 翻转 0**，权重/骨骼/UV 逐位不变 | `EXMTBlender/mesh_io.py`；`verify_mod_angles.py`（角度分布，不看裸 float 差） |
+| 踩坑：`foreach_get` 写进 `out[:, :3]` 这种**非连续视图**等于写进临时拷贝，读回来全是 0（切线全零）。必须用连续临时数组再赋值 | 同上（切线从全 0 变回逐位一致） |
+| 位置仍有 1…2e-7 的差（float32 最后一位，来自 `matrix_world @ v.co` 的那次乘法），肉眼与游戏都不可见；权重/骨骼索引/UV/颜色/索引表是逐位相等 | `verify_mod_angles.py` 的 `positions: max 2.38e-07` |
+
+**没有验证的部分**：游戏内实际渲染效果（本次只验证到"包被替换、字节可还原、几何/属性保真"），以及游戏运行时是否锁定包文件（写入失败会直接抛错，尚未遇到）。
+
+---
+
 ## 3. 交付物清单
 
 | 产物 | 位置 |
 | --- | --- |
 | 应用 | `C:\Dev\EXMT`（`src/` 前端、`src-tauri/` Rust） |
-| 核心 | `core/exmt_core/`（CLI：list/meshes/extract/extract-all/bonetable/pack/hide-mesh/subdivide/retarget/copy-texture/set-texture/texindex/bonenames/workspace） |
-| Blender 插件 | `C:\Dev\EXMTBlender\{__init__.py,mesh_io.py}`（0.3.0，已同步到 `%APPDATA%\Blender Foundation\Blender\5.2\scripts\addons\EXMTBlender`；**该目录不是 git 仓库**，只能靠快照：旧版备份 `C:\DevCache\exmt-bones\EXMTBlender-installed-backup-*`，0.3.0 快照 `C:\DevCache\exmt-bones\EXMTBlender-0.3.0-*`） |
+| 核心 | `core/exmt_core/`（CLI：list/meshes/extract/extract-all/bonetable/pack/**modpack**/hide-mesh/subdivide/retarget/copy-texture/set-texture/texindex/bonenames/skinfo/geo/geoset/thumbs/maps/workspace） |
+| Blender 插件 | `C:\Dev\EXMTBlender\{__init__.py,mesh_io.py}`（0.3.0：一键导入工作空间 / **生成 Mod** / 导出打包；已同步到 `%APPDATA%\Blender Foundation\Blender\5.2\scripts\addons\EXMTBlender`；**该目录不是 git 仓库**，只能靠快照：旧版备份 `C:\DevCache\exmt-bones\EXMTBlender-installed-backup-*`，0.3.0 快照 `C:\DevCache\exmt-bones\EXMTBlender-0.3.0-*`） |
 | 文档站 | `C:\Dev\EXMTDoc`（VitePress 2，独立仓库） |
 | 本仓库 docs | `exmt-modbox.md`、`exmt-model-pipeline.md`、`exmt-characters.md`、`gf2-exilium-recon.md` |
 | skill | `.agents/skills/unity-il2cpp-game-recon/`（§18–§23）、`.agents/skills/tauri-winui-shell/` |

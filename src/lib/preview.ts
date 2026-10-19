@@ -139,6 +139,22 @@ export function bundlePathOf(hash: string): string {
   return `${gameBundles()}\\${clean}.bundle`;
 }
 
+/**
+ * Bundle to *pack* from: the untouched copy always wins.
+ *
+ * Previewing a Modded game folder is fine (that is what the game shows), but
+ * packing must start from the original bytes — otherwise generating a Mod twice
+ * would bake the first Mod into the second one.
+ */
+export async function packSource(hash: string): Promise<string> {
+  const clean = hash.replace(/\.bundle$/i, "");
+  const cached = `${cacheFolder.value}\\game\\bundles\\${clean}.bundle`;
+  if (await exists(cached)) return cached;
+  const legacy = `${await appDataDir()}\\com.exmt.modbox\\backups\\${clean}.bundle`;
+  if (await exists(legacy)) return legacy;
+  return bundlePathOf(hash);
+}
+
 /** Every bundle hash a catalog entry mentions, de-duplicated. */
 export function bundleHashesOf(entry: {
   bundle: string;
@@ -731,8 +747,8 @@ export async function makeWorkspace(
   await mkdir(outdir, { recursive: true }).catch(() => undefined);
 
   const bundles: Record<string, string> = {};
-  for (const mesh of meshes) bundles[mesh.bundle] = bundlePathOf(mesh.bundle);
-  for (const tex of textures) bundles[tex.bundle] = bundlePathOf(tex.bundle);
+  for (const mesh of meshes) bundles[mesh.bundle] = await packSource(mesh.bundle);
+  for (const tex of textures) bundles[tex.bundle] = await packSource(tex.bundle);
 
   // real bone names come from an Avatar/prefab index; without it the skeleton is
   // still complete, just named by hash

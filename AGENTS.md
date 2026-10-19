@@ -27,8 +27,8 @@
   （UnityPy 1.25 / lz4 / numpy / PIL / texture2ddecoder）
 - Blender：`C:\Program Files\Blender Foundation\Blender 5.2\blender.exe`（headless：`--background --factory-startup --python x.py`）
 - 游戏：`C:\GF2Exilium\GF2 Game`，资源在 `GF2_Exilium_Data\LocalCache\Data\AssetBundles_Windows\`
-- 窗口驱动/截图：`C:\DevCache\gf2\app.ps1 click <cx> <cy>` / `app.ps1 shot`
-  （**client 坐标 = CSS 坐标 × DPI 比例**；截图用 `CopyFromScreen` 并把窗口 HWND_TOPMOST 再 NOTOPMOST，否则会抓到别的窗口）
+- 窗口驱动/截图：`C:\DevCache\gf2\app2.ps1 click <cx> <cy>` / `app2.ps1 shot [-out p.png]`
+  （**DPI-aware**：先把窗口摆到 (8,8)；点击坐标 = 截图物理像素 − client 原点。老的 `app.ps1` 是 DPI-unaware 的，150% 缩放下会错位、窗口比屏幕大时右侧截不到）
 
 ---
 
@@ -148,6 +148,9 @@ bun run check     # 见 §6
 | 2026-10-19 | Blender 没有稳定的“当前工作空间”入口；一个立绘只能有一个工作空间 | App 实时写 `%APPDATA%\com.exmt.modbox\EXMTConfig.json`；每次“开始制作”新建 `<cache>/workspace/<皮肤>__<YYYYMMDD-HHmmss>/`，一个立绘可有多个工作空间且不覆盖旧目录；模型页下拉选工作空间会切到对应立绘并恢复勾选；Blender 面板读 config 一键导入，旧 `current.json` 只在没有 config 时回退 |
 | 2026-10-19 | 导入 Blender 后骨骼没绑到模型；「开始制作」导出的骨骼只有一部分 | ① **顶点组名必须和骨骼名逐字相同**，否则 Armature 修改器 0 顶点受驱动（老代码骨骼 `b000` vs 顶点组 `b0`）；② 游戏**每个网格只带自己那张骨骼表**（Alva 12 个网格 3…70 根，并集 226），导出端必须先按哈希求并集，Blender 端只建**一副**骨架。细节见 `docs/ledger.md` §2.10、skill `unity-skeleton-merge.md` |
 | 2026-10-19 | 说“修好了”之前没在 Blender 里真跑过 | 骨骼/权重类改动**必须**用真实工作空间数据 headless 验证：① 受驱动顶点数 == 顶点数；② 转一根主链骨骼网格真的跟着动；③ 不改动往返 `weights`/`bones` 逐位相等；④ 打包回 bundle 再解出来与原包全等 |
+| 2026-10-19 | 打包保真只看“数组相等”不够 | ① 子网格 `localAABB` 要按**被引用的顶点**算，别用 `pos[min:max+1]`（会把没引用的顶点算进盒体，和游戏自己写的数对不上）；② Blender 会重算法线/切线（实测中位 2°/11°，"没动过也会变"），导入必须设 **custom split normals** + 把切线存成网格属性、导出优先读回；③ 判据用**角度分位数**，不要用裸 float 差（1e-7 和 90° 在 `max abs` 里长得一样）|
+| 2026-10-19 | 视图里异步读“依赖别的异步结果”的状态 | `refreshGenerated()` 原本写在 `initWorkspaces()` 开头，那时 `activeWorkspace` 还没恢复 → 按钮永远灰着。**依赖 A 的 B 必须放在 A 之后**：恢复完工作空间再读它的 `GeneratedMod`，`onActivated` 也要补一次 |
+| 2026-10-19 | 用 `app.ps1` 截图/点击老是错位、右侧截不到 | 那个脚本是 **DPI-unaware** 的：`GetWindowRect`/`ClientToScreen` 与 `CopyFromScreen` 相差缩放比（本机 150%），窗口比屏幕大时右边根本进不了图。用 DPI-aware 的 `C:\DevCache\gf2\app2.ps1`（先 `SetProcessDpiAwarenessContext`、把窗口摆到 (8,8) 再截）：坐标 = 截图物理像素 − client 原点（本机 (19,10)） |
 | 2026-10-18 | 为什么没有 docs/skill 更新 | 本文件 §1 RSI 循环 |
 
 ---
@@ -161,6 +164,7 @@ bun run check     # 见 §6
 - **术语要接地气**：黑话要么解释、要么换词。
 - **中文回答**，技术名词可保留英文。
 - 不要不说话光干活，不说话的话不算工作量！实时告诉用户你的进度！！
+- 任务完成后必须调用 https://wxpusher.zjiecode.com/api/send/message/SPT_AfgXTrmEG2qVazzIEtkeWWwbKm39/Hello%20WxPusher        给用户发消息！结尾内容可自定义！
 ---
 
 ## 6. 质量门 `bun run check`

@@ -174,44 +174,26 @@ def cmd_bonetable(args):
 def cmd_pack(args):
     """pack <bundle> <mesh> <in.exmtmesh> <out.bundle>
 
-    The `.exmtmesh` carries the mesh's full typetree, so packing restores every
-    field the game shipped (bone hashes, bind poses, per-bone AABBs, collision
-    meshes, usage flags …) and only replaces the geometry.
+    One mesh into one bundle.  `modpack` does the whole workspace at once.
     """
-    import copy
-
     bundle_path, mesh_name, src, out = args
+    from . import modpack
+
     b = open_bundle(bundle_path)
-    o = b.mesh(mesh_name)
-    target_tree = o.read_typetree()
-    md, extra = interchange.load(src, target_tree)
-
-    base = extra["info"].get("tree")
-    if base:
-        tree = copy.deepcopy(base)
-        # the target bundle's own name must win
-        tree["m_Name"] = target_tree.get("m_Name", tree.get("m_Name"))
-    else:
-        tree = target_tree
-
-    # restore binary blobs that we do not regenerate (collision meshes)
-    raw = extra.get("raw") or {}
-    for field, key in (("m_BakedConvexCollisionMesh", "raw_baked_convex"),
-                       ("m_BakedTriangleCollisionMesh", "raw_baked_tri")):
-        if tree.get(field) is None:
-            if key in raw:
-                tree[field] = raw[key]
-            elif target_tree.get(field) is not None:
-                tree[field] = target_tree[field]
-
-    interchange.rebuild_submeshes(md, extra["first"], extra["count"])
-    md.aabb = M.aabb_from_vertices(md.arrays[0].astype("float32"))
-    M.to_tree(tree, md)
-    o.save_typetree(tree)
+    info = modpack.patch_mesh(b, mesh_name, src)
     size = len(b.save(out))
-    print(json.dumps({"output": out, "bytes": size, "mesh": md.name,
-                      "verts": md.vertex_count, "indices": int(len(md.indices)),
-                      "tree_restored": bool(base)}))
+    print(json.dumps({"output": out, "bytes": size, **info}))
+    return 0
+
+
+def cmd_modpack(args):
+    """modpack <spec.json> — pack every edited mesh of a workspace into
+    `<outdir>/<bundle hash>.bundle` + `mod.json` (the app installs from there)."""
+    from . import modpack
+
+    with open(args[0], encoding="utf-8") as fh:
+        spec = json.load(fh)
+    print(json.dumps(modpack.build(spec), ensure_ascii=False))
     return 0
 
 
@@ -412,6 +394,7 @@ def main(argv=None):
         "extract-all": cmd_extract_all,
         "bonetable": cmd_bonetable,
         "pack": cmd_pack,
+        "modpack": cmd_modpack,
         "hide-mesh": cmd_hide_mesh,
     
         "subdivide": cmd_subdivide,

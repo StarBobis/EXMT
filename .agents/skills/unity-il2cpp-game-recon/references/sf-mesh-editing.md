@@ -264,3 +264,27 @@ arm_obj.show_in_front = True
 
 **glTF 为什么不够**：glTF 的 skin 只有 joints + inverseBindMatrices，**丢弃** `m_BoneNameHashes`、`m_BonesAABB`、`m_RootBoneNameHash`、通道布局与碰撞体；
 一个"看起来对"的 glTF 回灌游戏必然掉字段。交换格式必须自定义且无损。
+
+---
+
+## 24. 改完的网格回灌游戏：什么会"悄悄变掉"
+
+**目标判据**：把**没改过**的网格原样走一遍"导出 → DCC → 打包回 bundle"，拿出来必须**与游戏里那份逐字节相同**。达不到就说明中间有一环在"重算"而不是"搬运"。实测过的三个坑：
+
+| 坑 | 症状 | 修法 |
+| --- | --- | --- |
+| 子网格 `localAABB` 用 `pos[min:max+1]` 算 | 未改动的网格里，有几个的 `m_SubMeshes` 与游戏原值不同（盒体明显偏大）。Unity 用它做剔除，盒体不准会误剔除/漏剔除 | 按**被这个子网格索引引用到的顶点**算：`pos[indices[first:first+count]]`。改完 12/12 网格字段零差异 |
+| DCC 重算法线与切线 | 未改动的网格法线中位偏 **2.3°**、切线中位偏 **11.4°**（还有切线 w 符号翻转）。法线贴图/光照会变，用户会以为"我什么都没改怎么就变了" | 导入时把游戏法线设成 **custom split normals**（Blender：`mesh.normals_split_custom_set_from_vertices`），导出时读 **per-corner** 法线；切线没有 API 可存，就塞进网格属性（`FLOAT_VECTOR` + 一个 `FLOAT` 存 w），导出优先读回，顶点数变了才回退重算 |
+| `foreach_get/foreach_set` 写非连续切片 | 切线读回来**全是 0**（写进的是临时拷贝，原数组没动），而且不报错 | 先用 `np.empty((n,3))` 连续数组 get，再整体赋给 `out[:, :3]` |
+
+**验证方法（重要）**：不要比裸 float 的 `max abs diff`——1e-7 的舍入和 90° 的错向在里面长得一样。要比**角度分位数**：
+```python
+cos = (a[:, :3] * b[:, :3]).sum(1) / (norm(a) * norm(b))
+deg = np.degrees(np.arccos(np.clip(cos, -1, 1)))
+print(np.percentile(deg, [50, 90, 99]), (deg > 5).mean())   # 期望 p90 ≤ 0.01°
+```
+位置差 1e-7（float32 最后一位）可以接受，权重/骨骼索引/UV/索引表必须**逐位相等**。
+
+**多网格一起打包**：同一个 bundle 里通常有整族网格（body/cloth1-4/hair…），按 bundle 分组、**一个包只写一次**（否则后写的会覆盖前面刚 patch 的对象）；`.exmtmesh` 里存了完整 typtree，打包时整棵树还原、只替换几何与索引，`m_BindPose`/`m_BoneNameHashes`/碰撞体原样留着。
+
+**打包源必须是原始副本**：如果从"游戏目录当前文件"打包，第二次生成会把上一次的改动烤进去（下载/替换过的包尤其明显）。原始副本（本项目的 `<cache>/game/bundles`）优先，其次旧备份，最后才是游戏目录。

@@ -35,6 +35,10 @@ export interface ModRecord {
   preset?: string;
   mesh?: string;
   bundle?: string;
+  /** every bundle this record replaced (a workspace Mod usually has one) */
+  bundles?: string[];
+  /** workspace id when the Mod came from `<workspace>/GeneratedMod` */
+  workspace?: string;
   source?: string;
   installed_at?: string;
   kind?: string;
@@ -45,14 +49,35 @@ export async function ensureBackup(hash: string): Promise<string> {
   const dir = await backupsDir();
   const bak = await join(dir, `${hash}.bundle`);
   if (!(await exists(bak))) {
-    await copyFile(bundlePath(hash), bak);
-    const info = await stat(bundlePath(hash));
+    const source = await pristineSource(hash);
+    await copyFile(source, bak);
+    const info = await stat(source);
     await writeTextFile(
       await join(dir, `${hash}.json`),
-      JSON.stringify({ hash, size: info.size, created_at: new Date().toISOString() }, null, 2),
+      JSON.stringify(
+        { hash, size: info.size, created_at: new Date().toISOString(), source },
+        null,
+        2,
+      ),
     );
   }
   return bak;
+}
+
+/**
+ * The untouched copy of a game bundle, best source first.
+ *
+ * The app keeps its own pristine copies under `<cache>/game/bundles`, and the
+ * old replace flow left some in `%APPDATA%\com.exmt.modbox\backups`; the live
+ * game file is only the last resort, because a previously installed Mod may
+ * already have overwritten it — backing that up would make "还原" restore a Mod.
+ */
+export async function pristineSource(hash: string): Promise<string> {
+  const legacy = await join(await appDataDir(), "com.exmt.modbox", "backups", `${hash}.bundle`);
+  if (await exists(legacy)) return legacy;
+  const cached = `${await cacheDir()}\\game\\bundles\\${hash}.bundle`;
+  if (await exists(cached)) return cached;
+  return bundlePath(hash);
 }
 
 export async function restoreBackup(hash: string): Promise<void> {
@@ -127,4 +152,73 @@ export async function installBundle(hash: string, builtBundle: string): Promise<
   const bak = await ensureBackup(hash);
   await copyFile(builtBundle, bundlePath(hash));
   return bak;
+}
+
+// --------------------------------------------------------------------------- //
+// Mods staged by the Blender add-on in <workspace>/GeneratedMod
+// --------------------------------------------------------------------------- //
+export interface GeneratedBundle {
+  hash: string;
+  file: string;
+  bytes: number;
+  meshes: string[];
+}
+
+export interface GeneratedMod {
+  format: string;
+  label?: string;
+  created_at?: string;
+  mesh_count?: number;
+  bundles: GeneratedBundle[];
+  dir: string;
+}
+
+/** `<workspace>/GeneratedMod/mod.json`, or null when nothing was generated yet. */
+export async function readGeneratedMod(workspaceDir: string): Promise<GeneratedMod | null> {
+  const dir = `${workspaceDir}\\GeneratedMod`;
+  const manifest = `${dir}\\mod.json`;
+  try {
+    if (!(await exists(manifest))) return null;
+    const data = JSON.parse(await readTextFile(manifest)) as GeneratedMod;
+    if (!data.bundles?.length) return null;
+    return { ...data, dir };
+  } catch {
+    return null;
+  }
+}
+
+export interface InstallResult {
+  bundles: number;
+  meshes: number;
+  bytes: number;
+  backups: number;
+}
+
+/** Copy a generated Mod into the game folder, keeping the originals aside. */
+export async function installGeneratedMod(mod: GeneratedMod): Promise<InstallResult> {
+  let bytes = 0;
+  let meshes = 0;
+  let backups = 0;
+  for (const entry of mod.bundles) {
+    const built = `${mod.dir}\\${entry.file}`;
+    if (!(await exists(built))) throw new Error(`缺少打包文件：${entry.file}`);
+    const had = await backupExists(entry.hash);
+    await ensureBackup(entry.hash);
+    if (!had) backups += 1;
+    await copyFile(built, bundlePath(entry.hash));
+    bytes += entry.bytes ?? 0;
+    meshes += entry.meshes?.length ?? 0;
+  }
+  return { bundles: mod.bundles.length, meshes, bytes, backups };
+}
+
+/** Put the original bundles back for every bundle a Mod replaced. */
+export async function uninstallBundles(hashes: string[]): Promise<number> {
+  let restored = 0;
+  for (const hash of hashes) {
+    if (!(await backupExists(hash))) continue;
+    await restoreBackup(hash);
+    restored += 1;
+  }
+  return restored;
 }
