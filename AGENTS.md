@@ -163,7 +163,10 @@ bun run check     # 见 §6
 | 2026-10-19 | 贴图改完没生效，包只涨了 140 字节 | UnityPy 的 Texture2D 像素在 typetree 里叫 **`image data`**（带空格）；写 `m_ImageData`/`image_data` 会被当新键**静默丢弃**。改贴图必须写 `tree["image data"]` 并清 `m_StreamData` |
 | 2026-10-19 | 替换后的贴图看起来对、一比对全错 | 两个隐形转换：① Unity 的 Texture2D **行序自下而上**，texconv 对 PNG 输出自上而下 → 每个 mip 的块行要整体翻一次（不翻 10.1 dB，翻后 59.2 dB）；② texconv 把 Blender 的 PNG 当 sRGB，输出 UNORM 时会转成线性（31→4、219→181）→ 固定加 `-srgbi -srgbo`（恒等变换）让数字原样落盘 |
 | 2026-10-19 | App 里"加载到游戏"用的是页面打开时那份 mod.json | 用户可能在页面加载后又去 Blender 点「生成 Mod」。`loadIntoGame` 必须先 `readGeneratedMod(ws.dir)` **重新读一遍**；`applyMods` 里 `targets` 必须把**只被贴图碰过的包**也算进去（`byBundle` ∪ `texByBundle`），否则那个包整包被漏掉 |
-| 2026-10-18 | 为什么没有 docs/skill 更新 | 本文件 §1 RSI 循环 |
+| 2026-10-19 | "重新导入一次"会不会毁掉用户的工作 | **同名蓝图必须复用、不许 remove**：里面有用户连的线和贴图选图。做法是把 `<工作空间>_original` Frame 内的物体节点按 `submesh` **重新指向新导入的网格**，Frame 外的节点一律不动；导入**前**先清理上一批网格（**连 mesh 数据块一起删**，否则名字还被占着，新网格只能叫 `…001`）与没孩子的旧骨架，骨架按骨骼名集合相同复用（姿势也保住） |
+| 2026-10-19 | 贴图只打了一个包 | 贴图和网格一样会多拷贝：全库 **3824 个贴图名里 72 个在多个包**（`RampMap_Linear_RGBAHalf` 542 份）。索引一次扫描同时收 Mesh + Texture2D，工作空间写 `texture_bundles`（与 `mesh_bundles` 对称），生成时**每个拷贝各出一行**；索引文件缺新字段要判成过期重建 |
+| 2026-10-19 | 生成 Mod 时界面卡死一分钟 | 三步都要：① **编码缓存**（源图路径+mtime+size + 目标格式；`image.is_dirty` 不算命中）；② texconv **并行**（线程池，一张 2048² BC7 = 5 s，12 张 60 s → 35 s）；③ 操作符改 **modal 分步**（`Generation.start()/step()`，每个 tick 收一个结果），进度写状态栏**并画在生成节点的 label 上**（状态栏只有 20 px、截图都拍不到），Esc 取消；`execute()` 保留同步路径给 headless |
+| 2026-10-19 | 用 `is` 比较 Blender 的 `node.parent` | **永远用 `==`**：`parent` 每次访问返回新的 Python 包装对象，`node.parent is frame` 会对"自己所属的那个 frame"返回 False（实测 re-import 直接 `min() iterable argument is empty` 崩掉） |
 ---
 
 ## 5. 用户偏好速查

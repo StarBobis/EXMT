@@ -301,17 +301,24 @@ async function meshIndexPath(): Promise<string> {
   return join(cacheFolder.value, "meshindex.json");
 }
 
-let meshIndexPromise: Promise<Record<string, string[]> | null> | null = null;
+let meshIndexPromise: Promise<{ meshes: Record<string, string[]>; textures: Record<string, string[]> } | null> | null =
+  null;
 
 /**
- * Mesh-name index, built on first use (~40 s over the 643 backed-up bundles).
+ * Name index over the 643 backed-up bundles: `mesh/texture name -> [bundle hash]`.
  *
  * The **backup** folder is the right target here (unlike the bone names, which
  * only exist in the game folder's Avatars and prefabs): it holds every bundle
  * this app can pack into, including the extra copies of a mesh, and it does not
  * change while the user is working.
+ *
+ * Textures are duplicated more often than meshes (72 of 3824 names live in more
+ * than one bundle), so both maps come out of the same single scan.
  */
-export async function ensureMeshIndex(): Promise<Record<string, string[]> | null> {
+export async function ensureMeshIndex(): Promise<{
+  meshes: Record<string, string[]>;
+  textures: Record<string, string[]>;
+} | null> {
   if (meshIndexPromise) return meshIndexPromise;
   meshIndexPromise = (async () => {
     const path = await meshIndexPath();
@@ -321,15 +328,20 @@ export async function ensureMeshIndex(): Promise<Record<string, string[]> | null
         const data = JSON.parse(await readTextFile(path)) as {
           game_bundles?: string;
           meshes?: Record<string, string[]>;
+          textures?: Record<string, string[]>;
         };
-        if (data.game_bundles === source && data.meshes) return data.meshes;
+        // an index built before textures were tracked has no `textures` map: rebuild
+        if (data.game_bundles === source && data.meshes && data.textures) {
+          return { meshes: data.meshes, textures: data.textures };
+        }
       }
       const res = await runCore(["meshidx", source, path]);
       if (res.code !== 0) return null;
       const data = JSON.parse(await readTextFile(path)) as {
         meshes?: Record<string, string[]>;
+        textures?: Record<string, string[]>;
       };
-      return data.meshes ?? null;
+      return { meshes: data.meshes ?? {}, textures: data.textures ?? {} };
     } catch {
       return null;
     }
@@ -806,13 +818,22 @@ export async function makeWorkspace(
   // real bone names come from an Avatar/prefab index; without it the skeleton is
   // still complete, just named by hash
   const boneNames = await ensureBoneNames();
-  // every copy of every exported mesh, so a Mod lands wherever the game looks
-  const meshIndex = await ensureMeshIndex();
+  // every copy of every exported mesh / texture, so a Mod lands wherever the game looks
+  const index = await ensureMeshIndex();
   const meshBundles: Record<string, string[]> = {};
   for (const mesh of meshes) {
-    const found = meshIndex?.[mesh.name] ?? [];
+    const found = index?.meshes?.[mesh.name] ?? [];
     const targets = found.length ? Array.from(new Set(found)) : [mesh.bundle];
     meshBundles[mesh.name] = targets;
+    for (const hash of targets) {
+      if (!bundles[hash]) bundles[hash] = await packSource(hash);
+    }
+  }
+  const textureBundles: Record<string, string[]> = {};
+  for (const tex of textures) {
+    const found = index?.textures?.[tex.name] ?? [];
+    const targets = found.length ? Array.from(new Set(found)) : [tex.bundle];
+    textureBundles[tex.name] = targets;
     for (const hash of targets) {
       if (!bundles[hash]) bundles[hash] = await packSource(hash);
     }
@@ -828,6 +849,7 @@ export async function makeWorkspace(
     game_bundles: gameBundles(),
     bundles,
     mesh_bundles: meshBundles,
+    texture_bundles: textureBundles,
     meshes: meshes.map((mesh) => ({ bundle: mesh.bundle, mesh: mesh.name })),
     textures: textures.map((tex) => ({ bundle: tex.bundle, name: tex.name })),
     bone_names: boneNames ?? "",

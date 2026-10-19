@@ -426,9 +426,11 @@ def make_workspace(outdir: str, spec: dict) -> dict:
         # the pristine bundle each mesh came from: packing a Mod must start from
         # the original file, never from a bundle a previous Mod already replaced
         "bundles": spec.get("bundles") or {},
-        # every bundle that stores a copy of each exported mesh (one mesh can live
-        # in several bundles, and the game may read any of them)
+        # every bundle that stores a copy of each exported mesh / texture (one asset
+        # can live in several bundles, and the game may read any of them; textures
+        # are duplicated more often than meshes: 72 of 3824 names)
         "mesh_bundles": spec.get("mesh_bundles") or {},
+        "texture_bundles": spec.get("texture_bundles") or {},
         "skeleton": {
             "file": skeleton_file,
             "bones": skel["count"],
