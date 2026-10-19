@@ -241,13 +241,32 @@
 
 ---
 
+### 2.13 Blender 侧：集合 + Submesh 索引 + 蓝图（2026-10-19，插件 0.4.0）
+
+用户要求把"物体身份"从**物体上的自定义属性**搬到**蓝图里的连线**：
+
+| 事实 | 证据 |
+| --- | --- |
+| 导入时创建一个集合 `EXMT · <工作空间 label>`，本次导入的网格 + 骨架**全部**放进去（并从别的集合解链），两个工作空间可以并存不混 | `EXMTBlender/__init__.py` 的 `_workspace_collection`/`_link`；实测集合里 13 个对象（12 网格 + 骨架） |
+| Submesh 索引由**本体**在导出时分配：`workspace.json` 的每个 mesh 现在带 `index`（从 0 自增）+ `alias`（`c_AlvaSSR0102_slg_cloth1_lod0` → `cloth1_lod0`） | `core/exmt_core/preview.py` 的 `make_workspace`/`_alias`；实测 `0. body_lod0` … `11. hair_lod0` |
+| 新增蓝图（自定义 NodeTree `EXMT_BlueprintTree`）：`物体` 节点（选物体 + 选 Submesh，下拉显示 `0. body_lod0`）+ `生成 Mod` 节点（**每个 Submesh 一个输入槽**，槽名就是 `index. alias`） | `EXMTBlender/blueprint.py`；headless 实测：12 槽、12 个物体节点、全部预连 |
+| 一键导入会新建一个蓝图并**预连**所有槽位（导入的网格 → 自己的槽位），改完直接点「生成 Mod」即可；想换模型就把物体节点的物体换成自己的模型，槽位不变 | `_prewire_blueprint`；实测把 `11. hair_lod0` 换成 8 顶点的立方体 → patch 变成 8 顶点/12 面、bbox 0.5³，其余 11 个不变 |
+| 断开的槽位 = 这个 Submesh 不打包（游戏里保持原样），面板/报告里列出来；没被引用的旧补丁文件会清掉 | 实测断连 `body_lod0` → `packed: 11`、`skipped: ["body_lod0"]` |
+| 面板新增「蓝图」组：下拉选择 + 4 个图标按钮（新建 / 在节点编辑器打开 / 同步槽位 / 删除），下面显示 `N 个 Submesh · 已连 M 个槽位` 和「生成 Mod」；生成节点上也有「同步槽位 + 生成 Mod」按钮；节点编辑器右键菜单里有两个"新建节点"入口 | `EXMT_PT_panel`、`EXMTNodeGenerate.draw_buttons`、`_menu_add`（挂 `NODE_MT_context_menu`/`NODE_MT_add`） |
+| **Blender 5.2 的坑**：`SpaceNodeEditor` 已经没有 `ui_type`，`edit_tree`/`id` 变成只读；要把自定义 NodeTree 显示出来必须写 **`space.tree_type = <bl_idname>` + `space.node_tree = <tree>`** | `C:\DevCache\exmt-bones\probe_uitype.py`：列出可写属性后确认；截图 `C:\DevCache\tauri-logs\blender_blueprint.png`（12 个物体节点连到「生成 Mod（12 个已连接）」） |
+| 物体上的 `exmt_source`/`exmt_workspace` 自定义属性**已删除**（身份只由蓝图决定） | 同文件；`generate_mod` 改为遍历蓝图里的连线 |
+
+**没有验证的部分**：蓝图在 Blender 3.x/4.x 上的表现（只在本机 5.2 实测；`edit_tree` 那条分支未跑过）；多个蓝图同时指向同一个工作空间时"后处理的蓝图覆盖前面的"（代码按此实现，未做 UI 提示）。
+
+---
+
 ## 3. 交付物清单
 
 | 产物 | 位置 |
 | --- | --- |
 | 应用 | `C:\Dev\EXMT`（`src/` 前端、`src-tauri/` Rust） |
 | 核心 | `core/exmt_core/`（CLI：list/meshes/extract/extract-all/bonetable/pack/**modpack**/hide-mesh/subdivide/retarget/copy-texture/set-texture/texindex/bonenames/skinfo/geo/geoset/thumbs/maps/workspace） |
-| Blender 插件 | `C:\Dev\EXMTBlender\{__init__.py,mesh_io.py}`（0.3.0：一键导入工作空间 / **生成 Mod** / 导出打包；已同步到 `%APPDATA%\Blender Foundation\Blender\5.2\scripts\addons\EXMTBlender`；**该目录不是 git 仓库**，只能靠快照：旧版备份 `C:\DevCache\exmt-bones\EXMTBlender-installed-backup-*`，0.3.0 快照 `C:\DevCache\exmt-bones\EXMTBlender-0.3.0-*`） |
+| Blender 插件 | `C:\Dev\EXMTBlender\{__init__.py, mesh_io.py, blueprint.py}`（**0.4.0**：一键导入工作空间 → 建集合 + 蓝图 / Submesh 索引 / 生成 Mod；已同步到 `%APPDATA%\Blender Foundation\Blender\5.2\scripts\addons\EXMTBlender`；**该目录不是 git 仓库**，只能靠快照：`C:\DevCache\exmt-bones\EXMTBlender-0.*`） |
 | 文档站 | `C:\Dev\EXMTDoc`（VitePress 2，独立仓库） |
 | 本仓库 docs | `exmt-modbox.md`、`exmt-model-pipeline.md`、`exmt-characters.md`、`gf2-exilium-recon.md` |
 | skill | `.agents/skills/unity-il2cpp-game-recon/`（§18–§23）、`.agents/skills/tauri-winui-shell/` |

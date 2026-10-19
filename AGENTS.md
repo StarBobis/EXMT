@@ -154,8 +154,10 @@ bun run check     # 见 §6
 | 2026-10-19 | 连点几下，后面几次总是点空 | ① 消息条一出现会把下面的列表整体下移 → **每次点击前重新截图**，别复用上一次的坐标；② HMR 之后 WebView 里的状态可能是旧的（按钮一直是灰的、点不动）→ 先 `Ctrl+R` 重载再判断，别急着改代码 |
 | 2026-10-19 | 以为"多装一个 Mod 不会冲突" | **一个包只能有一份文件**：后装的就是覆盖先装的。运行时状态必须由「原始包 + 所有启用 Mod 的补丁」**重新算一遍**（`applyMods`）；Mod 要能合并就必须留下**补丁文件**（`GeneratedMod/patches/*.exmtmesh`），不能只留打好的包 |
 | 2026-10-19 | 同一网格在多个包里，直接照抄 `.exmtmesh` 的整棵树 | 各副本可能**烘焙得不一样**（实测同一网格一个 UV 是 float16 且 `m_IsReadable=false`，另一个 float32 且可读）。只有「通道布局 + 可读标志 + 骨骼哈希表」全同才用文件里的树；否则以**目标包的树为底**，只写几何，并按哈希重映射骨骼索引 |
+| 2026-10-19 | 靠"物体上的自定义属性"认身份（`exmt_source`） | 身份放在**两端都稳**的地方：本体导出时给每个网格分配 `index` + `alias`（写进 `workspace.json`），Blender 端用一个**蓝图**（自定义 NodeTree）决定"哪个物体接到哪个 Submesh 槽位"。物体改名/复制/换成自己的模型都不影响；导入按工作空间建一个**集合**，方便整组选中/隐藏/删除 |
+| 2026-10-19 | Blender 5.2 里自定义 NodeTree 显示不出来（`ui_type` 直接报"没有这个属性"） | 5.2 移除了 `ui_type`，`edit_tree`/`id` 是只读的。正确写法：`space.tree_type = <bl_idname>`，然后 **`space.node_tree = <tree>`**；4.x 才用 `ui_type`/`edit_tree`。判断依据读 `space.bl_rna.properties[...].is_readonly`，别猜 |
+| 2026-10-19 | GUI 里截 Blender 的图老是拍到 splash、或者视图没框好 | `--python` 脚本执行时窗口还没布局完，`node.view_all()` 会空跑 → 用 `bpy.app.timers.register(fn, first_interval=2.0)` 推迟到 UI 稳定后再做；截图前 `SetForegroundWindow` + 发一次 `{ESC}` 关掉 splash |
 | 2026-10-18 | 为什么没有 docs/skill 更新 | 本文件 §1 RSI 循环 |
-
 ---
 
 ## 5. 用户偏好速查

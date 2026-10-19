@@ -19,6 +19,7 @@ import base64
 import io
 import json
 import os
+import re
 import shutil
 import time
 from concurrent.futures import ProcessPoolExecutor
@@ -305,6 +306,19 @@ def _safe(name: str) -> str:
     return "".join(keep)[:120] or "item"
 
 
+def _alias(mesh_name: str) -> str:
+    """Short, stable label for a submesh: `c_AlvaSSR0102_slg_cloth1_lod0` → `cloth1_lod0`.
+
+    The alias is what a blueprint slot shows next to its index; the full game name
+    stays in `mesh` (and in the tooltip), so nothing is lost.
+    """
+    name = mesh_name
+    m = re.match(r"^c_[A-Za-z0-9]+_(?:slg_)?(.+)$", name)
+    if m:
+        name = m.group(1)
+    return name or mesh_name
+
+
 def make_workspace(outdir: str, spec: dict) -> dict:
     """Write meshes + textures + skeleton + workspace.json for the Blender add-on.
 
@@ -353,12 +367,17 @@ def make_workspace(outdir: str, spec: dict) -> dict:
     skel["id"] = spec.get("id", "") or spec.get("name", "")
 
     written_meshes = []
-    for hash_, tree, md in loaded:
+    for index, (hash_, tree, md) in enumerate(loaded):
         fname = _safe(md.name) + ".exmtmesh"
         path = os.path.join(mesh_dir, fname)
         view = S.for_file(skel, md.name)
         interchange.save(md, path, {"bundle": hash_, "skeleton": view}, tree=tree)
         written_meshes.append({
+            # the submesh index is assigned **here**, once, in the order the app
+            # sent the meshes: it is what a blueprint slot refers to, so the
+            # Blender side never has to guess an object's identity
+            "index": index,
+            "alias": _alias(md.name),
             "file": "meshes/" + fname,
             "mesh": md.name,
             "bundle": hash_,
