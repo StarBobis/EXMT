@@ -326,12 +326,16 @@ def pair(mesh_names: list[str], textures, families: dict | None = None) -> dict[
 
     out: dict[str, list[str]] = {m["name"]: [] for m in meshes}
     for mesh in meshes:
-        # when the mesh's own head has a family, numbered sub-families
-        # (`body1`/`body2` next to `body`) are alternatives, not extra maps
+        # when the mesh's own head has a family, numbered alternatives
+        # (`body1`/`body2` next to `body`) and variant prefixes (`Dorm_cloth`
+        # next to `cloth1`) are replacements, not extra maps
         if mesh["head"] and mesh["head"] in winners[mesh["name"]]:
             for head in list(winners[mesh["name"]]):
-                rest = head[len(mesh["head"]):] if head.startswith(mesh["head"]) else ""
-                if head != mesh["head"] and rest.isdigit():
+                if head == mesh["head"]:
+                    continue
+                tail = mesh["head"][len(head):] if mesh["head"].startswith(head) else ""
+                ext = head[len(mesh["head"]):] if head.startswith(mesh["head"]) else ""
+                if (tail and tail.isdigit()) or (ext and ext.isdigit()):
                     del winners[mesh["name"]][head]
         for _d, _score, _chain, stem in winners[mesh["name"]].values():
             out[mesh["name"]].extend(families[stem])

@@ -13,7 +13,28 @@ const ROLE = /^(d|da|dif|dt|bt|nt|n|rmo|spc|smo|smoe|h|ramp|mask|il|ds)$/i;
 const LOD = /^l?odm?\d+$/i;
 const NOISE = /^(dorm|fight|general|flat|bend|trans|vfx|swap|wt|uber|ubertrans|mat|pearl|drom)\d*$/i;
 const VARIANT_TAIL = /(?:SSR|SR|R|Dorm|Fight)?\d*$/;
-const TYPO: Record<string, string> = { boby: "body", boddy: "body", hare: "hair", hiar: "hair" };
+const TYPO: Record<string, string> = {
+  boby: "body",
+  boddy: "body",
+  hare: "hair",
+  hiar: "hair",
+  sanzi: "shanzi",
+  glasses: "glass",
+};
+
+/** Body/clothing heads are unique per character: never borrow another skin's. */
+const GENERIC_HEAD =
+  /^(body|hair|face|eye|eyebrow|eyeblend|eyelash|head|hip|cloth|hand|leg|foot|weapon|slg|wl|p\d|g\d)[\d_]*$/i;
+
+/** Namespaces whose textures are shared hand props (`cw_Tongyong_…`). */
+const SHARED_NS = new Set([
+  "tongyong", "none", "aelg", "cf", "elid", "mecha", "motordriven",
+  "br", "npc", "enemy", "prop", "item", "weapon", "handmade",
+]);
+
+/** `G1` / `P2`: a colour-group marker over numbered atlases (`_01`, `_02`). */
+const VARIANT_TOKEN = /^[GP]\d+$/i;
+const PROP_ROLE = /_(d|da|dif|bt|n|nt|rmo|spc|h)$/i;
 
 /** Roles that make a submesh "textured" (`bt` is the plush/base variant of `d`). */
 export const DIFFUSE_ROLES = new Set(["d", "da", "dif", "bt"]);
@@ -133,6 +154,53 @@ const HEAD_GROUP: Record<string, string[]> = {
 const BASE_BODY = ["B_body", "new_body", "body"];
 const BASE_ROLE = /_(d|da|dif|n|nt|rmo|spc|h)$/i;
 
+interface PropFamily {
+  names: string[];
+  keys: Set<string>;
+  char: string;
+  prefixed: boolean;
+  shared: boolean;
+}
+
+/**
+ * Texture families outside the character namespace — shared hand props.
+ * Their first token is either the object (`MP443`) or a namespace (`Tongyong`).
+ */
+function propFamilies(names: string[]): Map<string, PropFamily> {
+  const out = new Map<string, PropFamily>();
+  for (const name of names) {
+    const match = PROP_ROLE.exec(name);
+    if (!match) continue;
+    const stem = name.slice(0, match.index);
+    const toks = stem.split("_").filter((tok) => tok && !LOD.test(tok));
+    if (!toks.length) continue;
+    const prefixed = toks[0] === "c" || toks[0] === "cw";
+    const char = prefixed && toks.length > 1 ? toks[1] : toks[0];
+    const rest = prefixed ? toks.slice(2) : toks.slice(1);
+    let entry = out.get(stem);
+    if (!entry) {
+      entry = {
+        names: [],
+        keys: new Set<string>(),
+        char,
+        prefixed,
+        shared:
+          SHARED_NS.has(char.toLowerCase()) ||
+          rest.some((tok) => SHARED_NS.has(tok.toLowerCase())),
+      };
+      out.set(stem, entry);
+    }
+    entry.names.push(name);
+    // trailing digits are object numbering, not identity (`Lollipop01`)
+    for (const tok of [char, ...rest]) {
+      const low = tok.toLowerCase();
+      entry.keys.add(low);
+      entry.keys.add(low.replace(/\d+$/, ""));
+    }
+  }
+  return out;
+}
+
 /**
  * `meshName → texture names`, strongest evidence first.  Mirrors `pair()` in
  * Python: stems (families) are grouped, scored per mesh, and each (mesh, head)
@@ -182,6 +250,8 @@ export function pairTextures(
       else if (direct(mesh, info)) score = 70 + strength * 10;
       else if (mesh.head && head.startsWith(mesh.head) && /^\d+$/.test(head.slice(mesh.head.length)))
         score = 60 + strength * 10;
+      else if (mesh.head.startsWith(head) && /^\d+$/.test(mesh.head.slice(head.length)))
+        score = 55 + strength * 10;
       else if ((HEAD_GROUP[mesh.head] ?? []).includes(head) && !meshHeads.has(head))
         score = 50 + strength * 10;
       else continue;
@@ -199,7 +269,18 @@ export function pairTextures(
   }
 
   for (const mesh of meshes) {
-    for (const winner of winners.get(mesh.name)!.values()) {
+    const slot = winners.get(mesh.name)!;
+    // when the mesh's own head has a family, numbered alternatives (`body1`)
+    // and variant prefixes (`Dorm_cloth` vs `cloth1`) are replacements
+    if (mesh.head && slot.has(mesh.head)) {
+      for (const head of Array.from(slot.keys())) {
+        if (head === mesh.head) continue;
+        const tail = mesh.head.startsWith(head) ? mesh.head.slice(head.length) : "";
+        const ext = head.startsWith(mesh.head) ? head.slice(mesh.head.length) : "";
+        if ((tail && /^\d+$/.test(tail)) || (ext && /^\d+$/.test(ext))) slot.delete(head);
+      }
+    }
+    for (const winner of slot.values()) {
       out[mesh.name].push(...(families.get(winner.stem) ?? []));
     }
   }
@@ -220,6 +301,81 @@ export function pairTextures(
       if (!list.some((name) => DIFFUSE_ROLES.has(roleOf(name)))) continue;
       const key = Number(sib[2]) * 10 - charScore(mesh, info);
       if (!best || key < best.key) best = { key, stem };
+    }
+    if (best) out[mesh.name].push(...(families.get(best.stem) ?? []));
+  }
+
+  // shared hand props (guns, food, grenades) live outside `c_<char>_`:
+  // `cw_MP443_WL_*`, `SabrinaSSR01_Pizza_*`, `cw_Tongyong_SmokeGrenade_*`
+  const unresolved = meshes.filter(
+    (mesh) => !out[mesh.name].some((name) => DIFFUSE_ROLES.has(roleOf(name))),
+  );
+  if (unresolved.length) {
+    const props = propFamilies(names);
+    for (const mesh of unresolved) {
+      const head = mesh.head;
+      if (head.length < 3 || GENERIC_HEAD.test(head)) continue;
+      const stemHead = head.replace(/\d+$/, "");
+      let best: { rank: number; len: number; stem: string } | null = null;
+      for (const [stem, entry] of props) {
+        if (!entry.keys.has(head) && !entry.keys.has(stemHead)) continue;
+        let rank: number;
+        if (entry.char.toLowerCase() === head) rank = 0;
+        else if (entry.char.toLowerCase() === mesh.char.toLowerCase()) rank = 1;
+        else if (!entry.prefixed) rank = 2;
+        else if (entry.shared) rank = 3;
+        else continue;
+        if (!best || rank < best.rank || (rank === best.rank && stem.length < best.len)) {
+          best = { rank, len: stem.length, stem };
+        }
+      }
+      if (best) out[mesh.name].push(...(props.get(best.stem)?.names ?? []));
+    }
+  }
+
+  // `…_slg_fanOpen` / `_fanShut` are states of the same `fan` family
+  for (const mesh of meshes) {
+    if (out[mesh.name].some((name) => DIFFUSE_ROLES.has(roleOf(name)))) continue;
+    const head = mesh.head;
+    let best: { strength: number; headLen: number; stem: string } | null = null;
+    for (const [stem, list] of families) {
+      const info = parseName(list[0]);
+      if (!info || !info.head || !head.startsWith(info.head)) continue;
+      const tail = head.slice(info.head.length);
+      if (tail.length < 3 || !/^[a-z]+$/i.test(tail)) continue;
+      const strength = charScore(mesh, info);
+      if (!strength) continue;
+      if (!list.some((name) => DIFFUSE_ROLES.has(roleOf(name)))) continue;
+      if (
+        !best ||
+        strength > best.strength ||
+        (strength === best.strength && info.head.length > best.headLen)
+      ) {
+        best = { strength, headLen: info.head.length, stem };
+      }
+    }
+    if (best) out[mesh.name].push(...(families.get(best.stem) ?? []));
+  }
+
+  // a colour group (`G1`, `P2`) over numbered atlases (`_01`, `_02`)
+  for (const mesh of meshes) {
+    if (out[mesh.name].some((name) => DIFFUSE_ROLES.has(roleOf(name)))) continue;
+    const marker = mesh.tokens.findIndex((tok) => VARIANT_TOKEN.test(tok));
+    if (marker < 0) continue;
+    const prefix = [...mesh.tokens.slice(0, marker), ...mesh.tokens.slice(marker + 1)].join("_");
+    let best: { num: number; len: number; stem: string } | null = null;
+    for (const [stem, list] of families) {
+      const info = parseName(list[0]);
+      if (!info || info.tokens.length < 2) continue;
+      if (info.tokens.slice(0, -1).join("_") !== prefix) continue;
+      const last = info.tokens[info.tokens.length - 1];
+      if (!/^\d+$/.test(last)) continue;
+      if (!charScore(mesh, info)) continue;
+      if (!list.some((name) => DIFFUSE_ROLES.has(roleOf(name)))) continue;
+      const num = Number(last);
+      if (!best || num < best.num || (num === best.num && stem.length < best.len)) {
+        best = { num, len: stem.length, stem };
+      }
     }
     if (best) out[mesh.name].push(...(families.get(best.stem) ?? []));
   }
