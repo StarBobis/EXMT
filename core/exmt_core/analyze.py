@@ -178,34 +178,65 @@ def skins_of(names: dict, clips: dict | None = None, textures: dict | None = Non
 # --------------------------------------------------------------------------- #
 # skin packs: decode every roster skin now, so the studio never decodes again
 # --------------------------------------------------------------------------- #
+VARIANTS = {"dorm", "fight"}
+
+
+def _shape(name: str) -> tuple[str, list[str]]:
+    """`c_X_slg_P2_cloth2_lod0_Dorm` → ('cloth', ['p2', 'cloth']).
+
+    The variant words (`Dorm`, `Fight`) say which outfit *state* a part belongs
+    to; they are not part of the semantic head used for texture pairing.
+    """
+    tail = name
+    match = re.search(r"_slg_(.+)$", tail)
+    if match:
+        tail = match.group(1)
+    words = [w for w in re.split(r"[_\s]+", tail) if w and not re.match(r"(?i)^lodm?\d+$", w)]
+    words = [w for w in words if w.lower() not in VARIANTS]
+    tokens = [re.sub(r"\d+$", "", w.lower()) for w in words]
+    return (tokens[-1] if tokens else ""), tokens
+
+
 def _diffuse_name(mesh: str, textures: dict, prefix: str) -> str | None:
     """`c_X_slg_cloth_lod0` → `c_X_slg_cloth1_d` (or `_da`, `_dif`).
 
-    Same rules as the studio's `diffuseNameFor`, including the fallback that
-    matters in practice: the game names parts and textures inconsistently
-    (`slg_cloth` vs `slg_cloth1_d`), so after the exact candidates fail, the
-    texture sharing the longest stem wins. Without this most skins ended up with
-    zero diffuse maps and the 3D preview rendered plain grey ("black and white").
+    1. exact `stem + _d/_da/_dif`
+    2. same character family (`c_BastiSSR0101` may use `c_BastiSSR01_...`) and the
+       same semantic head (`cloth` / `body` / `hair` / `head` …). Ranking prefers
+       the same P-group, then the longest shared prefix — so `cloth2_Dorm` still
+       picks `cloth2_da` instead of `cloth1_d`.
+    3. nothing; the caller falls back to the skin's dominant atlas.
     """
     stem = re.sub(r"_lod\d+$", "", mesh, flags=re.I)
     for suffix in ("_d", "_da", "_dif"):
         candidate = stem + suffix
         if candidate in textures:
             return candidate
+
+    head, tokens = _shape(mesh)
+    if not head:
+        return None
     best: str | None = None
-    best_len = 0
+    best_key = (-1, -1)
     for name in textures:
-        if not name.startswith(prefix):
-            continue
         match = re.match(r"^(.*?)_(d|da|dif)$", name, re.I)
         if not match:
             continue
         texture_stem = match.group(1)
-        if not (stem.startswith(texture_stem) or texture_stem.startswith(stem)):
+        shared = 0
+        for a, b in zip(texture_stem, stem):
+            if a != b:
+                break
+            shared += 1
+        if shared < 10:
             continue
-        shared = min(len(stem), len(texture_stem))
-        if shared > best_len:
-            best_len = shared
+        other_head, other_tokens = _shape(texture_stem)
+        if other_head != head:
+            continue
+        same_group = 1 if tokens[:1] == other_tokens[:1] else 0
+        key = (same_group, shared)
+        if key > best_key:
+            best_key = key
             best = name
     return best
 
@@ -231,6 +262,20 @@ def _pack_spec(out_dir: str, bundle_dir: str, names: dict, skin: dict,
         texture = _diffuse_name(mesh, textures, prefix)
         if texture:
             maps.append({"mesh": mesh, "texture": texture, "bundle": textures[texture][0]})
+
+    # Some parts (the base `body`, `hair`, …) have no same-named texture at all:
+    # the outfit atlas covers them through shared UVs. Give those the atlas that
+    # the rest of the skin already uses, instead of leaving them flat grey.
+    if maps:
+        counts = {}
+        for item in maps:
+            counts[item["texture"]] = counts.get(item["texture"], 0) + 1
+        dominant = max(counts.items(), key=lambda kv: kv[1])[0]
+        used = {item["mesh"] for item in maps}
+        for mesh in (skin.get("parts") or {}).values():
+            if mesh in used:
+                continue
+            maps.append({"mesh": mesh, "texture": dominant, "bundle": textures[dominant][0]})
 
     return {
         "key": key,

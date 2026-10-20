@@ -697,6 +697,36 @@ stream 2: count x 32   weights(16) + bones(16)
 
 ---
 
+### 2.25 漫反射配对第二轮：变体皮肤要跨 id 找同角色贴图（2026-10-20 第七轮）
+
+**症状**：巴斯提·3（`c_BastiSSR0101`，21 个子网格）全身灰白，只有少数块有颜色。
+
+**根因**：漫反射只按"自己皮肤 id + 部件名"找，而这个皮肤的：
+- `P2_cloth2` / `P3_cloth2` 的贴图叫 `P2_cloth1_d` / `P3_cloth1_d`（数字不同名）；
+- `body` / `hair` 在本 id 下**完全没有贴图**，要用同角色 `c_BastiSSR01_slg_hair_d`（少两位变体号）。
+
+**修法**（`_diffuse_name` 三级 + 兜底）
+
+1. 精确 `茎 + _d/_da/_dif`；
+2. 同角色家族 + **同名语义头**（`cloth`/`body`/`hair`/`head`…，先去掉 `Dorm`/`Fight`/`lodN` 修饰词），
+   排序优先"同 P 组"→"共享前缀最长"（`cloth2_Dorm` 因此选 `cloth2_da` 而不是 `cloth1_d`）；
+3. 仍无匹配（本 id 没有 body 贴图）→ 用该皮肤**已被采用贴图里出现最多的那张**兜底。
+
+**结果（每皮肤漫反射覆盖）**：巴斯提·3 **21/21**、比约卡 5/5、岱烟·3 8/8、秋桦 8/8
+（`body→body_d`、`weapon→weapon_d` 都正确）。
+
+**验证（应用起不来，改用离屏渲染作证）**：把 `c_BastiSSR0101` 的 21 张漫反射导出成 OBJ+MTL，
+Blender EEVEE 渲染 → 棕发、粉上衣、牛仔裤、皮靴都是贴图本色。
+脚本：`C:\DevCache\anim-recon\export_tex_obj.py`、`render_tex2.py`。
+
+**新增阻塞（环境问题，未解决）**：`tauri dev` 和直接跑 `src-tauri/target/debug/exmt-modbox.exe` 都 panic：
+`PluginInitialization("http", "拒绝访问。(os error 5)")`。同一份二进制 15:30 前能启动，本轮只改 Python，
+所以不是本轮改动引起。已试：清 `exmt-modbox`/`msedgewebview2` 残留、直接跑二进制、`RUST_BACKTRACE=1`（栈无有效帧）。
+**接手第一步**：确认是否 Windows 证书库/安全软件拦了 `rustls-native-certs`，或临时注释 `tauri_plugin_http::init()`
+（前端没用到 http 插件）验证；修好后补一张"巴斯提·3 有颜色"的界面截图。
+
+---
+
 ## 3. 交付物清单
 
 | 产物 | 位置 |
