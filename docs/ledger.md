@@ -752,6 +752,16 @@ foreach ($p in @("$env:LOCALAPPDATA\com.exmt.modbox","$env:APPDATA\com.exmt.modb
 
 ---
 
+### 2.26 导航瘦身：删工具/日志占位页，展开时点项自动折叠（2026-10-20 第八轮）
+
+**改动**：`NAV_PRIMARY` 去掉 `tools` / `logs`，`ViewKey` 只剩 home/models/library/settings；删除 `ToolsView.vue`、`LogsView.vue` 及 `.feature*` / `.terminal*` / `--terminal-*` 死样式；i18n 中 `tools.*` / `logs.*` / `nav.tools|logs` 全部移除，gate 文案改为“模型、资源库”。
+
+**行为**：SideBar 点击导航项时若处于展开态，额外 emit `collapse`，App 把 `collapsed` 置 true（NavigationView 轻量模式）；折叠态点击保持 48px。
+
+**验证**：debug App + CDP（`tmp/cdp.mjs`）：导航 4 项；展开 272px → 点“模型”变 48px 且选中正确；点底部“设置”同样折叠；折叠态点“首页”仍 48px。截图 `C:\DevCache\exmt-ui\nav-expanded.png` / `nav-after-model.png`。
+
+---
+
 ## 3. 交付物清单
 
 | 产物 | 位置 |

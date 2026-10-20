@@ -11,7 +11,7 @@
 
 | 区域 | 规则 |
 | --- | --- |
-| 侧边导航 | NavigationView：展开 272px / 折叠 48px；`☰` 在面板头部，与图标共用 40×40 盒子、`2px auto`；折叠时图标居中、文字淡出；状态存 localStorage |
+| 侧边导航 | NavigationView：展开 272px / 折叠 48px；`☰` 在面板头部，与图标共用 40×40 盒子、`2px auto`；折叠时图标居中、文字淡出；状态存 localStorage；**展开状态下点击任意导航项进入页面后自动折叠**（轻量模式；折叠态点击不再改变宽度）。导航只有首页 / 模型 / 资源库 + 底部设置，**不要再加工具、日志这类占位页** |
 | 窗口 | 初始尺寸**按显示器工作区算**，不写死：`16:9`（1920×1080 的比例），宽度 = 工作区 2/3，高度 = 宽×9/16，上限高 90%，下限 920×600，居中于工作区（不是整屏，避开任务栏）。见 `src-tauri/src/lib.rs` 的 `default_window_size` |
 | 焦点 | **鼠标点选不出现蓝色 focus 框**：`.nav-item:focus, :focus-visible { outline: none }`，改用 `--fill-subtle-hover` 填充；键盘用户靠填充感知 |
 | 页面 | **full-bleed**：`.page { max-width: none; margin: 0; padding: 18px 24px }`。别用 `max-width + margin:auto`，宽窗口留死白、超宽把内容推出屏幕 |

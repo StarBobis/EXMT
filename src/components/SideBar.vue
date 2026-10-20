@@ -3,14 +3,17 @@ import type { NavItem, ViewKey } from "../lib/nav";
 import { NAV_FOOTER, NAV_PRIMARY } from "../lib/nav";
 import { t } from "../lib/i18n";
 
-defineProps<{ selected: ViewKey; collapsed: boolean }>();
+const props = defineProps<{ selected: ViewKey; collapsed: boolean }>();
 const emit = defineEmits<{
   (e: "select", key: ViewKey): void;
   (e: "toggle"): void;
+  (e: "collapse"): void;
 }>();
 
 function select(item: NavItem) {
   emit("select", item.key);
+  // NavigationView 的轻量模式：展开状态下点任意一项进入页面后，导航自动收起。
+  if (!props.collapsed) emit("collapse");
 }
 </script>
 

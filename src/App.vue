@@ -5,8 +5,6 @@ import SideBar from "./components/SideBar.vue";
 import HomeView from "./views/HomeView.vue";
 import ModelsView from "./views/ModelsView.vue";
 import LibraryView from "./views/LibraryView.vue";
-import ToolsView from "./views/ToolsView.vue";
-import LogsView from "./views/LogsView.vue";
 import SettingsView from "./views/SettingsView.vue";
 import SetupView from "./views/SetupView.vue";
 import type { ViewKey } from "./lib/nav";
@@ -25,8 +23,6 @@ const views = {
   home: HomeView,
   models: ModelsView,
   library: LibraryView,
-  tools: ToolsView,
-  logs: LogsView,
   settings: SettingsView,
 } as const;
 
@@ -35,7 +31,7 @@ const viewComponent = computed(() => views[currentView.value]);
  * Pages that read game assets need the analysed cache; the setup wizard is the
  * only way to get one, so this gate now points at the cache, not the path.
  */
-const needsCache = computed(() => ["models", "library", "tools"].includes(currentView.value));
+const needsCache = computed(() => ["models", "library"].includes(currentView.value));
 const cacheReady = computed(() => bootState.value === "ready" && !!gameCache.value);
 
 function selectView(key: ViewKey) {
@@ -79,6 +75,7 @@ onMounted(() => void boot());
         :collapsed="collapsed"
         @select="selectView"
         @toggle="collapsed = !collapsed"
+        @collapse="collapsed = true"
       />
       <main class="app__content">
         <pre v-if="viewError" class="app__viewerror">{{ viewError }}</pre>

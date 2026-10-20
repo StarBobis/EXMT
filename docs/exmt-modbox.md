@@ -22,7 +22,7 @@
 src/App.vue               外壳：TitleBar + SideBar + <component :is>
 src/components/TitleBar.vue  48px 高；拖拽区 + 三个 caption 按钮（46×32，贴顶 32px）
 src/components/SideBar.vue   272px；选中项左侧 3×16 圆角胶囊 + SubtleFill 背景
-src/views/*.vue              五个占位页（首页/资源库/工具/日志/设置）
+src/views/*.vue              四个导航页（首页/模型/资源库/设置）+ 首次引导页（SetupView）
 src/lib/nav.ts               导航唯一数据源
 src/lib/theme.ts             主题：localStorage + prefers-color-scheme
 src/lib/tauri.ts             isTauri 守卫，浏览器里也能跑（截图/预览用）
