@@ -26,3 +26,6 @@ dist-ssr
 # python
 __pycache__/
 *.pyc
+
+# scratch output (screenshots, one-off driver scripts)
+tmp/

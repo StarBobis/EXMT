@@ -241,22 +241,15 @@ function build(all: PreviewGeometry[]) {
     buffer.computeVertexNormals();
     buffer.computeBoundingSphere();
 
-    const url = props.maps[geo.name];
-    const map = url ? textureLoader.load(url, () => render()) : null;
-    if (map) {
-      map.colorSpace = THREE.SRGBColorSpace;
-      map.anisotropy = renderer?.capabilities.getMaxAnisotropy() ?? 4;
-    }
-
     const picked = props.selected.includes(geo.name);
     const isActive = props.active === geo.name;
     // a submesh with a diffuse map shows the real base colour even when it is not
     // picked; the grey tint is only for parts that have no texture at all
-    const baseColor = map ? 0xffffff : picked ? COLOR_PICKED : isActive ? COLOR_ACTIVE : COLOR_IDLE;
+    const raw = props.maps[geo.name];
+    const baseColor = raw ? 0xffffff : picked ? COLOR_PICKED : isActive ? COLOR_ACTIVE : COLOR_IDLE;
     const material = new THREE.MeshStandardMaterial({
       color: baseColor,
       emissive: picked ? 0x0a1a26 : isActive ? 0x0a2436 : 0x000000,
-      map,
       metalness: 0.05,
       roughness: 0.72,
       side: THREE.DoubleSide,
@@ -268,6 +261,32 @@ function build(all: PreviewGeometry[]) {
     const mesh = new THREE.Mesh(buffer, material);
     mesh.name = geo.name;
     mesh.visible = !props.hidden.includes(geo.name);
+
+    if (raw) {
+      // The core stores diffuse maps as raw base64 PNG (`diffuse.json`), so the
+      // loader needs the data: prefix — a bare base64 string is treated as a
+      // relative URL, never decodes, and leaves an empty sampler on the material
+      // that renders the whole submesh black. Accept both shapes.
+      const url = /^data:/i.test(raw) ? raw : `data:image/png;base64,${raw}`;
+      const map = textureLoader.load(
+        url,
+        () => render(),
+        undefined,
+        () => {
+          // A map that failed to decode must not stay bound: an unbound sampler
+          // multiplies the surface to black, which reads as "the texture is
+          // missing" instead of "this part has no texture".
+          material.map = null;
+          material.color.setHex(COLOR_IDLE);
+          material.needsUpdate = true;
+          render();
+        },
+      );
+      map.colorSpace = THREE.SRGBColorSpace;
+      map.anisotropy = renderer?.capabilities.getMaxAnisotropy() ?? 4;
+      material.map = map;
+    }
+
     built.set(geo.name, mesh);
     group.add(mesh);
   }
