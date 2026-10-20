@@ -68,6 +68,21 @@ HEAD_GROUP = {
 #: roles that make a mesh "textured": `bt` is the plush/base variant of `d`
 DIFFUSE = {"d", "da", "dif", "bt"}
 
+#: Hand props are shared across characters and often carry no `c_` prefix
+#: (`cw_MP443_WL_*`, `SabrinaSSR01_Pizza_*`, `cw_Tongyong_SmokeGrenade_*`).
+SHARED_NS = {
+    "tongyong", "none", "aelg", "cf", "elid", "mecha", "motordriven",
+    "br", "npc", "enemy", "prop", "item", "weapon", "handmade",
+}
+
+#: body/clothing heads are unique per character: never borrow another skin's
+#: `hip2` / `head1` / `cloth6` atlas just because the token is equal
+GENERIC_HEAD = re.compile(
+    r"^(body|hair|face|eye|eyebrow|eyeblend|eyelash|head|hip|cloth|hand|leg|foot|"
+    r"weapon|slg|wl|p\d|g\d)[\d_]*$",
+    re.I,
+)
+
 _VARIANT_TAIL = re.compile(r"(?:SSR|SR|R|Dorm|Fight)?\d*$")
 
 
@@ -194,6 +209,44 @@ def families_of(textures) -> dict[str, list[str]]:
     return families
 
 
+_PROP_ROLE = re.compile(r"_(d|da|dif|bt|n|nt|rmo|spc|h)$", re.I)
+
+
+def _prop_families(all_names) -> dict[str, dict]:
+    """Texture families that are *not* under the character namespace.
+
+    Shared hand props: `cw_MP443_WL_*` (the gun every character can hold),
+    `SabrinaSSR01_Pizza_*`, `Lollipop01_*`, `cw_Tongyong_SmokeGrenade_*`.  Their
+    first token is either the object itself or a namespace (`Tongyong` = generic).
+    """
+    out: dict[str, dict] = {}
+    for name in all_names:
+        match = _PROP_ROLE.search(name)
+        if not match:
+            continue
+        stem = name[:match.start()]
+        tokens = [tok for tok in stem.split("_") if tok and not LOD.match(tok)]
+        if not tokens:
+            continue
+        prefixed = tokens[0] in ("c", "cw")
+        char = tokens[1] if prefixed and len(tokens) > 1 else tokens[0]
+        rest = tokens[2:] if prefixed else tokens[1:]
+        entry = out.setdefault(stem, {
+            "names": [],
+            "keys": set(),
+            "char": char,
+            "prefixed": prefixed,
+            "shared": char.lower() in SHARED_NS
+            or any(tok.lower() in SHARED_NS for tok in rest),
+        })
+        entry["names"].append(name)
+        # trailing digits are object numbering, not identity (`Lollipop01`)
+        for tok in [char, *rest]:
+            low = tok.lower()
+            entry["keys"].update({low, re.sub(r"\d+$", "", low)})
+    return out
+
+
 def pair(mesh_names: list[str], textures, families: dict | None = None) -> dict[str, list[str]]:
     """`{mesh name: [texture names]}` for one skin, strongest evidence first.
 
@@ -244,6 +297,10 @@ def pair(mesh_names: list[str], textures, families: dict | None = None) -> dict[
                 # `slg_cloth` (one mesh, several material families) owns
                 # `cloth01` / `cloth02`; same for `weapon` → `weapon01`
                 score = 60 + strength * 10
+            elif mesh["head"].startswith(head) and mesh["head"][len(head):].isdigit():
+                # `P3_head1` / `head2` are numbered pieces of the family's
+                # single `head` atlas
+                score = 55 + strength * 10
             elif head in heads_for(mesh, mesh_heads):
                 # the face shell lives on the head mesh when there is no face
                 # mesh of its own
@@ -257,6 +314,13 @@ def pair(mesh_names: list[str], textures, families: dict | None = None) -> dict[
 
     out: dict[str, list[str]] = {m["name"]: [] for m in meshes}
     for mesh in meshes:
+        # when the mesh's own head has a family, numbered sub-families
+        # (`body1`/`body2` next to `body`) are alternatives, not extra maps
+        if mesh["head"] and mesh["head"] in winners[mesh["name"]]:
+            for head in list(winners[mesh["name"]]):
+                rest = head[len(mesh["head"]):] if head.startswith(mesh["head"]) else ""
+                if head != mesh["head"] and rest.isdigit():
+                    del winners[mesh["name"]][head]
         for _d, _score, _chain, stem in winners[mesh["name"]].values():
             out[mesh["name"]].extend(families[stem])
 
@@ -289,6 +353,34 @@ def pair(mesh_names: list[str], textures, families: dict | None = None) -> dict[
                 best = (key, stem)
         if best:
             out[mesh["name"]].extend(families[best[1]])
+
+    # shared hand props (guns, food, grenades) sit outside the character
+    # namespace: match them by an exact part token, never by another skin's
+    # body/clothing head.
+    unresolved = [m for m in meshes if not any(role_of(n) in DIFFUSE for n in out[m["name"]])]
+    if unresolved:
+        props = _prop_families(all_names)
+        for mesh in unresolved:
+            head = mesh["head"]
+            if len(head) < 3 or GENERIC_HEAD.match(head):
+                continue
+            best = None
+            for stem, entry in props.items():
+                if head not in entry["keys"]:
+                    continue
+                if entry["char"].lower() == head:
+                    rank = 0
+                elif not entry["prefixed"]:
+                    rank = 1
+                elif entry["shared"]:
+                    rank = 2
+                else:
+                    continue
+                key = (rank, len(stem), stem)
+                if best is None or key < best[0]:
+                    best = (key, stem)
+            if best:
+                out[mesh["name"]].extend(props[best[1]]["names"])
 
     # a body with no base-colour map of its own samples the shared body atlas
     for mesh in meshes:

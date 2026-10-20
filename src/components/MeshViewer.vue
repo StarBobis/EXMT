@@ -87,11 +87,19 @@ function clearGroup() {
   group = null;
 }
 
+function isEffect(name: string): boolean {
+  return /_effect\b|\bvfx\b|\bemitter\b/i.test(name);
+}
+
 function fit(all: PreviewGeometry[]) {
   if (!camera || !controls) return;
+  // Effect sheets (`…_lod0_Effect`, `vfx`) are often a huge quad: framing on
+  // them makes the character a dot in the corner. Frame the real body instead.
+  const body = all.filter((geo) => !isEffect(geo.name));
+  const target = body.length ? body : all;
   const min = new THREE.Vector3(Infinity, Infinity, Infinity);
   const max = new THREE.Vector3(-Infinity, -Infinity, -Infinity);
-  for (const geo of all) {
+  for (const geo of target) {
     min.min(new THREE.Vector3(geo.bounds.min[0], geo.bounds.min[1], geo.bounds.min[2]));
     max.max(new THREE.Vector3(geo.bounds.max[0], geo.bounds.max[1], geo.bounds.max[2]));
   }

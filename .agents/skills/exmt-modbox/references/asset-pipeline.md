@@ -183,13 +183,25 @@ basis = (父pose · 父matrix_local⁻¹ · 本matrix_local)⁻¹ · pose
 | `spec.json` | 核心写给 Blender 侧，Blender **不依赖 App 在跑** |
 | `EXMTConfig.json` | `%APPDATA%\com.exmt.modbox\EXMTConfig.json`，格式 `exmt-config-1`：`workspace_root`、`updated_at`、`workspace{id,label,dir,entry,created_at}`、`bone_names`；串行写，避免快速切换时后到的 `null` 覆盖新选择 |
 | 写工作空间 | 每次写入前先删 `meshes/`、`textures/`，保证目录内容严格等于本次勾选 |
-| 皮肤缓存 | `<cache>/skins/<skinKey>/{meshes,geometry,thumbs,meta,diffuse}.json`，签名 = 相关 bundle 的 size+mtime |
+| 皮肤缓存 | `<cache>/skins/<skinKey>/{meshes,geometry,thumbs,groups,diffuse,meta}.json`；`groups` = 核心配对结果（mesh → 贴图名），旧包没有它时前端才退回 TS 规则 |
 | GameCache | `{manifest,names,skins,clips,bones}.json` + `skins/<key>/` + `progress.json`；**manifest 最后写**，它的存在即「缓存完整」 |
 | 代际标记 | `cache_built_at` **必须等于** manifest 的 `built_at`；整次 analyze 只取一次时间戳，别让各产物各取当前时间 |
 
+### 11.1 子网格 ↔ 贴图：按家族，不按前缀
+
+- **旧缺陷**：只保留 `<skinKey>_` 开头的贴图 → 家庭级 `c_Balthilde_slg_face/hair`、武器 `cw_<char>_WL`、共享 `B_body_*` 全被过滤，body/hair 显示「0 贴图」。
+- **规则唯一来源** `core/exmt_core/pairings.py`（TS 孪生 `src/lib/pairings.ts` 只给旧包/按需路径用）：
+  - 前缀 `c_`/`cw_` 后第一个 token 是角色；变体词 `Dorm/Fight/General/Flat/Bend/trans/vfx/uber/mat` 不进语义；`P1/P2`、`cloth1/cloth01` 保留。
+  - 同 token 链 > 同 head > 直接前缀（`Suitcase_slg_missle`←`Suitcase_slg`、`_1`←`_1_plane`）> 数字兄弟（`slg_cloth`←`cloth01`）> head 组（`hair` 网格兼收 `face/eye/eyeblend`，前提是没有独立 face 网格）> 字符家族（`BastiSSR0101` 用 `BastiSSR01_*`）。
+  - `cw_*` 里出现 `WL` 一律归到 `wl` 头：整把枪的 `cw_X_WL_*` 图集由 WL/Silencer/Sight/Stool 共享。
+  - 没有自有贴图的 `body`/`body1` → 共享 `B_body_*`（UV 岛对齐；`face_d` 会把胸口落在黑缝上）。
+  - 数字肢体兄弟（`hand2` 映射 `hand1`）同 P 组才继承；最终仍有缺口的道具按**精确 token** 匹配共享资产（`cw_MP443_WL`、`SabrinaSSR01_Pizza`、`cw_Tongyong_SmokeGrenade`），但 `body/hair/face/hip/cloth/head...` 这类通用头禁止跨角色借。
+- **实测**：249 个 roster 皮肤 2523/2603 个子网格有 diffuse（96.9%）；缺口 80 个里 76 个在本地缓存**完全没有对应贴图**（NPC/未下载皮肤包），不是配对漏匹配。审计命令：`python -m exmt_core pairs <cacheDir>`。
+- 材质不可用：全部 18467 个 `SkinnedMeshRenderer.m_Materials` 指向 `<external>`，`cab-*` 材质包未下载 → 只能靠命名 + UV 证据，别试图解析材质。
+
 - 部件键 = lod 前的茎 + **lod 数字之后的全部后缀**（`_Dorm`/`_Fight`/`_trans`）；丢了后缀会让 `slg_cloth` 与 `slg_cloth_Dorm` 撞键，默认战斗服被宿舍服顶掉。
 - lod 正则写成 `_lod(m?)(\d+)`（`lodm0` 是移动端抽稀），同 lod 优先非移动版（`rank=(index, mobile)`）；`emitter` 只要名字里含就跳过。
-- 皮肤范围 = 名字前缀 `<skinKey>_`；`skinKey` **已经带 `c_`**，拼接时不要再补 `c_`（否则 `c_c_…` 恒为空）。
+- 皮肤范围 = 名字前缀 `<skinKey>_`；`skinKey` **已经带 `c_`**，拼接时不要再补 `c_`（否则 `c_c_…` 恒为空）。贴图归组**不要**用这个前缀判断，见 §11.1。
 - 「开始制作」只新建、不更新，没有删除/重命名 UI；安装只备份一次；无补丁文件的旧记录显示 `0 个补丁` 并置灰。
 
 ## 12. Blender 插件
@@ -220,6 +232,7 @@ basis = (父pose · 父matrix_local⁻¹ · 本matrix_local)⁻¹ · pose
 python -m exmt_core glb         <bundle> out.glb               # 全部网格 + 各自骨架
 python -m exmt_core extract     <bundle> <mesh> out.exmtmesh   # 单网格（含骨骼/权重）
 python -m exmt_core geoset | maps | skinfo | thumbs <spec.json>
+python -m exmt_core pairs       <cacheDir>                     # 审计子网格↔贴图覆盖率
 python -m exmt_core workspace   <spec.json>
 # 写回
 python -m exmt_core pack        <bundle> <mesh> in.exmtmesh out.bundle
