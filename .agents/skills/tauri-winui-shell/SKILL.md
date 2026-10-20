@@ -107,3 +107,33 @@ async fn run_core(args: Vec<String>) -> Result<CoreOut, String> { /* Command::ne
 - `PrintWindow` 在窗口被遮挡时返回**旧帧**；正确做法：`SetWindowPos(HWND_TOPMOST)` → `SetWindowPos(HWND_NOTOPMOST)` → `SetForegroundWindow` → `CopyFromScreen`。
 - 点击坐标是**客户区物理像素**：`client = CSS × DPI缩放`（150% 时 ×1.5）。
 - 不要用 `pwsh` 的 `Set-Content` 改 `.vue`/`.ts`（BOM/GBK 往返会写坏文件）。
+
+## 别截图点按钮：用 CDP 程序化驱动 WebView2
+
+人工截图 → 找坐标 → 点击 → 再截图，一轮 1–2 分钟且坐标错了不自知。WebView2 支持远程调试，
+**一次起进程，之后全部用脚本读状态/点 DOM/抓图**：
+
+```powershell
+$env:WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS='--remote-debugging-port=9222'
+# 必须在同一个进程环境里启动 app；放到长驻后台任务里跑（app 退出任务才结束）
+& '.\src-tauri\target\debug\app.exe'
+```
+
+之后 `http://127.0.0.1:9222/json` 列出 page target，用 Node 24 自带的全局 `WebSocket` 直连
+`webSocketDebuggerUrl`，只发三条命令就够：
+
+| 目的 | CDP 命令 |
+| --- | --- |
+| 读页面状态/DOM/几何 | `Runtime.evaluate {expression, returnByValue:true, awaitPromise:true}` |
+| 点按钮（不用坐标） | 在 evaluate 里 `[...document.querySelectorAll('button')].find(n=>n.innerText.includes('文字')).click()` |
+| 截图 | `Page.captureScreenshot {format:'png'}` → base64 写文件 |
+
+要点：
+
+- **点击按可见文字而不是坐标**：布局变了也不会点错；截图里的像素坐标还要减 client 原点、乘 DPI，易错。
+- **抓图按 CSS 尺寸换算**：`captureScreenshot` 是设备像素，`devicePixelRatio` 通常 1.25/1.5；
+  要算预览区饱和度/颜色就把 `getBoundingClientRect()` 一起取回来，按 `图宽/innerWidth` 缩放。
+- **app 必须活着**：把启动命令放长驻后台任务（阻塞式跑 exe），不要 `Start-Process` 后让 shell 退出——
+  进程树被回收后 CDP 端口和窗口一起消失。
+- 前端改动走 Vite HMR，脚本里 `location.reload()` 后重抓即可，不用重启 app。
+
