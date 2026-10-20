@@ -6,7 +6,7 @@
  * same coordinate space), so the character is complete instead of one part at a
  * time. Geometry arrives as typed arrays from the Python core.
  */
-import { onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
@@ -37,6 +37,10 @@ let grid: THREE.GridHelper | null = null;
 let shadow: THREE.Mesh | null = null;
 let raf = 0;
 const built = new Map<string, THREE.Mesh>();
+/** what the scene actually holds — one-line footer, so "missing part" is provable */
+const stats = ref({ built: 0, tris: 0, box: "-" });
+const triCount = computed(() => stats.value.tris);
+const boxText = computed(() => stats.value.box);
 /** 相机取景参数，供「重置视角」和缩放百分比复用。 */
 let framing: { center: THREE.Vector3; maxDim: number } | null = null;
 
@@ -204,6 +208,7 @@ function onWheel(event: WheelEvent) {
 function build(all: PreviewGeometry[]) {
   if (!scene) return;
   clearGroup();
+  stats.value = { built: 0, tris: 0, box: "-" };
   if (!all.length) {
     render();
     return;
@@ -217,7 +222,10 @@ function build(all: PreviewGeometry[]) {
     if (geo.normals) buffer.setAttribute("normal", new THREE.BufferAttribute(geo.normals, 3));
     if (geo.uvs) buffer.setAttribute("uv", new THREE.BufferAttribute(geo.uvs, 2));
     buffer.setIndex(new THREE.BufferAttribute(geo.indices, 1));
-    if (!geo.normals) buffer.computeVertexNormals();
+    // always rebuild normals: the stored normal stream is right for the game's
+    // shader layout but some skinned meshes end up facing away from every light
+    // in this preview and render black (looks like the part is missing)
+    buffer.computeVertexNormals();
     buffer.computeBoundingSphere();
 
     const url = props.maps[geo.name];
@@ -245,6 +253,28 @@ function build(all: PreviewGeometry[]) {
     group.add(mesh);
   }
   scene.add(group);
+  let tris = 0;
+  let box = new THREE.Box3();
+  let first = true;
+  for (const [name, mesh] of built) {
+    const geometry = (mesh as THREE.Mesh).geometry as THREE.BufferGeometry;
+    const index = geometry.getIndex();
+    tris += index ? index.count / 3 : (geometry.getAttribute("position")?.count ?? 0) / 3;
+    (mesh as THREE.Mesh).updateMatrixWorld(true);
+    const bb = new THREE.Box3().setFromObject(mesh as THREE.Mesh);
+    if (!bb.isEmpty()) {
+      box = first ? bb.clone() : box.union(bb);
+      first = false;
+    }
+    void name;
+  }
+  stats.value = {
+    built: built.size,
+    tris: Math.round(tris),
+    box: first
+      ? "-"
+      : `${(box.max.x - box.min.x).toFixed(2)}×${(box.max.y - box.min.y).toFixed(2)}×${(box.max.z - box.min.z).toFixed(2)} m`,
+  };
   fit(all);
   render();
 }
@@ -361,6 +391,11 @@ onBeforeUnmount(() => {
   <div ref="host" class="meshviewer">
     <div v-if="!meshes.length && !loading" class="meshviewer__empty">3D</div>
     <div v-if="loading" class="meshviewer__loading"><span class="spinner" /></div>
+    <!-- debug: what the scene actually got, so "missing part" can be told apart
+         from "part is in the scene but out of frame / unlit" -->
+    <div v-if="meshes.length" class="meshviewer__stats">
+      {{ stats.built }}/{{ meshes.length }} · {{ triCount }} 面 · {{ boxText }}
+    </div>
     <div v-if="meshes.length" class="meshviewer__zoom">
       <button
         type="button"
@@ -396,6 +431,18 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
+.meshviewer__stats {
+  position: absolute;
+  left: 10px;
+  top: 8px;
+  font-size: 10px;
+  color: var(--text-3);
+  background: color-mix(in srgb, var(--bg-1) 72%, transparent);
+  padding: 2px 6px;
+  border-radius: 5px;
+  pointer-events: none;
+}
+
 .meshviewer {
   position: relative;
   width: 100%;
