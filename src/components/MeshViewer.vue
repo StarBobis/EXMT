@@ -44,7 +44,16 @@ const boxText = computed(() => stats.value.box);
 /** 相机取景参数，供「重置视角」和缩放百分比复用。 */
 let framing: { center: THREE.Vector3; maxDim: number } | null = null;
 
-const COLOR_PICKED = 0xffffff;
+/**
+ * 勾选（会导出）的子网格统一涂成纯紫，并压掉贴图。
+ *
+ * 之前勾选只是把颜色设成白色、再加一点几乎看不见的深蓝自发光（0x0a1a26），
+ * 对有贴图的部件等于没变——勾了和没勾看起来一模一样。选中必须是一个
+ * 不依赖贴图的信号，所以这里直接换成纯色：紫得足够亮，隔着屏幕也能看出
+ * 哪几块会被导出。自发光压到很暗的紫，保留一点立体感而不是一块死平色。
+ */
+const COLOR_PICKED = 0xa855f7;
+const EMISSIVE_PICKED = 0x3b0f7a;
 const COLOR_ACTIVE = 0xc4d5e4;
 const COLOR_IDLE = 0x6c737c;
 const textureLoader = new THREE.TextureLoader();
@@ -241,15 +250,9 @@ function build(all: PreviewGeometry[]) {
     buffer.computeVertexNormals();
     buffer.computeBoundingSphere();
 
-    const picked = props.selected.includes(geo.name);
-    const isActive = props.active === geo.name;
-    // a submesh with a diffuse map shows the real base colour even when it is not
-    // picked; the grey tint is only for parts that have no texture at all
     const raw = props.maps[geo.name];
-    const baseColor = raw ? 0xffffff : picked ? COLOR_PICKED : isActive ? COLOR_ACTIVE : COLOR_IDLE;
     const material = new THREE.MeshStandardMaterial({
-      color: baseColor,
-      emissive: picked ? 0x0a1a26 : isActive ? 0x0a2436 : 0x000000,
+      color: COLOR_IDLE,
       metalness: 0.05,
       roughness: 0.72,
       side: THREE.DoubleSide,
@@ -270,23 +273,29 @@ function build(all: PreviewGeometry[]) {
       const url = /^data:/i.test(raw) ? raw : `data:image/png;base64,${raw}`;
       const map = textureLoader.load(
         url,
-        () => render(),
+        () => {
+          // 解码完成后再刷一次：等待期间用户可能已经勾选/取消
+          paint(mesh);
+          render();
+        },
         undefined,
         () => {
           // A map that failed to decode must not stay bound: an unbound sampler
           // multiplies the surface to black, which reads as "the texture is
           // missing" instead of "this part has no texture".
-          material.map = null;
-          material.color.setHex(COLOR_IDLE);
-          material.needsUpdate = true;
+          mesh.userData.diffuse = null;
+          paint(mesh);
           render();
         },
       );
       map.colorSpace = THREE.SRGBColorSpace;
       map.anisotropy = renderer?.capabilities.getMaxAnisotropy() ?? 4;
-      material.map = map;
+      // 贴图挂在 userData 上而不是只挂在材质上：勾选态会临时摘掉 map，
+      // 取消勾选、或又点了别的部件时必须能原样贴回去。
+      mesh.userData.diffuse = map;
     }
 
+    paint(mesh);
     built.set(geo.name, mesh);
     group.add(mesh);
   }
@@ -322,18 +331,37 @@ function syncVisibility() {
   render();
 }
 
-/** 勾选的子网格用原色贴图，没勾的压暗，列表和 3D 的选中状态一致。 */
-function syncColors() {
-  for (const [name, mesh] of built) {
-    const material = mesh.material as THREE.MeshStandardMaterial;
-    const picked = props.selected.includes(name);
-    const isActive = props.active === name;
-    const textured = Boolean(material.map);
-    material.color.setHex(
-      textured ? 0xffffff : picked ? COLOR_PICKED : isActive ? COLOR_ACTIVE : COLOR_IDLE,
-    );
-    material.emissive.setHex(picked ? 0x0a1a26 : isActive ? 0x0a2436 : 0x000000);
+/**
+ * 一个子网格该长什么样。优先级从高到低：
+ *   1. 勾选（会导出）→ 纯紫，并摘掉贴图：只有纯色才是跨贴图统一、一眼可辨的信号；
+ *   2. 正在看它的贴图 → 原色贴图 + 一点冷光提示焦点；
+ *   3. 其余 → 原色贴图；完全没有贴图的部件用中性灰，说明“这里没有图”。
+ *
+ * 摘/挂贴图会改变着色器分支（USE_MAP），所以只有 map 真的变了才 needsUpdate，
+ * 否则每帧重编译。
+ */
+function paint(mesh: THREE.Mesh) {
+  const material = mesh.material as THREE.MeshStandardMaterial;
+  const picked = props.selected.includes(mesh.name);
+  const isActive = props.active === mesh.name;
+  const diffuse = (mesh.userData.diffuse as THREE.Texture | null | undefined) ?? null;
+  const nextMap = !picked && diffuse ? diffuse : null;
+  if (material.map !== nextMap) {
+    material.map = nextMap;
+    material.needsUpdate = true;
   }
+  material.color.setHex(
+    picked ? COLOR_PICKED : nextMap ? 0xffffff : isActive ? COLOR_ACTIVE : COLOR_IDLE,
+  );
+  material.emissive.setHex(picked ? EMISSIVE_PICKED : isActive ? 0x0a2436 : 0x000000);
+  material.metalness = picked ? 0 : 0.05;
+  // 选中态用高粗糙度：这套棚拍灯很亮，低粗糙度会把纯紫的镜面高光洗成粉白
+  material.roughness = picked ? 0.92 : 0.72;
+}
+
+/** 勾选 / 当前查看变化后重算颜色：列表的勾选态必须和 3D 里的紫色一一对应。 */
+function syncColors() {
+  for (const mesh of built.values()) paint(mesh);
   render();
 }
 
@@ -437,6 +465,11 @@ onBeforeUnmount(() => {
     <div v-if="meshes.length" class="meshviewer__stats">
       {{ stats.built }}/{{ meshes.length }} · {{ triCount }} 面 · {{ boxText }}
     </div>
+    <!-- 勾选数量的第二处反馈：模型可能被挡住、在屏幕外或全在背后，文字仍在 -->
+    <div v-if="meshes.length && selected.length" class="meshviewer__legend">
+      <i class="meshviewer__swatch" aria-hidden="true" />
+      {{ t("viewer.picked", { n: selected.length }) }}
+    </div>
     <div v-if="meshes.length" class="meshviewer__zoom">
       <button
         type="button"
@@ -476,12 +509,44 @@ onBeforeUnmount(() => {
   position: absolute;
   left: 10px;
   top: 8px;
+  /* 右上角的重置按钮有 26px：统计文字不许压过去，超长就省略 */
+  right: 46px;
   font-size: 10px;
   color: var(--text-3);
   background: color-mix(in srgb, var(--bg-1) 72%, transparent);
   padding: 2px 6px;
   border-radius: 5px;
   pointer-events: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 勾选态图例：实紫底白字。canvas 是透明的，浅色主题下会把半透明紫洗成白色，
+   所以这里不能用低对比度的浅色方案。 */
+.meshviewer__legend {
+  position: absolute;
+  left: 10px;
+  top: 35px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  line-height: 1.35;
+  color: #ffffff;
+  background: #7c3aed;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.meshviewer__swatch {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  background: #c084fc;
 }
 
 .meshviewer {
