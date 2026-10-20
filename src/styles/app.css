@@ -133,6 +133,59 @@ select option {
   overflow: hidden auto;
 }
 
+/* startup: reading the analysis, or the wizard before any page exists */
+.app__boot {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-size: 12px;
+  color: var(--text-2);
+}
+
+.app__boot--error {
+  flex-direction: column;
+  padding: 40px;
+  text-align: center;
+  color: var(--danger, #d64545);
+}
+
+.app__spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--stroke-strong);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: app-spin 0.9s linear infinite;
+}
+
+@keyframes app-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.app__setup {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.app__viewerror {
+  margin: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--danger, #d64545);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--danger, #d64545) 12%, transparent);
+  color: var(--text-1);
+  font-size: 11px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  overflow: auto;
+  max-height: 45vh;
+}
+
 /* ============================================================================
    Custom title bar
    ========================================================================== */

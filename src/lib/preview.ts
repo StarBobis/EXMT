@@ -10,11 +10,11 @@ import { exists, mkdir, readDir, readTextFile, remove, stat, writeTextFile } fro
 import { appDataDir, join } from "@tauri-apps/api/path";
 import catalogData from "../data/catalog.json";
 import { gameBundles, runCore } from "./core";
+import { ensureGameCache } from "./gamecache";
 import { backup, cacheFolder, refreshBackup } from "./settings";
 import { isTauri } from "./tauri";
 import { newWorkspaceIdentity, workspaceRoot } from "./workspaces";
 
-const INDEX_MAX_AGE_MS = 12 * 60 * 60 * 1000;
 
 export interface SkinMesh {
   name: string;
@@ -192,53 +192,23 @@ async function runJson(args: string[]): Promise<any> {
 }
 
 // --------------------------------------------------------------------------- //
-// texture index
+// texture index (from the analysed GameCache — pages never scan the game)
 // --------------------------------------------------------------------------- //
-async function indexPath(): Promise<string> {
-  return join(cacheFolder.value, "texindex.json");
-}
+let texIndexCache: TexIndex | null = null;
 
-async function readIndex(): Promise<TexIndex | null> {
-  const path = await indexPath();
-  if (!(await exists(path))) return null;
-  try {
-    const info = await stat(path);
-    const age = Date.now() - new Date(info.mtime ?? 0).getTime();
-    if (age > INDEX_MAX_AGE_MS) return null;
-    const data = JSON.parse(await readTextFile(path)) as TexIndex;
-    if (data.bundle_dir !== indexSourceDir()) return null;
-    return data;
-  } catch {
-    return null;
-  }
-}
-
-/** 贴图索引要从“原始资源”里建：有备份就用备份，否则用游戏目录。 */
-function indexSourceDir(): string {
-  return backup.value.ready ? backup.value.dir : gameBundles();
-}
-
-let indexCache: TexIndex | null = null;
-let indexPromise: Promise<TexIndex> | null = null;
-
-/** Load the texture index, rebuilding it when missing, stale or from another folder. */
+/** Texture index: read from `<cache>/GameCache`, built once by the analysis. */
 export async function ensureTexIndex(): Promise<TexIndex> {
-  if (indexCache) return indexCache;
-  if (indexPromise) return indexPromise;
-  indexPromise = (async () => {
-    const cached = await readIndex();
-    if (cached) return cached;
-    const path = await indexPath();
-    const res = await runCore(["texindex", indexSourceDir(), path]);
-    if (res.code !== 0) throw new Error((res.stderr || res.stdout).trim().slice(-500));
-    return JSON.parse(await readTextFile(path)) as TexIndex;
-  })();
-  try {
-    indexCache = await indexPromise;
-    return indexCache;
-  } finally {
-    indexPromise = null;
-  }
+  if (texIndexCache) return texIndexCache;
+  const cache = await ensureGameCache();
+  const textures = cache.names.textures;
+  texIndexCache = {
+    format: cache.manifest.format,
+    built_at: cache.manifest.built_at,
+    bundle_dir: cache.manifest.bundle_dir,
+    texture_count: Object.keys(textures).length,
+    textures,
+  };
+  return texIndexCache;
 }
 
 /** Textures whose names belong to this skin (`<skinKey>_…`, e.g. `c_AlvaSSR01_`). */
@@ -254,59 +224,22 @@ export function texturesFor(index: TexIndex, skinKey: string): TextureEntry[] {
 }
 
 // --------------------------------------------------------------------------- //
-// animation index
+// animation index (same cache; 39 974 clips over the whole library)
 // --------------------------------------------------------------------------- //
-/**
- * Clip names live in the payload (`m_Name` at each object's start), and one
- * character's combat clip alone is ~200 KB, so a full/big scan is expensive:
- * the core reads only each bundle's **metadata** first and fully reads just the
- * bundles whose type table lists an AnimationClip. Measured over GF2's whole
- * library: 9613 bundles -> 39974 clips / 2675 clip bundles in 63 s, once.
- *
- * It has to scan the **game** folder, not the backup: the backup only holds the
- * bundles this app reads meshes and textures from, and that is 9 clip bundles
- * out of 2675.
- */
-async function animIndexPath(): Promise<string> {
-  return join(cacheFolder.value, "animindex.json");
-}
-
-async function readAnimIndex(): Promise<AnimIndex | null> {
-  const path = await animIndexPath();
-  if (!(await exists(path))) return null;
-  try {
-    const info = await stat(path);
-    const age = Date.now() - new Date(info.mtime ?? 0).getTime();
-    if (age > INDEX_MAX_AGE_MS) return null;
-    const data = JSON.parse(await readTextFile(path)) as AnimIndex;
-    if (data.bundle_dir !== gameBundles()) return null;
-    return data;
-  } catch {
-    return null;
-  }
-}
-
 let animIndexCache: AnimIndex | null = null;
-let animIndexPromise: Promise<AnimIndex> | null = null;
 
+/** Clip index: read from `<cache>/GameCache`, no per-page scan. */
 export async function ensureAnimIndex(): Promise<AnimIndex> {
   if (animIndexCache) return animIndexCache;
-  if (animIndexPromise) return animIndexPromise;
-  animIndexPromise = (async () => {
-    const cached = await readAnimIndex();
-    if (cached) return cached;
-    const path = await animIndexPath();
-    const res = await runCore(["animidx", gameBundles(), path]);
-    if (res.code !== 0) throw new Error((res.stderr || res.stdout).trim().slice(-500));
-    const data = JSON.parse(await readTextFile(path)) as AnimIndex;
-    return data;
-  })();
-  try {
-    animIndexCache = await animIndexPromise;
-    return animIndexCache;
-  } finally {
-    animIndexPromise = null;
-  }
+  const cache = await ensureGameCache();
+  animIndexCache = {
+    format: cache.manifest.format,
+    built_at: cache.manifest.built_at,
+    bundle_dir: cache.manifest.bundle_dir,
+    clip_count: Object.keys(cache.clips).length,
+    clips: cache.clips,
+  };
+  return animIndexCache;
 }
 
 /** Clips of one skin (`c_<skinKey>_…`), sorted by name. */
@@ -330,113 +263,42 @@ export function animationsFor(index: AnimIndex, skinKey: string): AnimEntry[] {
  * (`m_TOS`) and prefab hierarchy. The game gives meshes only bone hashes, so
  * this is the one way to print real bone names — and, because the hash covers
  * the whole path, a hit also proves the parent chain.
+ *
+ * The analysis writes it to `GameCache/bones.json`; nothing builds it on demand
+ * any more.
  */
-async function boneNamesPath(): Promise<string> {
-  return join(cacheFolder.value, "bonenames.json");
-}
-
-/** Where the bone-name index lives — the Blender add-on reads it via the config. */
 export async function boneNamesIndexPath(): Promise<string> {
-  return boneNamesPath();
+  const cache = await ensureGameCache();
+  return join(cache.dir, "bones.json");
 }
-
-let boneNamesPromise: Promise<string | null> | null = null;
 
 /**
- * Path of the bone-name index, building it on first use (≈13 s, then cached).
+ * Path of the bone-name table (`GameCache/bones.json`, 50 005 paths for GF2).
  *
- * Scans the **game** folder, not the backup: names come from Avatars and prefabs
- * (`crc32(transform path)`), and the backup only holds the bundles this app
- * reads meshes and textures from — 418 paths there versus 50 005 in the game
- * folder, i.e. almost no bone would get a real name.
+ * The names come from Avatars and prefabs (`crc32(transform path)`), which only
+ * the **game** folder has — the analysis writes them into the cache, so a
+ * workspace export no longer triggers a scan of its own.
  */
 export async function ensureBoneNames(): Promise<string | null> {
-  if (boneNamesPromise) return boneNamesPromise;
-  boneNamesPromise = (async () => {
-    const path = await boneNamesPath();
-    const source = gameBundles();
-    try {
-      if (await exists(path)) {
-        const data = JSON.parse(await readTextFile(path)) as { bundle_dir?: string };
-        if (data.bundle_dir === source) return path;
-      }
-      const res = await runCore(["bonenames", source, path]);
-      if (res.code !== 0) return null;
-      return path;
-    } catch {
-      return null;
-    }
-  })();
-  try {
-    return await boneNamesPromise;
-  } finally {
-    boneNamesPromise = null;
-  }
+  const cache = await ensureGameCache();
+  const path = await join(cache.dir, "bones.json");
+  return (await exists(path).catch(() => false)) ? path : null;
 }
 
 // --------------------------------------------------------------------------- //
-// mesh index: mesh name -> every bundle that stores a copy
+// mesh / texture name index (same cache: mesh -> every bundle that stores a copy)
 // --------------------------------------------------------------------------- //
 /**
- * A mesh is not necessarily stored once: 68 of the 643 bundles this app reads
- * hold meshes of more than one skin. Patching only the copy the catalog happens
- * to name would leave the game free to load an unmodified copy, so the workspace
- * records every bundle for every mesh it exports.
- */
-async function meshIndexPath(): Promise<string> {
-  return join(cacheFolder.value, "meshindex.json");
-}
-
-let meshIndexPromise: Promise<{ meshes: Record<string, string[]>; textures: Record<string, string[]> } | null> | null =
-  null;
-
-/**
- * Name index over the 643 backed-up bundles: `mesh/texture name -> [bundle hash]`.
- *
- * The **backup** folder is the right target here (unlike the bone names, which
- * only exist in the game folder's Avatars and prefabs): it holds every bundle
- * this app can pack into, including the extra copies of a mesh, and it does not
- * change while the user is working.
- *
- * Textures are duplicated more often than meshes (72 of 3824 names live in more
- * than one bundle), so both maps come out of the same single scan.
+ * A mesh is not necessarily stored once: 68 of the 643 inspected bundles hold
+ * meshes of more than one skin. Patching only one copy would leave the game free
+ * to load an unmodified one, so the workspace records every bundle per mesh.
  */
 export async function ensureMeshIndex(): Promise<{
   meshes: Record<string, string[]>;
   textures: Record<string, string[]>;
 } | null> {
-  if (meshIndexPromise) return meshIndexPromise;
-  meshIndexPromise = (async () => {
-    const path = await meshIndexPath();
-    const source = backup.value.ready ? backup.value.dir : gameBundles();
-    try {
-      if (await exists(path)) {
-        const data = JSON.parse(await readTextFile(path)) as {
-          game_bundles?: string;
-          meshes?: Record<string, string[]>;
-          textures?: Record<string, string[]>;
-        };
-        // an index built before textures were tracked has no `textures` map: rebuild
-        if (data.game_bundles === source && data.meshes && data.textures) {
-          return { meshes: data.meshes, textures: data.textures };
-        }
-      }
-      const res = await runCore(["meshidx", source, path]);
-      if (res.code !== 0) return null;
-      const data = JSON.parse(await readTextFile(path)) as {
-        meshes?: Record<string, string[]>;
-        textures?: Record<string, string[]>;
-      };
-      return { meshes: data.meshes ?? {}, textures: data.textures ?? {} };
-    } catch {
-      return null;
-    }
-  })();
-  try {
-    return await meshIndexPromise;
-  } finally {
-    meshIndexPromise = null;
-  }
+  const cache = await ensureGameCache();
+  return cache.names;
 }
 
 // --------------------------------------------------------------------------- //
@@ -614,6 +476,28 @@ async function thumbsFor(textures: TextureEntry[]): Promise<TextureEntry[]> {  c
 export type SkinPhase = "meshes" | "geometry" | "textures";
 
 /**
+ * Warm a skin while the user is still on the roster.
+ *
+ * The indexes come from the analysed cache, but one skin's *geometry* has to be
+ * decoded from its bundles once (then `<cache>/skins/<key>/` serves it). Doing
+ * that in the background when a card is picked makes the studio feel instant;
+ * at most one warm-up runs at a time so browsing cannot hammer the disk.
+ */
+let warming: string | null = null;
+
+export function prefetchSkin(entry: SkinEntry): void {
+  if (!isTauri || warming) return;
+  const key = skinKeyOf(entry);
+  if (skinMemory.get(key)) return;
+  warming = key;
+  void loadSkin(entry)
+    .catch(() => undefined)
+    .finally(() => {
+      warming = null;
+    });
+}
+
+/**
  * Everything the studio shows for one skin.
  *
  * First visit parses the bundles and writes `<cache>/skins/<key>/`; later
@@ -632,6 +516,9 @@ export async function loadSkin(
   }
   if (!isTauri) throw new Error("desktop only");
 
+  // report the first phase *before* the index lookup: if the studio ever hangs
+  // on startup the label tells us which step it is (index vs mesh vs texture)
+  onPhase?.("meshes");
   const index = await ensureTexIndex();
   const texs = texturesFor(index, key);
   const meshHashes = bundleHashesOf(entry);
@@ -860,14 +747,12 @@ export async function restoreOriginals(): Promise<BackupResult> {
   return stats;
 }
 
-/** Drop everything derived from the live game folder (index, per-skin cache). */
+/** Drop per-skin caches derived from the live game folder (the analysis stays). */
 async function resetDerivedCaches(): Promise<void> {
-  indexCache = null;
-  indexPromise = null;
+  texIndexCache = null;
+  animIndexCache = null;
   skinMemory.clear();
   meshCache.clear();
-  await remove(await indexPath()).catch(() => undefined);
-  await remove(await boneNamesPath()).catch(() => undefined);
   await remove(await join(cacheFolder.value, "skins"), { recursive: true }).catch(() => undefined);
 }
 

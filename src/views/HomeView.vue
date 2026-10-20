@@ -11,6 +11,7 @@ import {
   type Character,
 } from "../lib/roster";
 import { pickCharacter, selectSkin, selectedChar, selectedSkin } from "../lib/selection";
+import { prefetchSkin } from "../lib/preview";
 
 const query = ref("");
 const listRef = ref<HTMLElement | null>(null);
@@ -28,8 +29,9 @@ watch(selectedChar, revealSelected);
 
 const filtered = computed(() => {
   const q = query.value.trim().toLowerCase();
-  if (!q) return characters;
-  return characters.filter((character) => {
+  const all = characters.value;
+  if (!q) return all;
+  return all.filter((character) => {
     if (character.key.toLowerCase().includes(q)) return true;
     if (character.display.toLowerCase().includes(q)) return true;
     return character.entries.some(
@@ -45,10 +47,14 @@ const cards = computed(() =>
 
 function pick(character: Character) {
   pickCharacter(character);
+  // warm the skin the studio will open, so entering it is instant
+  const entry = selectedSkin.value;
+  if (entry) prefetchSkin(entry);
 }
 
 function choose(entry: CatalogEntry) {
   selectSkin(entry);
+  prefetchSkin(entry);
 }
 
 function enterStudio() {

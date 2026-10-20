@@ -440,6 +440,26 @@ def cmd_animidx(args):
     return 0
 
 
+def cmd_analyze(args):
+    """analyze <bundleDir> <cacheDir> [workers] [limit] - build <cacheDir>/GameCache."""
+    from . import analyze
+
+    bundle_dir, cache_dir = args[0], args[1]
+    workers = int(args[2]) if len(args) > 2 and args[2] else None
+    limit = int(args[3]) if len(args) > 3 and args[3] else None
+    print(json.dumps(analyze.analyze(bundle_dir, cache_dir, workers=workers, limit=limit),
+                     ensure_ascii=False))
+    return 0
+
+
+def cmd_cache(args):
+    """cache <cacheDir> - is the GameCache there and usable? (no scan)"""
+    from . import analyze
+
+    print(json.dumps(analyze.status(args[0] if args else ""), ensure_ascii=False))
+    return 0
+
+
 def cmd_anims(args):
     """anims <bundle> [bonenames.json] - every AnimationClip in one bundle, summarised."""
     from . import anim, bonenames
@@ -505,6 +525,8 @@ def main(argv=None):
         "anims": cmd_anims,
         "animexport": cmd_animexport,
         "animidx": cmd_animidx,
+        "analyze": cmd_analyze,
+        "cache": cmd_cache,
     }
     if cmd not in table:
         print("unknown command", cmd)

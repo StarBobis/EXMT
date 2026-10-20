@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from "vue";
+import { computed, onErrorCaptured, onMounted, ref, watch } from "vue";
 import TitleBar from "./components/TitleBar.vue";
 import SideBar from "./components/SideBar.vue";
 import HomeView from "./views/HomeView.vue";
@@ -8,10 +8,12 @@ import LibraryView from "./views/LibraryView.vue";
 import ToolsView from "./views/ToolsView.vue";
 import LogsView from "./views/LogsView.vue";
 import SettingsView from "./views/SettingsView.vue";
+import SetupView from "./views/SetupView.vue";
 import type { ViewKey } from "./lib/nav";
 import { currentView } from "./lib/nav";
 import { t } from "./lib/i18n";
-import { checkGamePath, gamePath, gameReady } from "./lib/settings";
+import { boot, bootError, bootState } from "./lib/boot";
+import { gameCache } from "./lib/gamecache";
 
 const STORAGE_KEY = "exmt.nav.collapsed";
 
@@ -29,23 +31,49 @@ const views = {
 } as const;
 
 const viewComponent = computed(() => views[currentView.value]);
-/** 这三页都要读游戏资源，没设游戏路径前不给进。 */
-const gated = computed(() => ["models", "library", "tools"].includes(currentView.value));
+/**
+ * Pages that read game assets need the analysed cache; the setup wizard is the
+ * only way to get one, so this gate now points at the cache, not the path.
+ */
+const needsCache = computed(() => ["models", "library", "tools"].includes(currentView.value));
+const cacheReady = computed(() => bootState.value === "ready" && !!gameCache.value);
 
 function selectView(key: ViewKey) {
   currentView.value = key;
 }
 
-// 启动时先验证已存的游戏路径，否则直接从导航进模型页会误判成"没设置"。
-onMounted(() => {
-  if (gamePath.value) void checkGamePath(gamePath.value);
+/**
+ * One page failing must not leave the previous page's DOM on screen (that is
+ * what a silent Vue patch abort looks like: you click Settings and nothing
+ * happens). Show the error instead, so it can be reported.
+ */
+const viewError = ref("");
+
+onErrorCaptured((error) => {
+  viewError.value = String((error as Error)?.stack || error);
+  return false;
 });
+
+watch(currentView, () => {
+  viewError.value = "";
+});
+
+onMounted(() => void boot());
 </script>
 
 <template>
   <div class="app">
     <TitleBar title="EXMT Modbox" :badge="t('app.preview')" />
-    <div class="app__body">
+    <div v-if="bootState === 'loading'" class="app__boot">
+      <span class="app__spinner" aria-hidden="true" />
+      {{ t("app.loading") }}
+    </div>
+    <div v-else-if="bootState === 'error'" class="app__boot app__boot--error">
+      <p>{{ bootError }}</p>
+      <button class="btn" type="button" @click="boot()">{{ t("settings.cacheRebuild") }}</button>
+    </div>
+    <SetupView v-else-if="bootState === 'setup'" class="app__setup" />
+    <div v-else class="app__body">
       <SideBar
         :selected="currentView"
         :collapsed="collapsed"
@@ -53,13 +81,14 @@ onMounted(() => {
         @toggle="collapsed = !collapsed"
       />
       <main class="app__content">
-        <KeepAlive v-if="!gated || gameReady">
+        <pre v-if="viewError" class="app__viewerror">{{ viewError }}</pre>
+        <KeepAlive v-if="!needsCache || cacheReady">
           <component :is="viewComponent" :key="currentView" />
         </KeepAlive>
         <section v-else class="gate">
           <div class="gate__icon glyph">&#xE7BA;</div>
-          <h2 class="gate__title">{{ t("gate.title") }}</h2>
-          <p class="gate__body">{{ t("gate.body") }}</p>
+          <h2 class="gate__title">{{ t("gate.cacheTitle") }}</h2>
+          <p class="gate__body">{{ t("gate.cacheBody") }}</p>
           <button class="btn btn--accent" type="button" @click="selectView('settings')">
             {{ t("gate.action") }}
           </button>

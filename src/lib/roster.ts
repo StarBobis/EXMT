@@ -1,13 +1,16 @@
 /**
- * Character / skin catalogue shared by the home roster and the model studio.
+ * Character / skin roster, **derived from the analysed game cache**.
  *
- * `catalog.json` is one row per skin (mesh bundle + parts); `art.json` maps a
- * character key to its illustrations, where `entry` points back at the skin.
- * The home page owns the two lists now, so the data lives here instead of in a
- * view.
+ * `catalog.json` used to be the source of truth (240 hand-written rows), which
+ * meant a game update needed code changes. Now the rows come from
+ * `GameCache/skins.json` (every skin the analysis found) and the bundled
+ * catalogue is only a **label dictionary**: Chinese display names, and nothing
+ * else. `art.json` maps a character key to its illustrations, where `entry`
+ * points back at the skin.
  */
 import artData from "../data/art.json";
 import catalogData from "../data/catalog.json";
+import { shallowRef } from "vue";
 
 export interface CatalogEntry {
   id: string;
@@ -60,14 +63,29 @@ function charKeyOf(name: string) {
   return m ? m[1] : name;
 }
 
-export const catalog: CatalogEntry[] = (catalogData as { characters: CatalogEntry[] })
-  .characters;
+export const catalog = shallowRef<CatalogEntry[]>([]);
 
 const art = artData as unknown as Record<string, CharArt>;
 
-function buildCharacters(): Character[] {
+/** The bundled catalogue is kept for its labels and portraits only. */
+interface LabelRow {
+  name: string;
+  display?: string;
+  portrait?: { bundle: string; texture: string } | null;
+}
+const labelRows = (catalogData as { characters: LabelRow[] }).characters;
+const labels = new Map<string, string>(
+  labelRows.filter((row) => !!row.display).map((row) => [row.name, row.display as string]),
+);
+const portraits = new Map<string, { bundle: string; texture: string }>(
+  labelRows
+    .filter((row) => !!row.portrait)
+    .map((row) => [row.name, row.portrait as { bundle: string; texture: string }]),
+);
+
+function build(entries: CatalogEntry[]): Character[] {
   const map = new Map<string, Character>();
-  for (const entry of catalog) {
+  for (const entry of entries) {
     const key = charKeyOf(entry.name);
     let character = map.get(key);
     if (!character) {
@@ -99,12 +117,62 @@ function buildCharacters(): Character[] {
   return list;
 }
 
-export const characters: Character[] = buildCharacters();
+export const characters = shallowRef<Character[]>([]);
 
-const entryById = new Map(catalog.map((entry) => [entry.id, entry]));
+const entryById = new Map<string, CatalogEntry>();
 const characterByEntry = new Map<string, Character>();
-for (const character of characters) {
-  for (const entry of character.entries) characterByEntry.set(entry.id, character);
+let cardsByCharacter = new WeakMap<Character, ArtCard[]>();
+
+/**
+ * Does this analysed skin belong on the home page?
+ *
+ * The game ships helper meshes that look like skins (`AR`, `AELG`, …: base-body
+ * variants with no `slg_` set and no textures). A real skin has a `slg_` part;
+ * anything the label dictionary knows about is kept regardless, so a renamed
+ * variant never disappears from the roster.
+ */
+function isCharacterSkin(row: { name: string; parts: Record<string, string> }): boolean {
+  if (labels.has(row.name)) return true;
+  return Object.keys(row.parts).some((part) => part.startsWith("slg"));
+}
+
+/** Replace the roster with what the analysis found (call once, after cache load). */
+export function hydrateRoster(
+  skins: {
+    id?: string;
+    name: string;
+    variant?: string;
+    bundle: string;
+    parts: Record<string, string>;
+    part_bundles?: Record<string, string[]>;
+  }[],
+): void {
+  const entries: CatalogEntry[] = [];
+  for (const row of skins) {
+    if (!isCharacterSkin(row)) continue;
+    entries.push({
+      id: row.id || `c_${row.name}`,
+      name: row.name,
+      display: labels.get(row.name),
+      variant: row.variant || (row.name.toLowerCase().endsWith("dorm") ? "dorm" : "slg"),
+      bundle: row.bundle,
+      parts: row.parts ?? {},
+      part_bundles: row.part_bundles,
+      // portraits still come from the bundled dictionary; a skin the analysis
+      // found but the dictionary does not know shows its first letter instead
+      portrait: portraits.get(row.name) ?? null,
+    });
+  }
+  catalog.value = entries;
+  characters.value = build(entries);
+
+  entryById.clear();
+  characterByEntry.clear();
+  cardsByCharacter = new WeakMap();
+  for (const entry of entries) entryById.set(entry.id, entry);
+  for (const character of characters.value) {
+    for (const entry of character.entries) characterByEntry.set(entry.id, character);
+  }
 }
 
 export function findEntry(id: string | null | undefined): CatalogEntry | null {
@@ -126,8 +194,6 @@ export function preferredEntry(character: Character): CatalogEntry | null {
     null
   );
 }
-
-const cardsByCharacter = new WeakMap<Character, ArtCard[]>();
 
 /** Every skin of the character gets a card; skins without art get a placeholder. */
 export function artCardsFor(character: Character): ArtCard[] {

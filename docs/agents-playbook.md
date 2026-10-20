@@ -110,10 +110,49 @@ $bun = 'C:\Users\Administrator\.bun\bin\bun.exe'
 node scripts/dev.mjs                  # 只起前端（同样复用已有 Vite；--force 用 bun run dev:force）
 & $bun run check                       # 质量门
 cd core; & $py -m exmt_core <cmd>      # 核心 CLI（cwd 必须在 core）
+cd core; & $py -m exmt_core analyze <游戏bundles> <缓存目录> 8   # 重建 GameCache（≈4 分钟）
+cd core; & $py -m exmt_core cache <缓存目录>                     # 只查状态，不扫
 C:\DevCache\gf2\app2.ps1 shot -out p.png
 C:\DevCache\gf2\app2.ps1 click <cx> <cy>
 & 'C:\Program Files\Blender Foundation\Blender 5.2\blender.exe' --background --factory-startup --python x.py
 ```
+
+---
+
+## 7.1 游戏缓存与启动流程（2026-10-20 起）
+
+**数据流**：`<缓存目录>\GameCache\` 是唯一的"游戏知识"来源；主页/模型页/动作栏都只读它，
+不再各自扫包（以前模型页第一次要 40–60 s、动作栏 63 s）。
+
+| 文件 | 内容 | 谁写 |
+| --- | --- | --- |
+| `manifest.json` | format / built_at / bundle_dir / 计数 / 耗时 | `analyze`，**最后写**（存在 = 完整） |
+| `names.json` | 网格名 → bundle 列表，贴图名 → bundle 列表 | 同上（`meshidx.build`） |
+| `skins.json` | 皮肤 → 部件（每部件最低 lod 的网格）+ 贴图/动作计数 | 同上 |
+| `clips.json` | 39 974 个 AnimationClip 名 → bundle | 同上（`animidx.build`） |
+| `bones.json` | 50 005 条骨骼路径（crc32 → 路径） | 同上（`bonenames.build`） |
+| `progress.json` | 当前阶段/已完成阶段/耗时，UI 每 900 ms 轮询 | `analyze`，边跑边写 |
+
+**启动三态**（`src/lib/boot.ts`）：`loading → ready | setup | error`。
+`ready` 的条件：setup 标记 + 游戏路径可用 + `cacheState() === "ready"`（manifest 能解析、
+format 对、`bundle_dir` 与当前游戏目录一致、三个数据文件在）。不满足就进向导，
+向导第 4 步分析完才能进主界面。
+
+**改这些地方会互相影响**：
+
+- 改缓存目录 / 游戏目录 → 旧缓存立即失效（`elsewhere`）；设置页两个入口都已接 `boot()`。
+- 改了 `analyze.py` 的产物格式 → 把 `FORMAT` 加版本，否则旧缓存会被当成 `outdated`。
+- 模型页每个皮肤第一次仍解几何（20–25 s，存 `<缓存>/skins/<key>/`）；`prefetchSkin()`
+  在主页选中立绘时后台预热，一次只热一个。
+
+**验证手法（可复用）**：
+
+1. `Move-Item GameCache\manifest.json ...keep` → 启动必须进向导（模拟"没分析过"）。
+2. 分析中途看 `progress.json`（阶段名 + 秒数），完成看 `manifest.json` 的 `built_at`。
+3. 想证明"没再扫包"：在点进模型页的同时用 250 ms 轮询
+   `Get-CimInstance Win32_Process -Filter "name='python.exe'"`，过滤 `exmt_core`，
+   **应当一条都没有**（只有 prefetch 那次会有 `skinfo/geoset/thumbs/maps`）。
+4. 关掉所有 `exmt-modbox` 再截图：**两个窗口叠在一起时，点击和截图会落在旧窗口上**（见 corrections）。
 
 ---
 

@@ -25,20 +25,27 @@ function readSavedSkin(): CatalogEntry | null {
   }
 }
 
-const saved = readSavedSkin();
+export const selectedChar = ref<Character | null>(null);
+export const selectedSkin = ref<CatalogEntry | null>(null);
 
-function initialCharacter(entry: CatalogEntry | null): Character | null {
-  if (entry) {
-    const character = characterOfEntry(entry);
-    if (character) return character;
+/**
+ * Pick the saved skin (or the first character) **after** the roster is known.
+ *
+ * The roster comes from the analysed cache now, so nothing can be selected at
+ * module load time: `hydrateRoster()` runs first, then this.
+ */
+export function restoreSelection(): void {
+  if (selectedSkin.value) return;
+  const saved = readSavedSkin();
+  const fallback = characters.value[0] ?? null;
+  if (saved) {
+    selectedChar.value = characterOfEntry(saved) ?? fallback;
+    selectedSkin.value = saved;
+    return;
   }
-  return characters[0] ?? null;
+  selectedChar.value = fallback;
+  selectedSkin.value = fallback ? preferredEntry(fallback) : null;
 }
-
-export const selectedChar = ref<Character | null>(initialCharacter(saved));
-export const selectedSkin = ref<CatalogEntry | null>(
-  saved ?? (selectedChar.value ? preferredEntry(selectedChar.value) : null),
-);
 
 function persist() {
   try {

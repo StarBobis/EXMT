@@ -23,6 +23,8 @@ import {
   useGamePath,
 } from "../lib/settings";
 import { backupOriginals, restoreOriginals } from "../lib/preview";
+import { analyzeGame, cacheState, dropGameCache, type AnalyzeEvent, type GameCacheManifest } from "../lib/gamecache";
+import { boot } from "../lib/boot";
 import AppLogo from "../components/AppLogo.vue";
 
 const { mode, setMode } = useTheme();
@@ -50,6 +52,7 @@ onMounted(async () => {
   version.value = v.app;
   tauri.value = v.tauri;
   await refreshBackup();
+  void refreshCacheInfo();
   if (!isTauri) return;
   if (gamePath.value) {
     await checkGamePath(gamePath.value);
@@ -82,6 +85,9 @@ async function applyGamePath(path?: string) {
     }
     gameInput.value = gamePath.value;
     backupMsg.value = "";
+    // a different install invalidates the analysis (it names one bundle folder)
+    await refreshCacheInfo();
+    await boot();
   } finally {
     gameBusy.value = false;
   }
@@ -158,8 +164,66 @@ async function changeCacheFolder() {
     if (!picked) return;
     await useCacheFolder(picked);
     cacheError.value = "";
+    // another folder means another (or no) GameCache: back to the wizard
+    dropGameCache();
+    await refreshCacheInfo();
   } catch (e) {
     cacheError.value = t("settings.cacheFail", { error: String(e) });
+  }
+}
+
+// --------------------------------------------------------------------------- //
+// game cache: what every page reads, rebuilt only when the game updates
+// --------------------------------------------------------------------------- //
+const cacheInfo = ref<GameCacheManifest | null>(null);
+const cacheNote = ref("");
+const cacheBusy = ref(false);
+const cacheProgress = ref<AnalyzeEvent | null>(null);
+
+async function refreshCacheInfo(): Promise<void> {
+  const { state, manifest } = await cacheState();
+  cacheInfo.value = manifest;
+  if (state === "ready" && manifest) {
+    cacheNote.value = t("settings.cacheReady", {
+      time: manifest.built_at.replace("T", " "),
+      meshes: manifest.counts.meshes,
+      textures: manifest.counts.textures,
+      clips: manifest.counts.clips,
+      skins: manifest.counts.skins,
+      s: manifest.seconds,
+    });
+    return;
+  }
+  if (state === "elsewhere" && manifest) {
+    cacheNote.value = t("settings.cacheStale", { dir: manifest.bundle_dir });
+    return;
+  }
+  cacheNote.value = t("settings.cacheMissing");
+}
+
+async function rebuildCache(): Promise<void> {
+  if (cacheBusy.value) return;
+  cacheBusy.value = true;
+  cacheNote.value = t("settings.cacheRebuilding");
+  try {
+    const manifest = await analyzeGame({
+      onProgress: (event) => {
+        cacheProgress.value = event;
+      },
+    });
+    cacheInfo.value = manifest;
+    cacheNote.value = t("settings.cacheDone", {
+      skins: manifest.counts.skins,
+      clips: manifest.counts.clips,
+      s: manifest.seconds,
+    });
+    // the roster lives in memory: re-boot so every page sees the new cache
+    await boot();
+  } catch (e) {
+    cacheNote.value = String(e);
+  } finally {
+    cacheBusy.value = false;
+    cacheProgress.value = null;
   }
 }
 
@@ -275,6 +339,26 @@ async function openLink(url: string) {
                 @click="changeCacheFolder"
               >
                 {{ t("settings.cacheChange") }}
+              </button>
+              <button class="btn" type="button" :disabled="!isTauri" @click="openCacheFolder">
+                <span class="glyph">&#xE8E5;</span>
+                {{ t("settings.cacheOpen") }}
+              </button>
+            </div>
+          </div>
+          <div class="setting-row">
+            <div class="setting-row__text">
+              <div class="setting-row__title">{{ t("settings.cacheTitle") }}</div>
+              <div class="setting-row__desc">{{ t("settings.cacheDesc2") }}</div>
+              <div class="pathline" :title="cacheNote">{{ cacheNote }}</div>
+              <div v-if="cacheBusy && cacheProgress" class="pathline">
+                {{ t("setup.analyzeRunning", { phase: cacheProgress.phase || "" }) }}
+                · {{ cacheProgress.seconds }}s
+              </div>
+            </div>
+            <div class="setting-row__control setting-row__control--col">
+              <button class="btn btn--accent" type="button" :disabled="!isTauri || cacheBusy" @click="rebuildCache">
+                {{ cacheBusy ? t("settings.cacheRebuilding") : t("settings.cacheRebuild") }}
               </button>
               <button class="btn" type="button" :disabled="!isTauri" @click="openCacheFolder">
                 <span class="glyph">&#xE8E5;</span>
