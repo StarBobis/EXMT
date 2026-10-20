@@ -482,39 +482,77 @@ def diffuse_of(names: list[str]) -> str | None:
     return best
 
 
-def audit(names: dict, skins: list, roster: bool = True) -> dict:
-    """How well do the rules cover the cache?  Used by `pairings <cacheDir>`.
+def _compatible_head(mesh: dict, tex: dict, mesh_heads: set) -> bool:
+    """Would the rules ever attach this family to this mesh (ignoring roles)?"""
+    if not char_score(mesh, tex):
+        return False
+    head = tex["head"]
+    if mesh["head"] == head:
+        return True
+    if mesh["head"] == "" and head == "slg":
+        return True
+    if _direct(mesh, tex):
+        return True
+    if mesh["head"] and head.startswith(mesh["head"]) and head[len(mesh["head"]):].isdigit():
+        return True
+    if mesh["head"] and mesh["head"].startswith(head) and mesh["head"][len(head):].isdigit():
+        return True
+    return head in heads_for(mesh, mesh_heads)
 
-    A part is "covered" when at least one diffuse role is paired.  `unpaired`
-    lists parts that have *no* texture anywhere in the cache — those are missing
-    downloads, not a matching bug, and are reported separately so a real
-    regression cannot hide among them.
+
+def audit(names: dict, skins: list, roster: bool = True) -> dict:
+    """Coverage of the pairing rules over the cache; `pairs <cacheDir>`.
+
+    A part is "covered" when at least one diffuse role is paired.  Every miss is
+    classified so a parser regression cannot hide behind missing downloads:
+
+    * `missing_bug` — a diffuse family exists that the rules would accept, yet
+      nothing was paired.  Must be empty.
+    * `missing_no_diffuse` — a family exists, but the cache only has n/rmo/spc
+      (the base-colour map is not installed).
+    * `no_texture_in_cache` — nothing under any plausible name.
     """
     textures = names.get("textures") or {}
     families = families_of(textures)
     fam_infos = [(stem, parse(names_[0])) for stem, names_ in families.items()]
     rows = []
+    bugs = []
     covered = 0
     parts = 0
     unpaired = []
+    no_diffuse = []
     for skin in skins:
         if roster and not _roster(skin):
             continue
-        groups = pair(list((skin.get("parts") or {}).values()), textures, families)
+        mesh_names = list((skin.get("parts") or {}).values())
+        groups = pair(mesh_names, textures, families)
+        mesh_heads = {info["head"] for info in map(parse, mesh_names) if info}
         for part, mesh in (skin.get("parts") or {}).items():
             parts += 1
             got = groups.get(mesh) or []
             if any(role_of(n) in DIFFUSE for n in got):
                 covered += 1
+                continue
+            row = {"skin": skin["id"], "part": part, "mesh": mesh, "textures": got}
+            rows.append(row)
+            info = parse(mesh)
+            candidates = []
+            for stem, tex in fam_infos:
+                if tex and _compatible_head(info, tex, mesh_heads):
+                    candidates.append((stem, tex))
+            if any(any(role_of(n) in DIFFUSE for n in families[stem])
+                   for stem, _tex in candidates):
+                bugs.append(row)
+            elif candidates:
+                no_diffuse.append(row)
             else:
-                rows.append({"skin": skin["id"], "part": part, "mesh": mesh,
-                             "textures": got})
-                if not _has_any_texture(mesh, fam_infos):
-                    unpaired.append((skin["id"], mesh))
+                unpaired.append((skin["id"], mesh))
     return {
         "parts": parts,
         "covered": covered,
         "missing": len(rows),
+        "missing_bug": bugs,
+        "missing_no_diffuse": no_diffuse,
         "missing_parts": rows,
         "no_texture_in_cache": unpaired,
     }
@@ -523,14 +561,3 @@ def audit(names: dict, skins: list, roster: bool = True) -> dict:
 def _roster(skin: dict) -> bool:
     parts = skin.get("parts") or {}
     return any(part.startswith("slg") for part in parts) or skin.get("variant") == "dorm"
-
-
-def _has_any_texture(mesh_name: str, fam_infos: list) -> bool:
-    """Is there *any* texture family whose name could plausibly belong to this mesh?"""
-    info = parse(mesh_name)
-    if not info:
-        return False
-    for _stem, tex in fam_infos:
-        if tex and char_score(info, tex) and (tex["head"] == info["head"] or _direct(info, tex)):
-            return True
-    return False
