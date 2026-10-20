@@ -221,7 +221,20 @@ function build(all: PreviewGeometry[]) {
     buffer.setAttribute("position", new THREE.BufferAttribute(geo.positions, 3));
     if (geo.normals) buffer.setAttribute("normal", new THREE.BufferAttribute(geo.normals, 3));
     if (geo.uvs) buffer.setAttribute("uv", new THREE.BufferAttribute(geo.uvs, 2));
-    buffer.setIndex(new THREE.BufferAttribute(geo.indices, 1));
+    // Pick the smallest index type that fits. A Uint32Array index buffer is
+    // unsupported on WebGL1 without OES_element_index_uint, and then the mesh
+    // draws as shredded triangles — which reads as "the mesh is broken" even
+    // though the data is fine.
+    let maxIndex = 0;
+    for (let i = 0; i < geo.indices.length; i += 1) {
+      if (geo.indices[i] > maxIndex) maxIndex = geo.indices[i];
+    }
+    buffer.setIndex(
+      new THREE.BufferAttribute(
+        maxIndex > 65535 ? new Uint32Array(geo.indices) : new Uint16Array(geo.indices),
+        1,
+      ),
+    );
     // always rebuild normals: the stored normal stream is right for the game's
     // shader layout but some skinned meshes end up facing away from every light
     // in this preview and render black (looks like the part is missing)
@@ -244,7 +257,10 @@ function build(all: PreviewGeometry[]) {
       metalness: 0.05,
       roughness: 0.72,
       side: THREE.DoubleSide,
-      alphaTest: 0.35,
+      // no alphaTest: the diffuse textures are stored as BC3/BC7 where the alpha
+      // channel is often all-zero (unused), and testing it discarded most of the
+      // surface — which looked exactly like "half the mesh is missing"
+      alphaTest: 0,
     });
     const mesh = new THREE.Mesh(buffer, material);
     mesh.name = geo.name;
