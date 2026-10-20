@@ -19,6 +19,21 @@ metadata:
 | 台账层 | `docs/ledger.md` | 目标状态、已确认事实+证据、未决问题 | 只写结论，不写"先做 X 再做 Y" |
 | 能力层 | `.agents/skills/<skill>/` | 换目标也用得上的判据/手法（+ `references/<case>.md` 实例） | 通用化，剥离项目专有名词 |
 
+**Global layer vs workspace layer (DSH)**
+
+DSH reads cross-project rules from `~/.dsh/AGENTS.md` (`%USERPROFILE%\.dsh\AGENTS.md` on Windows),
+a different file and a different scope from the workspace `AGENTS.md`.
+
+- "Append to the global rules / core AGENTS.md" means that file, not the workspace one. If it does not
+  exist, create it there; do not invent `~/.agents`, `~/.config/dsh`, or anything inside the app bundle
+  (`resources\app.asar` is packaged and gets replaced on update).
+- Precedence: workspace instructions are more specific and win on conflict.
+- Activation: read at session start. For an already-running session, `dsh-agent-instructions` detects the
+  change and injects `Additional instructions from: ~/.dsh/AGENTS.md` after the next file-tool call, so
+  no restart is needed.
+- Proof the path is right: that `Additional instructions from:` block shows up in the conversation. Read
+  the file back to confirm content; do not infer success from the write returning "Created file".
+
 **纠正台账单独一层**（`docs/agents-corrections.md`）：逐条追加的流水账，允许长、允许乱序，
 但**每一条必须落成一条规则**——落进规则层、UI 规范或 skill。
 只写"以后注意"而不改规则的条目 = 没写完。冲突时以**更靠后的行**为准。
