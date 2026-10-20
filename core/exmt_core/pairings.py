@@ -85,6 +85,9 @@ GENERIC_HEAD = re.compile(
 
 _VARIANT_TAIL = re.compile(r"(?:SSR|SR|R|Dorm|Fight)?\d*$")
 
+#: `G1` / `P2`: a colour-group marker (see the numbered-atlas fallback in `pair`)
+_VARIANT_TAIL_TOKEN = re.compile(r"^[GP]\d+$", re.I)
+
 
 def family_of(char: str) -> str:
     """`BalthildeSSR01` → `Balthilde`; `AgentDorm` → `Agent`; `AGL01` → `AGL`."""
@@ -364,16 +367,20 @@ def pair(mesh_names: list[str], textures, families: dict | None = None) -> dict[
             head = mesh["head"]
             if len(head) < 3 or GENERIC_HEAD.match(head):
                 continue
+            stem_head = re.sub(r"\d+$", "", head)
             best = None
             for stem, entry in props.items():
-                if head not in entry["keys"]:
+                if head not in entry["keys"] and stem_head not in entry["keys"]:
                     continue
                 if entry["char"].lower() == head:
                     rank = 0
-                elif not entry["prefixed"]:
+                elif entry["char"].lower() == mesh["char"].lower():
+                    # `Mishty_Beverage_*` beats the generic `Beverage_Clu_*`
                     rank = 1
-                elif entry["shared"]:
+                elif not entry["prefixed"]:
                     rank = 2
+                elif entry["shared"]:
+                    rank = 3
                 else:
                     continue
                 key = (rank, len(stem), stem)
@@ -381,6 +388,61 @@ def pair(mesh_names: list[str], textures, families: dict | None = None) -> dict[
                     best = (key, stem)
             if best:
                 out[mesh["name"]].extend(props[best[1]]["names"])
+
+    # `…_slg_fanOpen` / `_fanShut` are states of the same `fan` family
+    for mesh in meshes:
+        if any(role_of(n) in DIFFUSE for n in out[mesh["name"]]):
+            continue
+        head = mesh["head"]
+        best = None
+        for stem, names_ in families.items():
+            ti = parse(names_[0])
+            if not ti or not ti["head"] or not head.startswith(ti["head"]):
+                continue
+            tail = head[len(ti["head"]):]
+            if len(tail) < 3 or not tail.isalpha():
+                continue
+            if not char_score(mesh, ti):
+                continue
+            if not any(role_of(n) in DIFFUSE for n in names_):
+                continue
+            key = (-char_score(mesh, ti), -len(ti["head"]), len(stem))
+            if best is None or key < best[0]:
+                best = (key, stem)
+        if best:
+            out[mesh["name"]].extend(families[best[1]])
+
+    # A mech/colour variant can relabel its material group (`…_slg_G1`, `…_P2`)
+    # while the atlas is numbered (`…_slg_01`, `_02`): same tokens, numbered
+    # tail. Take the lowest number — the default colour — only when nothing
+    # else matched.
+    for mesh in meshes:
+        if any(role_of(n) in DIFFUSE for n in out[mesh["name"]]):
+            continue
+        marker = next(
+            (i for i, tok in enumerate(mesh["tokens"]) if _VARIANT_TAIL_TOKEN.match(tok)),
+            None,
+        )
+        if marker is None:
+            continue
+        # `[Mech, WL01, P1, slg]` → `[Mech, WL01, slg]`
+        prefix = mesh["tokens"][:marker] + mesh["tokens"][marker + 1:]
+        if not prefix:
+            continue
+        best = None
+        for stem, names_ in families.items():
+            ti = parse(names_[0])
+            if not ti or len(ti["tokens"]) < 2 or ti["tokens"][:-1] != prefix:
+                continue
+            if not ti["tokens"][-1].isdigit() or not char_score(mesh, ti):
+                continue
+            if not any(role_of(n) in DIFFUSE for n in names_):
+                continue
+            key = (int(ti["tokens"][-1]), len(stem))
+            if best is None or key < best[0]:
+                best = (key, stem)
+        if best:
+            out[mesh["name"]].extend(families[best[1]])
 
     # a body with no base-colour map of its own samples the shared body atlas
     for mesh in meshes:
