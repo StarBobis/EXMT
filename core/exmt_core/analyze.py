@@ -178,6 +178,38 @@ def skins_of(names: dict, clips: dict | None = None, textures: dict | None = Non
 # --------------------------------------------------------------------------- #
 # skin packs: decode every roster skin now, so the studio never decodes again
 # --------------------------------------------------------------------------- #
+def _diffuse_name(mesh: str, textures: dict, prefix: str) -> str | None:
+    """`c_X_slg_cloth_lod0` → `c_X_slg_cloth1_d` (or `_da`, `_dif`).
+
+    Same rules as the studio's `diffuseNameFor`, including the fallback that
+    matters in practice: the game names parts and textures inconsistently
+    (`slg_cloth` vs `slg_cloth1_d`), so after the exact candidates fail, the
+    texture sharing the longest stem wins. Without this most skins ended up with
+    zero diffuse maps and the 3D preview rendered plain grey ("black and white").
+    """
+    stem = re.sub(r"_lod\d+$", "", mesh, flags=re.I)
+    for suffix in ("_d", "_da", "_dif"):
+        candidate = stem + suffix
+        if candidate in textures:
+            return candidate
+    best: str | None = None
+    best_len = 0
+    for name in textures:
+        if not name.startswith(prefix):
+            continue
+        match = re.match(r"^(.*?)_(d|da|dif)$", name, re.I)
+        if not match:
+            continue
+        texture_stem = match.group(1)
+        if not (stem.startswith(texture_stem) or texture_stem.startswith(stem)):
+            continue
+        shared = min(len(stem), len(texture_stem))
+        if shared > best_len:
+            best_len = shared
+            best = name
+    return best
+
+
 def _pack_spec(out_dir: str, bundle_dir: str, names: dict, skin: dict,
                built_at: str) -> dict:
     """Everything `skinpack.build` needs for one skin, from the cache itself."""
@@ -193,17 +225,12 @@ def _pack_spec(out_dir: str, bundle_dir: str, names: dict, skin: dict,
             continue
         texture_groups.setdefault(bundles[0], []).append(name)
 
+    textures = names.get("textures") or {}
     maps = []
-    stems = {mesh.replace("_lod", "_d_lod").split("_d_lod")[0] for mesh in
-             (skin.get("parts") or {}).values()}
     for mesh in (skin.get("parts") or {}).values():
-        stem = re.sub(r"_lod\d+$", "", mesh)
-        for suffix in ("_d", "_da", "_dif"):
-            candidate = stem + suffix
-            bundles = (names.get("textures") or {}).get(candidate)
-            if bundles:
-                maps.append({"mesh": mesh, "texture": candidate, "bundle": bundles[0]})
-                break
+        texture = _diffuse_name(mesh, textures, prefix)
+        if texture:
+            maps.append({"mesh": mesh, "texture": texture, "bundle": textures[texture][0]})
 
     return {
         "key": key,

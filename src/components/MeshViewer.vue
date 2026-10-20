@@ -250,8 +250,11 @@ function build(all: PreviewGeometry[]) {
 
     const picked = props.selected.includes(geo.name);
     const isActive = props.active === geo.name;
+    // a submesh with a diffuse map shows the real base colour even when it is not
+    // picked; the grey tint is only for parts that have no texture at all
+    const baseColor = map ? 0xffffff : picked ? COLOR_PICKED : isActive ? COLOR_ACTIVE : COLOR_IDLE;
     const material = new THREE.MeshStandardMaterial({
-      color: picked ? COLOR_PICKED : isActive ? COLOR_ACTIVE : COLOR_IDLE,
+      color: baseColor,
       emissive: picked ? 0x0a1a26 : isActive ? 0x0a2436 : 0x000000,
       map,
       metalness: 0.05,
@@ -306,7 +309,10 @@ function syncColors() {
     const material = mesh.material as THREE.MeshStandardMaterial;
     const picked = props.selected.includes(name);
     const isActive = props.active === name;
-    material.color.setHex(picked ? COLOR_PICKED : isActive ? COLOR_ACTIVE : COLOR_IDLE);
+    const textured = Boolean(material.map);
+    material.color.setHex(
+      textured ? 0xffffff : picked ? COLOR_PICKED : isActive ? COLOR_ACTIVE : COLOR_IDLE,
+    );
     material.emissive.setHex(picked ? 0x0a1a26 : isActive ? 0x0a2436 : 0x000000);
   }
   render();
