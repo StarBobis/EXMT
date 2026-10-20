@@ -53,7 +53,16 @@ NOISE = re.compile(
 BASE_BODY = ("B_body", "new_body", "body")
 
 #: shipped spelling mistakes in mesh part names (`boby` for `body`)
-TYPO = {"boby": "body", "boddy": "body", "hare": "hair", "hiar": "hair"}
+TYPO = {
+    "boby": "body",
+    "boddy": "body",
+    "hare": "hair",
+    "hiar": "hair",
+    # `slg_sanzi` is the fan (扇子 `shanzi`); the mesh and the atlas disagree
+    "sanzi": "shanzi",
+    # Lenna's mesh says `glasses`, every atlas says `glass`
+    "glasses": "glass",
+}
 
 #: shared atlases do not follow the `c_<char>_…` convention, so their roles are
 #: matched with a plain suffix test
