@@ -144,7 +144,11 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_fs::init())
-        .plugin(tauri_plugin_http::init())
+        // NOTE: tauri-plugin-http is deliberately absent. Its cookie store calls
+        // `app_cache_dir()` + opens a cookie file during plugin setup, and on this
+        // machine that setup fails with `os error 5 (access denied)` and aborts the
+        // whole app before any window appears. The frontend never used the plugin
+        // (no fetch / plugin-http import anywhere), so removing it is the fix.
         .plugin(tauri_plugin_dialog::init())
         .setup(|app| {
             if let Some(window) = app.get_webview_window("main") {

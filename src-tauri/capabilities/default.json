@@ -60,22 +60,6 @@
     "dialog:allow-ask",
     "dialog:allow-confirm",
 
-    {
-      "identifier": "http:default",
-      "allow": [
-        { "url": "http://*" },
-        { "url": "https://*" },
-        { "url": "http://**" },
-        { "url": "https://**" },
-        { "url": "http://*:*" },
-        { "url": "https://*:*" },
-        { "url": "http://*:*/*" },
-        { "url": "https://*:*/*" },
-        { "url": "http://**:**/**" },
-        { "url": "https://**:**/**" }
-      ]
-    },
-
     "opener:default",
     {
       "identifier": "opener:allow-open-url",
