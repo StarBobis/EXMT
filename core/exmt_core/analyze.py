@@ -178,104 +178,40 @@ def skins_of(names: dict, clips: dict | None = None, textures: dict | None = Non
 # --------------------------------------------------------------------------- #
 # skin packs: decode every roster skin now, so the studio never decodes again
 # --------------------------------------------------------------------------- #
-VARIANTS = {"dorm", "fight"}
-
-
-def _shape(name: str) -> tuple[str, list[str]]:
-    """`c_X_slg_P2_cloth2_lod0_Dorm` → ('cloth', ['p2', 'cloth']).
-
-    The variant words (`Dorm`, `Fight`) say which outfit *state* a part belongs
-    to; they are not part of the semantic head used for texture pairing.
-    """
-    tail = name
-    match = re.search(r"_slg_(.+)$", tail)
-    if match:
-        tail = match.group(1)
-    words = [w for w in re.split(r"[_\s]+", tail) if w and not re.match(r"(?i)^lodm?\d+$", w)]
-    words = [w for w in words if w.lower() not in VARIANTS]
-    tokens = [re.sub(r"\d+$", "", w.lower()) for w in words]
-    return (tokens[-1] if tokens else ""), tokens
-
-
-def _diffuse_name(mesh: str, textures: dict, prefix: str) -> str | None:
-    """`c_X_slg_cloth_lod0` → `c_X_slg_cloth1_d` (or `_da`, `_dif`).
-
-    1. exact `stem + _d/_da/_dif`
-    2. same character family (`c_BastiSSR0101` may use `c_BastiSSR01_...`) and the
-       same semantic head (`cloth` / `body` / `hair` / `head` …). Ranking prefers
-       the same P-group, then the longest shared prefix — so `cloth2_Dorm` still
-       picks `cloth2_da` instead of `cloth1_d`.
-    3. nothing; the caller falls back to the skin's dominant atlas.
-    """
-    stem = re.sub(r"_lod\d+$", "", mesh, flags=re.I)
-    for suffix in ("_d", "_da", "_dif"):
-        candidate = stem + suffix
-        if candidate in textures:
-            return candidate
-
-    head, tokens = _shape(mesh)
-    if not head:
-        return None
-    best: str | None = None
-    best_key = (-1, -1)
-    for name in textures:
-        match = re.match(r"^(.*?)_(d|da|dif)$", name, re.I)
-        if not match:
-            continue
-        texture_stem = match.group(1)
-        shared = 0
-        for a, b in zip(texture_stem, stem):
-            if a != b:
-                break
-            shared += 1
-        if shared < 10:
-            continue
-        other_head, other_tokens = _shape(texture_stem)
-        if other_head != head:
-            continue
-        same_group = 1 if tokens[:1] == other_tokens[:1] else 0
-        key = (same_group, shared)
-        if key > best_key:
-            best_key = key
-            best = name
-    return best
-
-
 def _pack_spec(out_dir: str, bundle_dir: str, names: dict, skin: dict,
                built_at: str) -> dict:
     """Everything `skinpack.build` needs for one skin, from the cache itself."""
+    from . import pairings
+
     key = skin["id"]
     prefix = key + "_"
     mesh_items = []
     for part, mesh in (skin.get("parts") or {}).items():
         mesh_items.append({"mesh": mesh, "bundles": list((skin.get("part_bundles") or {}).get(part) or [])})
 
-    texture_groups: dict[str, list] = {}
-    for name, bundles in (names.get("textures") or {}).items():
-        if not name.startswith(prefix) or not bundles:
-            continue
-        texture_groups.setdefault(bundles[0], []).append(name)
-
     textures = names.get("textures") or {}
+    # Which textures belong to which submesh is decided here, once: the studio
+    # only reads `groups.json`.  Family textures (face/hair under `c_<family>_`)
+    # and the weapon atlas (`cw_<char>_WL`) are not under the skin prefix, and a
+    # plain prefix test used to hide them (body/hair showed "0 textures").
+    groups = pairings.pair(list((skin.get("parts") or {}).values()), textures)
+    wanted = {name for names_ in groups.values() for name in names_}
+    # keep the skin's own textures too, even when no submesh claims them: the
+    # studio shows them as "shared" so nothing disappears from the page
+    for name in textures:
+        if name.startswith(prefix):
+            wanted.add(name)
+    texture_groups: dict[str, list] = {}
+    for name in sorted(wanted):
+        bundles = textures.get(name) or []
+        if bundles:
+            texture_groups.setdefault(bundles[0], []).append(name)
+
     maps = []
     for mesh in (skin.get("parts") or {}).values():
-        texture = _diffuse_name(mesh, textures, prefix)
-        if texture:
+        texture = pairings.diffuse_of(groups.get(mesh) or [])
+        if texture and textures.get(texture):
             maps.append({"mesh": mesh, "texture": texture, "bundle": textures[texture][0]})
-
-    # Some parts (the base `body`, `hair`, …) have no same-named texture at all:
-    # the outfit atlas covers them through shared UVs. Give those the atlas that
-    # the rest of the skin already uses, instead of leaving them flat grey.
-    if maps:
-        counts = {}
-        for item in maps:
-            counts[item["texture"]] = counts.get(item["texture"], 0) + 1
-        dominant = max(counts.items(), key=lambda kv: kv[1])[0]
-        used = {item["mesh"] for item in maps}
-        for mesh in (skin.get("parts") or {}).values():
-            if mesh in used:
-                continue
-            maps.append({"mesh": mesh, "texture": dominant, "bundle": textures[dominant][0]})
 
     return {
         "key": key,
@@ -283,6 +219,7 @@ def _pack_spec(out_dir: str, bundle_dir: str, names: dict, skin: dict,
         "bundle_dir": bundle_dir,
         "meshes": mesh_items,
         "textures": [{"bundle": h, "names": v} for h, v in texture_groups.items()],
+        "groups": groups,
         "maps": maps,
         "cache_built_at": built_at,
         "thumb_size": 160,

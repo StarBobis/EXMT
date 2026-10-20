@@ -15,7 +15,6 @@ import {
   skinKeyOf,
   textureRole,
   texturesForMesh,
-  unassignedTextures,
   type AnimEntry,
   type PreviewGeometry,
   type SkinMesh,
@@ -93,18 +92,33 @@ const skinName = computed(() =>
 const skinCode = computed(() => selectedSkin.value?.name ?? "");
 
 /** mesh name → textures whose names share its part stem. */
+const skinGroups = ref<Record<string, string[]>>({});
+
 const textureGroups = computed(() => {
   const groups = new Map<string, TextureEntry[]>();
+  const byName = new Map(textures.value.map((tex) => [tex.name, tex]));
+  const decided = skinGroups.value;
   for (const mesh of meshes.value) {
-    groups.set(mesh.name, texturesForMesh(mesh.name, textures.value));
+    const names = decided[mesh.name];
+    if (names) {
+      // the core paired this submesh: trust it, including "matched nothing"
+      groups.set(
+        mesh.name,
+        names.map((name) => byName.get(name)).filter((tex): tex is TextureEntry => !!tex),
+      );
+    } else {
+      groups.set(mesh.name, texturesForMesh(mesh.name, textures.value));
+    }
   }
   return groups;
 });
 
 /** Textures no submesh claims (face/eye maps are often here). */
-const sharedTextures = computed(() =>
-  unassignedTextures(meshes.value, textures.value),
-);
+const sharedTextures = computed(() => {
+  const assigned = new Set<string>();
+  for (const list of textureGroups.value.values()) for (const tex of list) assigned.add(tex.name);
+  return textures.value.filter((tex) => !assigned.has(tex.name));
+});
 
 const activeTextures = computed(() => {
   if (activeShared.value) return sharedTextures.value;
@@ -552,6 +566,7 @@ function clearStudio() {
   pickedMeshes.value = [];
   pickedTextures.value = [];
   textures.value = [];
+  skinGroups.value = {};
   maps.value = {};
   activeMesh.value = null;
   activeShared.value = false;
@@ -589,6 +604,7 @@ async function openStudio(entry: CatalogEntry) {
     meshes.value = data.meshes;
     geometries.value = data.geometry;
     textures.value = data.textures;
+    skinGroups.value = data.groups ?? {};
     maps.value = data.maps;
     // 默认全不选：用户只勾自己要改的那几个，导出和回包都只动它们
     pickedMeshes.value = [];
@@ -690,6 +706,7 @@ async function startMaking() {
       exportAnims,
       // 带动作时骨架要按这个皮肤全部网格的并集建（动作驱动整副骨架）
       exportAnims.length ? meshes.value : exportMeshes,
+      skinGroups.value,
     );
     await refreshWorkspaces();
     const summary: WorkspaceSummary =

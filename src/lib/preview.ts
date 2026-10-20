@@ -11,6 +11,7 @@ import { appDataDir, join } from "@tauri-apps/api/path";
 import catalogData from "../data/catalog.json";
 import { gameBundles, runCore } from "./core";
 import { ensureGameCache } from "./gamecache";
+import { diffuseOf, familyOf, pairTextures, parseName } from "./pairings";
 import { backup, cacheFolder, refreshBackup } from "./settings";
 import { isTauri } from "./tauri";
 import { newWorkspaceIdentity, workspaceRoot } from "./workspaces";
@@ -90,34 +91,30 @@ export function textureStem(name: string): string {
 }
 
 /**
- * One submesh's textures, by the part stem they share.
+ * One submesh's textures, by the family rules in `lib/pairings.ts`.
  *
  * The game keeps meshes and textures in different bundles and the material
- * bundles are mostly missing, so name sharing is the only local evidence:
- * `c_X_slg_cloth1_lod0` → `c_X_slg_cloth1_d/_n/_rmo`; a mesh named `cloth`
- * also picks up `cloth01` / `cloth02` (a mesh can carry several material
- * families). Textures matched by no mesh are returned by
- * `unassignedTextures` instead of being hidden.
+ * bundles are mostly missing, so names are the only local evidence:
+ * `c_X_slg_cloth1_lod0` → `c_X_slg_cloth1_d/_n/_rmo`; the head mesh also owns
+ * `c_<family>_slg_face/_eye/_hair`; a body without its own map uses the shared
+ * `B_body_*` atlas; gun parts share `cw_X_WL_*`.  Textures matched by no mesh are
+ * returned by `unassignedTextures` instead of being hidden.
  */
-export function submeshStem(meshName: string): string {
-  return meshName
-    .replace(/_lod\d+/gi, "")
-    .replace(/_(dorm|fight)$/i, "");
+export function texturesForMesh(meshName: string, textures: TextureEntry[]): TextureEntry[] {
+  const groups = pairTextures([meshName], textures.map((tex) => tex.name));
+  const wanted = new Set(groups[meshName] ?? []);
+  return textures.filter((tex) => wanted.has(tex.name)).sort(byTextureRole);
 }
 
-export function texturesForMesh(meshName: string, textures: TextureEntry[]): TextureEntry[] {
-  const stem = submeshStem(meshName);
-  if (!stem) return [];
-  return textures
-    .filter((tex) => tex.name.startsWith(stem))
-    .sort((a, b) => {
-      // 先按贴图家族分组（cloth1 / cloth2），同族内再按 D/N/RMO 排
-      const family = textureStem(a.name).localeCompare(textureStem(b.name));
-      if (family) return family;
-      const ra = ROLE_RANK[textureRole(a.name)] ?? 99;
-      const rb = ROLE_RANK[textureRole(b.name)] ?? 99;
-      return ra - rb || a.name.localeCompare(b.name);
-    });
+function byTextureRole(a: TextureEntry, b: TextureEntry): number {
+  // 先按贴图家族分组（cloth1 / cloth2），同族内再按 D/N/RMO 排
+  const family = familyOf(parseName(a.name)?.char ?? a.name).localeCompare(
+    familyOf(parseName(b.name)?.char ?? b.name),
+  );
+  if (family) return family;
+  const ra = ROLE_RANK[textureRole(a.name)] ?? 99;
+  const rb = ROLE_RANK[textureRole(b.name)] ?? 99;
+  return ra - rb || a.name.localeCompare(b.name);
 }
 
 /** Textures that no submesh claims — face/eye maps are often in this group. */
@@ -125,10 +122,9 @@ export function unassignedTextures(
   meshes: SkinMesh[],
   textures: TextureEntry[],
 ): TextureEntry[] {
+  const groups = pairTextures(meshes.map((mesh) => mesh.name), textures.map((tex) => tex.name));
   const assigned = new Set<string>();
-  for (const mesh of meshes) {
-    for (const tex of texturesForMesh(mesh.name, textures)) assigned.add(tex.name);
-  }
+  for (const list of Object.values(groups)) for (const name of list) assigned.add(name);
   return textures.filter((tex) => !assigned.has(tex.name));
 }
 
@@ -319,6 +315,8 @@ export interface SkinData {
   meshes: SkinMesh[];
   geometry: PreviewGeometry[];
   textures: TextureEntry[];
+  /** mesh name → texture names (the core's decision, or the TS fallback) */
+  groups: Record<string, string[]>;
   /** mesh name → `data:` URL of its diffuse (`_d` / `_da`) texture */
   maps: Record<string, string>;
   cached: boolean;
@@ -358,31 +356,12 @@ function decodeSet(raw: { meshes?: any[] } | null): PreviewGeometry[] {
 }
 
 /**
- * `c_X_slg_cloth1_lod0` → `c_X_slg_cloth1_d` (or `_da`, the alpha variant).
- * Falls back to the longest shared stem so `emitter_slg_lod0` still finds
- * `emitter_slg_d`.
+ * `c_X_slg_cloth1_lod0` → `c_X_slg_cloth1_d` (or `_da`, the alpha variant),
+ * using the same family rules as the texture groups.
  */
 export function diffuseNameFor(mesh: string, names: string[]): string | null {
-  const stem = mesh.replace(/_lod\d+$/i, "");
-  const all = new Set(names);
-  for (const suffix of ["_d", "_da", "_dif"]) {
-    const candidate = `${stem}${suffix}`;
-    if (all.has(candidate)) return candidate;
-  }
-  let best: string | null = null;
-  let bestLength = 0;
-  for (const name of names) {
-    const m = /^(.*?)_(d|da|dif)$/i.exec(name);
-    if (!m) continue;
-    const textureStem = m[1];
-    if (!(stem.startsWith(textureStem) || textureStem.startsWith(stem))) continue;
-    const shared = Math.min(stem.length, textureStem.length);
-    if (shared > bestLength) {
-      bestLength = shared;
-      best = name;
-    }
-  }
-  return best;
+  const groups = pairTextures([mesh], names);
+  return diffuseOf(groups[mesh] ?? []);
 }
 
 export type SkinPhase = "meshes" | "geometry" | "textures";
@@ -424,7 +403,9 @@ export async function loadSkin(
     const thumbs = await readJson<TextureEntry[]>(await join(dir, "thumbs.json"));
     if (!meshes || !raw || !thumbs) return null;
     const maps = (await readJson<Record<string, string>>(await join(dir, "diffuse.json"))) ?? {};
-    return { meshes, raw, thumbs, maps, builtAt: meta.built_at ?? null };
+    // the core's pairing decision; packs from an older analysis do not have it
+    const groups = await readJson<Record<string, string[]>>(await join(dir, "groups.json"));
+    return { meshes, raw, thumbs, maps, groups, builtAt: meta.built_at ?? null };
   };
 
   let pack = await read();
@@ -432,12 +413,21 @@ export async function loadSkin(
   if (!pack) {
     // not pre-decoded (or built by an older analysis): one process does it all
     onPhase?.("geometry");
-    const textures = texturesFor(await ensureTexIndex(), key);
-    const groups = new Map<string, string[]>();
-    for (const tex of textures) {
-      const list = groups.get(tex.bundle) ?? [];
-      list.push(tex.name);
-      groups.set(tex.bundle, list);
+    const index = await ensureTexIndex();
+    const allNames = Object.keys(index.textures ?? {});
+    const meshNames = Object.values(entry.parts ?? {});
+    const groups = pairTextures(meshNames, allNames);
+    const wanted = new Set<string>();
+    for (const list of Object.values(groups)) for (const name of list) wanted.add(name);
+    const prefix = `${key}_`;
+    for (const name of allNames) if (name.startsWith(prefix)) wanted.add(name);
+    const byBundle = new Map<string, string[]>();
+    for (const name of wanted) {
+      const bundle = index.textures[name]?.[0]?.replace(/\.bundle$/i, "");
+      if (!bundle) continue;
+      const list = byBundle.get(bundle) ?? [];
+      list.push(name);
+      byBundle.set(bundle, list);
     }
     const spec = {
       key,
@@ -448,11 +438,12 @@ export async function loadSkin(
         mesh,
         bundles: entry.part_bundles?.[part] ?? [entry.bundle],
       })),
-      textures: [...groups.entries()].map(([bundle, names]) => ({ bundle, names })),
-      maps: Object.values(entry.parts ?? {})
+      textures: [...byBundle.entries()].map(([bundle, names]) => ({ bundle, names })),
+      groups,
+      maps: meshNames
         .map((mesh) => {
-          const name = diffuseNameFor(mesh, textures.map((tex) => tex.name));
-          const bundle = textures.find((tex) => tex.name === name)?.bundle;
+          const name = diffuseOf(groups[mesh] ?? []);
+          const bundle = name ? index.textures[name]?.[0]?.replace(/\.bundle$/i, "") : null;
           return name && bundle ? { mesh, texture: name, bundle } : null;
         })
         .filter(Boolean),
@@ -481,6 +472,12 @@ export async function loadSkin(
     meshes,
     geometry: decodeSet(pack.raw),
     textures: pack.thumbs.sort((a, b) => a.name.localeCompare(b.name)),
+    groups:
+      pack.groups ??
+      pairTextures(
+        meshes.map((mesh) => mesh.name),
+        pack.thumbs.map((tex) => tex.name),
+      ),
     maps: pack.maps,
     cached: true,
     builtAt: pack.builtAt,
@@ -668,6 +665,8 @@ export async function makeWorkspace(
   animations: AnimEntry[] = [],
   /** every mesh of the skin, used to build the rig even when not exported */
   skeletonMeshes: SkinMesh[] = meshes,
+  /** mesh name → texture names; lets the add-on build the right material */
+  groups: Record<string, string[]> = {},
 ): Promise<WorkspaceResult> {
   if (!isTauri) throw new Error("workspace export needs the desktop shell");
   const identity = await newWorkspaceIdentity({
@@ -742,6 +741,9 @@ export async function makeWorkspace(
     texture_bundles: textureBundles,
     meshes: meshes.map((mesh) => ({ bundle: mesh.bundle, mesh: mesh.name })),
     textures: textures.map((tex) => ({ bundle: tex.bundle, name: tex.name })),
+    groups: Object.fromEntries(
+      Object.entries(groups).filter(([mesh]) => meshes.some((item) => item.name === mesh)),
+    ),
     animations: animItems,
     // 动作按整副角色骨架做的：带动作时骨架要取**这个皮肤全部网格**的并集，
     // 否则只勾一个身体 → 32 根骨 vs 动作 213 根，播起来就是一团扭曲

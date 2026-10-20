@@ -504,6 +504,9 @@ def make_workspace(outdir: str, spec: dict) -> dict:
         },
         "meshes": written_meshes,
         "textures": written_textures,
+        # which textures feed which submesh (decided by `pairings`): the add-on
+        # builds one material per mesh from this, instead of a prefix guess
+        "groups": spec.get("groups") or {},
         "failed_textures": failed,
         # reference-only: the game plays its own clips, these are for watching the
         # skinning in Blender, so they never take part in packing a Mod

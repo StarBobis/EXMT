@@ -12,12 +12,18 @@ most once, and writes the exact files the studio caches under
     meshes.json    [{name, verts, tris, bones, bundle}]
     geometry.json  {meshes: [<payload>]}   (base64 f32 for three.js)
     thumbs.json    [{name, width, height, png}]
+    groups.json    {meshName: [textureName, …]}  (the pairing decision)
     diffuse.json   {meshName: png}
     meta.json      {version, key, built_at, cache_built_at}
 
 `cache_built_at` ties the pack to one analysis: after `analyze` runs again the
 manifest's `built_at` changes and every old pack is treated as stale — no
 mtime signatures to reconcile.
+
+`groups.json` is the single source of truth for "which textures belong to this
+submesh": the core decides it once with `pairings` (family names, the shared
+body atlas, the weapon atlas), and the studio does not re-guess with a prefix
+test.  Older packs without the file fall back to the TypeScript matcher.
 """
 
 from __future__ import annotations
@@ -26,7 +32,7 @@ import json
 import os
 import time
 
-FORMAT = "exmt-skinpack-1"
+FORMAT = "exmt-skinpack-2"
 
 
 def _write(path: str, payload) -> None:
@@ -110,10 +116,12 @@ def build(spec: dict) -> dict:
     _write(os.path.join(out_dir, "meshes.json"), meshes)
     _write(os.path.join(out_dir, "geometry.json"), {"meshes": geometry})
     _write(os.path.join(out_dir, "thumbs.json"), thumbs)
+    _write(os.path.join(out_dir, "groups.json"),
+           {name: list(tex) for name, tex in (spec.get("groups") or {}).items()})
     _write(os.path.join(out_dir, "diffuse.json"), maps)
     _write(os.path.join(out_dir, "meta.json"), {
         "format": FORMAT,
-        "version": 2,
+        "version": 3,
         "key": key,
         "built_at": time.strftime("%Y-%m-%dT%H:%M:%S"),
         "cache_built_at": spec.get("cache_built_at") or "",

@@ -12,7 +12,8 @@ Commands
     geo       <bundle> <mesh>                   preview geometry as JSON (base64 f32)
     geoset    <spec.json>                       every mesh of one skin in one call
     thumbs    <bundle> <size> <texture...>      downscaled PNGs for the texture grid
-maps      <spec.json> [size]                diffuse maps for the mesh preview
+    maps      <spec.json> [size]                diffuse maps for the mesh preview
+    pairs     <cacheDir> [--all]                audit submesh → texture pairing
     workspace <outdir> <spec.json>              meshes + textures + manifest for Blender
 """
 
@@ -481,6 +482,23 @@ def cmd_skinpack(args):
     return 0
 
 
+def cmd_pairs(args):
+    """pairs <cacheDir> [--all] - audit texture pairing over every roster skin."""
+    from . import pairings
+
+    cache_dir = args[0] if args else "."
+    roster = "--all" not in args
+    base = os.path.join(cache_dir, "GameCache")
+    with open(os.path.join(base, "names.json"), encoding="utf-8") as fh:
+        names = json.load(fh)
+    with open(os.path.join(base, "skins.json"), encoding="utf-8") as fh:
+        skins = json.load(fh)["skins"]
+    result = pairings.audit(names, skins, roster=roster)
+    result["format"] = "exmt-pairing-audit-1"
+    print(json.dumps(result, ensure_ascii=False))
+    return 0
+
+
 def cmd_anims(args):
     """anims <bundle> [bonenames.json] - every AnimationClip in one bundle, summarised."""
     from . import anim, bonenames
@@ -550,6 +568,7 @@ def main(argv=None):
         "cache": cmd_cache,
         "skinpack": cmd_skinpack,
         "packs": cmd_packs,
+        "pairs": cmd_pairs,
     }
     if cmd not in table:
         print("unknown command", cmd)
