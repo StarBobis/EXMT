@@ -31,8 +31,8 @@ FORMAT = "exmt-gamecache-1"
 
 #: `c_VepleySSR0102_slg_body_lod0` / `cw_GrozaSR0102_WL_slg_lod0`
 MESH_NAME = re.compile(r"^(c|cw)_([A-Za-z0-9]+)_(.+)$")
-#: `_lod0` and the mobile variant `_lodm0` both belong to the same part
-LOD = re.compile(r"^(.*?)_lod(m?)(\d+)", re.IGNORECASE)
+#: `_lod0` / `_lodm0` (mobile) and whatever follows (`_Dorm`, `_Fight`, `_trans`)
+LOD = re.compile(r"^(.*?)_lod(m?)(\d+)(.*)$", re.IGNORECASE)
 
 
 # --------------------------------------------------------------------------- #
@@ -115,8 +115,16 @@ def skins_of(names: dict, clips: dict | None = None, textures: dict | None = Non
             continue
         prefix, name, rest = match.groups()
         lod = LOD.match(rest)
-        part = (lod.group(1) if lod else rest).lower()
-        if part.startswith("emitter"):
+        # The part is everything *except* the lod token, but the suffix after it
+        # stays: `..._slg_cloth_lod0` and `..._slg_cloth_lod0_Dorm` are two
+        # different meshes (dorm outfit vs. combat outfit), not two LODs of one.
+        # Merging them dropped real meshes — 比约卡 lost its whole combat cloth
+        # and rendered half-naked with 3 submeshes instead of 8.
+        if lod:
+            part = (lod.group(1) + lod.group(4)).lower()
+        else:
+            part = rest.lower()
+        if "emitter" in part:
             # particle/attachment markers ship as Mesh objects but have no skinning
             continue
         key = "c_" + name
