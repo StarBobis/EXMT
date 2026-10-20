@@ -19,6 +19,7 @@
 | 密度 | 简洁：状态反馈一行足够，不要堆按钮和面板；操作日志面板、素体这类功能是被明确删掉的 |
 | 批量 | 模型页顶部要有「全选 / 取消全选」：一次勾上全部子网格 + 全部贴图；全选后自动打开第一个有贴图的子网格；再点清空。默认全不勾 |
 | 下拉 | 统一用 `src/components/Dropdown.vue`（自绘 listbox + Teleport + token 配色 + 键盘）；不要用原生 `<select>`（WebView2 的系统弹出层在暗色主题下白底白字） |
+| 3D 选中态 | 勾选（会导出）的子网格必须**覆盖贴图、统一涂纯紫**（`0xa855f7` + 暗紫自发光 `0x3b0f7a`；`roughness 0.92` 压掉镜面高光，否则亮灯下洗成粉白）。不能只加 emissive 微光或白色 tint：有贴图的部件那样勾了和没勾一模一样（用户原话「完全看不出来被选中」）。贴图存 `mesh.userData.diffuse`，摘/挂 map 时置 `material.needsUpdate`（USE_MAP 变分支）；取消勾选必须还原贴图。3D 左上再加「已选 N · 紫」图例（实紫底白字——canvas 透明，浅色主题会把半透明紫洗白），模型在画面外时仍有反馈 |
 
 ## 2. 交付与协作偏好
 
@@ -33,5 +34,5 @@
 ## 3. 任务完成通知（WxPusher）
 
 - 只能走 GET 路径：`https://wxpusher.zjiecode.com/api/send/message/<SPT_TOKEN>/<URL_ENCODED_TEXT>`。
-- **路径里只能出现字母 / 数字 / 空格（`%20`）/ `.` / `-`**；中文、`:`、`;`、`,`、`%2F` 都会 400。
+- 简报用 `[uri]::EscapeDataString('中文简报')` 编码后拼进路径：**百分号编码的中文实测可用**（2026-10-20 返回 `code:1000, success:true`）。不编码的中文会 400；路径里的 `/` 不能来自简报。
 - POST `/api/send/message` 用该 SPT token 会回 `appToken不正确`，不要用。
