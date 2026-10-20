@@ -505,3 +505,49 @@ Get-CimInstance Win32_Process -Filter "name='python.exe'" |
 
 用 250 ms 轮询 60 s、累积去重。**进详情页应当是 0 条**；如果还能看到 `skinfo`/`index` 之类的调用，
 说明页面还在现场查。反过来，预热那次应当正好看到它该有的几条（例如 6×`skinfo` + `geoset` + `thumbs`）。
+
+---
+
+## 11. `WebView2 error: HRESULT(0x8000FFFF) 灾难性故障`：先量进程完整性级别
+
+**症状**：`tauri dev` 在 `tauri/src/app.rs` 的 `setup` 处 panic
+`Failed to setup app: failed to create webview: WebView2 error: WindowsError(0x8000FFFF)`；
+事件日志里每次运行都有 1–2 条 `msedgewebview2.exe` 崩溃（`msedge.dll`，异常码 `80000003` = Chromium 的 CHECK），
+且 `%LOCALAPPDATA%\<identifier>\EBWebView` **从来没被建出来**。
+
+**判据阶梯**（每一步都在缩小范围，别跳）：
+
+1. **是业务代码吗？** 把 builder 换成 `tauri::Builder::default()`（零插件、零 setup、零 command）再跑。
+   照样失败 ⇒ 与插件/初始化/命令无关，别再逐行读自己的代码。
+2. **是二进制吗？** 把同一个 exe 复制到工作区外（`C:\DevCache\...`）再跑。能起窗 ⇒ 问题绑定在**启动上下文**，不在代码。
+3. **量完整性级别**（决定性的一步，1 分钟）：
+   ```powershell
+   Copy-Item C:\Windows\System32\whoami.exe <某目录>\w.exe -Force
+   Start-Process <某目录>\w.exe -ArgumentList '/groups' -RedirectStandardOutput <可写目录>\il.txt -Wait
+   # 看 Mandatory Label：Low (S-1-16-4096) / Medium (8192) / High (12288)
+   ```
+   同一个 `whoami.exe` 放**工作区内**跑是 Low、放工作区外跑是 High ⇒ 沙箱按「可执行文件所在位置」降权。
+4. **在 app 里自证**：启动最开头写三个探针文件并 `eprintln!` 结果（错误必须打全，`Os { code: 5, kind: PermissionDenied }`）。
+   `%LOCALAPPDATA%` 拒绝、工作区可写 = 低 IL + 强制 no-write-up 的教科书组合。
+5. **为什么是 WebView2 先炸**：它创建 environment 的第一步就是写
+   `%LOCALAPPDATA%\<identifier>\EBWebView`（profile），写不了 → 浏览器进程崩溃 → Tauri 只把 0x8000FFFF 抛给你。
+   同一个原因会让 `tauri-plugin-http` 的 cookie store 在启动时报 `os error 5 (拒绝访问)` —— 两件事别当两个 bug。
+
+**修**（沙箱里还要开发时，一次性）：
+
+```powershell
+foreach ($p in @("$env:LOCALAPPDATA\<identifier>","$env:APPDATA\<identifier>","$env:LOCALAPPDATA\<identifier>\cache")) {
+  New-Item -ItemType Directory -Force -Path $p | Out-Null
+  icacls $p /setintegritylevel "(OI)(CI)LW"
+}
+```
+
+代价：该目录变成低 IL 可写（任何低 IL 进程都能改它）。只在开发机这么做；正常双击运行（中等 IL）根本不需要。
+
+**排障纪律（这次踩过的）**：在沙箱里反复启动，成功/失败会**成片波动**（我一度从 5 次里 1 次成功推到
+「路径规律」，几十分钟全浪费）。判断"某变量是否有影响"必须**交叉轮流跑**（A/B/A/B），
+并且先确认自己那套「杀进程 + 删目录」的清理动作本身不会制造脏状态；
+**一次 4–8 个样本、同一时刻对比**，才允许下结论。
+
+另外：`Start-Process -RedirectStandardError`、`cargo run`、`bun tauri dev` 这三种拉起方式的**父进程上下文不同**，
+同一个 exe 可能在一种下必挂、另一种下全过 —— 先把「谁拉起它」固定住，再谈复现率。

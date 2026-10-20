@@ -719,11 +719,36 @@ stream 2: count x 32   weights(16) + bones(16)
 Blender EEVEE 渲染 → 棕发、粉上衣、牛仔裤、皮靴都是贴图本色。
 脚本：`C:\DevCache\anim-recon\export_tex_obj.py`、`render_tex2.py`。
 
-**新增阻塞（环境问题，未解决）**：`tauri dev` 和直接跑 `src-tauri/target/debug/exmt-modbox.exe` 都 panic：
-`PluginInitialization("http", "拒绝访问。(os error 5)")`。同一份二进制 15:30 前能启动，本轮只改 Python，
-所以不是本轮改动引起。已试：清 `exmt-modbox`/`msedgewebview2` 残留、直接跑二进制、`RUST_BACKTRACE=1`（栈无有效帧）。
-**接手第一步**：确认是否 Windows 证书库/安全软件拦了 `rustls-native-certs`，或临时注释 `tauri_plugin_http::init()`
-（前端没用到 http 插件）验证；修好后补一张"巴斯提·3 有颜色"的界面截图。
+**曾报阻塞（2026-10-20，已定位并解决）**：`tauri dev` / 直接跑 `target/debug/exmt-modbox.exe` 先后报
+`PluginInitialization("http", "拒绝访问。(os error 5)")` 和 `failed to create webview: HRESULT(0x8000FFFF) 灾难性故障`。
+
+**真根因：不是代码，是进程完整性级别。** 本机这台 DSH 终端把**位于工作区内的可执行文件**以
+`Low Mandatory Level`（S-1-16-4096）启动；低 IL 进程受 no-write-up 限制，写不了 `%LOCALAPPDATA%\com.exmt.modbox`：
+
+| 证据 | 结果 |
+| --- | --- |
+| `whoami.exe` 副本放 `src-tauri\target\debug\` 里跑 | **Low IL** |
+| 同一个 `whoami.exe` 放 `C:\DevCache` 里跑 | **High IL** |
+| 把 `exmt-modbox.exe` 复制到 `C:\DevCache\wv2probe\appcopy` 跑 | **窗口正常，0 崩溃** |
+| 保留原路径跑 | `0x8000FFFF` + 浏览器进程 `msedge.dll` 0x80000003 崩溃 |
+| `tauri::Builder::default()`（零插件/零 setup）跑 | 同样 `0x8000FFFF` ⇒ 与业务代码无关 |
+| app 内 `fs::write` 探针 | `%LOCALAPPDATA%`、`C:\DevCache` → os error 5；`C:\Dev\EXMT\tmp` → OK |
+
+WebView2 建 profile 必须先写 `%LOCALAPPDATA%\com.exmt.modbox\EBWebView`，被拒 → 浏览器进程起不来 →
+Tauri 报"灾难性故障"。15:30 的 cookie「拒绝访问」是同一个原因。
+
+**修法（一次性，需要中等/高 IL 的终端跑）**：
+
+```powershell
+foreach ($p in @("$env:LOCALAPPDATA\com.exmt.modbox","$env:APPDATA\com.exmt.modbox","$env:LOCALAPPDATA\com.exmt.modbox\cache")) {
+  New-Item -ItemType Directory -Force -Path $p | Out-Null
+  icacls $p /setintegritylevel "(OI)(CI)LW"
+}
+```
+
+之后 `bun tauri dev` 直接起窗口（19:20 截图 `C:\DevCache\wv2probe\shots\app-ok.png`：首页四步向导 + 已分析
+16482 网格 / 47008 贴图 / 39974 动作 / 464 皮肤）。**注意**：给数据目录加 `LW` 意味着任何低 IL 进程都能改它，
+属于"让沙箱里能开发"的取舍；正常双击运行（中等 IL）本来就不需要这条。
 
 ---
 

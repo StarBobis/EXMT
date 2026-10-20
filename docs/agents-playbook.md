@@ -27,6 +27,9 @@
 ## 2. 本机工具链（已验证）
 
 - 应用：`bun run tauri dev`，窗口标题 `EXMT Modbox`
+  ⚠️ **若报 `WebView2 error: HRESULT(0x8000FFFF) 灾难性故障`**：先别改代码。这是本机沙箱把工作区内的 exe
+  以 Low IL 启动、导致 `%LOCALAPPDATA%\com.exmt.modbox\EBWebView` 建不出来。诊断与一次性修法见
+  skill `tauri-winui-shell` §11（`icacls <appdata>\com.exmt.modbox /setintegritylevel (OI)(CI)LW`）。
   ⚠️ 本机 `bun` **不在 PATH 里**：一律用全路径 `C:\Users\Administrator\.bun\bin\bun.exe run <script>`
   ⚠️ `beforeDevCommand` 是 `node scripts/dev.mjs`：1420 上**已有 Vite 就直接复用**（打印 `reusing it` 并 exit 0），
   端口空才自己起，端口被别的程序占则 exit 1 并报出占用进程。所以**不要把残留的 dev server 当错误**；
