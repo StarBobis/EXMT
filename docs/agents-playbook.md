@@ -128,10 +128,15 @@ C:\DevCache\gf2\app2.ps1 click <cx> <cy>
 | --- | --- | --- |
 | `manifest.json` | format / built_at / bundle_dir / 计数 / 耗时 | `analyze`，**最后写**（存在 = 完整） |
 | `names.json` | 网格名 → bundle 列表，贴图名 → bundle 列表 | 同上（`meshidx.build`） |
-| `skins.json` | 皮肤 → 部件（每部件最低 lod 的网格）+ 贴图/动作计数 | 同上 |
+| `skins.json` | 皮肤 → 部件（每部件最低 lod 的网格，同 lod 优先非移动版）+ 贴图/动作计数 | 同上 |
 | `clips.json` | 39 974 个 AnimationClip 名 → bundle | 同上（`animidx.build`） |
 | `bones.json` | 50 005 条骨骼路径（crc32 → 路径） | 同上（`bonenames.build`） |
-| `progress.json` | 当前阶段/已完成阶段/耗时，UI 每 900 ms 轮询 | `analyze`，边跑边写 |
+| `skins/<key>/` | **每个皮肤已解好的** meshes / geometry / thumbs / diffuse / meta | 同上（`skinpack.build`，8 进程并行） |
+| `progress.json` | 当前阶段/已完成阶段/耗时 + `live:{done,total}`（解皮肤进度） | `analyze`，边跑边写 |
+
+**关键不变量**：`skins/<key>/meta.json` 的 `cache_built_at` **必须等于** `manifest.json` 的 `built_at`。
+整个 `analyze` 只取一次时间戳，manifest 和所有包共用；前端只认"两者相等"的包。
+这条一旦写错（各自取时间），预解出来的包会被判定过期，又会退回现场解——2026-10-20 就是这么翻车的。
 
 **启动三态**（`src/lib/boot.ts`）：`loading → ready | setup | error`。
 `ready` 的条件：setup 标记 + 游戏路径可用 + `cacheState() === "ready"`（manifest 能解析、
@@ -142,8 +147,9 @@ format 对、`bundle_dir` 与当前游戏目录一致、三个数据文件在）
 
 - 改缓存目录 / 游戏目录 → 旧缓存立即失效（`elsewhere`）；设置页两个入口都已接 `boot()`。
 - 改了 `analyze.py` 的产物格式 → 把 `FORMAT` 加版本，否则旧缓存会被当成 `outdated`。
-- 模型页每个皮肤第一次仍解几何（20–25 s，存 `<缓存>/skins/<key>/`）；`prefetchSkin()`
-  在主页选中立绘时后台预热，一次只热一个。
+- 改了**皮肤推导规则**（lod / 部件名）不用重扫全库：`cd core; & $py -m exmt_core packs <缓存目录> 8`
+  复用 `names.json` 重算 `skins.json` 并重建全部皮肤包（约 150 s），manifest 时间戳不变。
+- 只解一个皮肤：`& $py -m exmt_core skinpack <spec.json>`（spec 由前端在缺包时写，也可手写）。
 
 **验证手法（可复用）**：
 

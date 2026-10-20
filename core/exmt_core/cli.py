@@ -460,6 +460,27 @@ def cmd_cache(args):
     return 0
 
 
+def cmd_packs(args):
+    """packs <cacheDir> [workers] [limit] - rebuild skins.json + skin packs only."""
+    from . import analyze
+
+    workers = int(args[1]) if len(args) > 1 and args[1] else None
+    limit = int(args[2]) if len(args) > 2 and args[2] else None
+    print(json.dumps(analyze.rebuild_packs(args[0], workers=workers, limit=limit),
+                     ensure_ascii=False))
+    return 0
+
+
+def cmd_skinpack(args):
+    """skinpack <spec.json> - decode one skin (meshes/geometry/thumbs/maps) in one go."""
+    from . import skinpack
+
+    with open(args[0], encoding="utf-8") as fh:
+        spec = json.load(fh)
+    print(json.dumps(skinpack.build(spec), ensure_ascii=False))
+    return 0
+
+
 def cmd_anims(args):
     """anims <bundle> [bonenames.json] - every AnimationClip in one bundle, summarised."""
     from . import anim, bonenames
@@ -527,6 +548,8 @@ def main(argv=None):
         "animidx": cmd_animidx,
         "analyze": cmd_analyze,
         "cache": cmd_cache,
+        "skinpack": cmd_skinpack,
+        "packs": cmd_packs,
     }
     if cmd not in table:
         print("unknown command", cmd)

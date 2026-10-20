@@ -6,7 +6,7 @@
  * the texture index, which is cached in the cache folder because building it
  * walks every bundle once (~10 s).
  */
-import { exists, mkdir, readDir, readTextFile, remove, stat, writeTextFile } from "@tauri-apps/plugin-fs";
+import { exists, mkdir, readDir, readTextFile, remove, writeTextFile } from "@tauri-apps/plugin-fs";
 import { appDataDir, join } from "@tauri-apps/api/path";
 import catalogData from "../data/catalog.json";
 import { gameBundles, runCore } from "./core";
@@ -302,9 +302,8 @@ export async function ensureMeshIndex(): Promise<{
 }
 
 // --------------------------------------------------------------------------- //
-// per-skin cache: <cache>/skins/<skinKey>/{meta,meshes,geometry,thumbs}.json
+// per-skin cache: <cache>/GameCache/skins/<skinKey>/{meta,meshes,geometry,thumbs,diffuse}.json
 // --------------------------------------------------------------------------- //
-const SKIN_CACHE_VERSION = 1;
 const MEMORY_SKINS = 4;
 
 export interface SkinEntry {
@@ -345,12 +344,6 @@ function remember(data: SkinData) {
   }
 }
 
-async function skinsRoot(): Promise<string> {
-  const root = await join(cacheFolder.value, "skins");
-  await mkdir(root, { recursive: true }).catch(() => undefined);
-  return root;
-}
-
 async function readJson<T>(path: string): Promise<T | null> {
   try {
     if (!(await exists(path))) return null;
@@ -360,41 +353,8 @@ async function readJson<T>(path: string): Promise<T | null> {
   }
 }
 
-async function writeJson(path: string, value: unknown): Promise<void> {
-  await writeTextFile(path, JSON.stringify(value));
-}
-
-/** Bundle files change only on a game update, so size+mtime is enough to invalidate. */
-async function bundleSignature(hashes: string[]): Promise<string> {
-  const parts: string[] = [];
-  for (const hash of [...new Set(hashes)].sort()) {
-    try {
-      const info = await stat(bundlePathOf(hash));
-      parts.push(`${hash}:${info.size}:${new Date(info.mtime ?? 0).getTime()}`);
-    } catch {
-      parts.push(`${hash}:missing`);
-    }
-  }
-  return parts.join("|");
-}
-
 function decodeSet(raw: { meshes?: any[] } | null): PreviewGeometry[] {
   return (raw?.meshes ?? []).map(decodeGeometry);
-}
-
-async function geosetRaw(skinKey: string, meshes: SkinMesh[]): Promise<{ meshes: any[] }> {
-  if (!meshes.length) return { meshes: [] };
-  const bundles: Record<string, string> = {};
-  for (const mesh of meshes) bundles[mesh.bundle] = bundlePathOf(mesh.bundle);
-  const specPath = await join(cacheFolder.value, `geoset-${skinKey}.json`);
-  await writeTextFile(
-    specPath,
-    JSON.stringify({
-      bundles,
-      meshes: meshes.map((mesh) => ({ bundle: mesh.bundle, mesh: mesh.name })),
-    }),
-  );
-  return (await runJson(["geoset", specPath])) as { meshes: any[] };
 }
 
 /**
@@ -425,84 +385,18 @@ export function diffuseNameFor(mesh: string, names: string[]): string | null {
   return best;
 }
 
-async function buildDiffuseMaps(
-  skinKey: string,
-  meshes: SkinMesh[],
-  textures: TextureEntry[],
-): Promise<Record<string, string>> {
-  const byName = new Map(textures.map((tex) => [tex.name, tex]));
-  const names = textures.map((tex) => tex.name);
-  const pairs: { mesh: string; texture: string; bundle: string }[] = [];
-  for (const mesh of meshes) {
-    const texture = diffuseNameFor(mesh.name, names);
-    if (!texture) continue;
-    const entry = byName.get(texture);
-    if (!entry) continue;
-    pairs.push({ mesh: mesh.name, texture, bundle: entry.bundle });
-  }
-  if (!pairs.length) return {};
-
-  const bundles: Record<string, string> = {};
-  for (const pair of pairs) bundles[pair.bundle] = bundlePathOf(pair.bundle);
-  const specPath = await join(cacheFolder.value, `maps-${skinKey}.json`);
-  await writeTextFile(specPath, JSON.stringify({ bundles, maps: pairs }));
-  const data = (await runJson(["maps", specPath, "1024"])) as {
-    maps?: { mesh: string; png?: string }[];
-  };
-  const out: Record<string, string> = {};
-  for (const item of data.maps ?? []) {
-    if (item.png) out[item.mesh] = `data:image/png;base64,${item.png}`;
-  }
-  return out;
-}
-
-async function thumbsFor(textures: TextureEntry[]): Promise<TextureEntry[]> {  const byBundle = new Map<string, TextureEntry[]>();
-  for (const tex of textures) {
-    const group = byBundle.get(tex.bundle);
-    if (group) group.push(tex);
-    else byBundle.set(tex.bundle, [tex]);
-  }
-  const out: TextureEntry[] = [];
-  for (const [hash, items] of byBundle) {
-    try {
-      out.push(...(await loadThumbs(hash, items.map((i) => i.name))));
-    } catch {
-      out.push(...items);
-    }
-  }
-  return out.sort((a, b) => a.name.localeCompare(b.name));
-}
-
 export type SkinPhase = "meshes" | "geometry" | "textures";
-
-/**
- * Warm a skin while the user is still on the roster.
- *
- * The indexes come from the analysed cache, but one skin's *geometry* has to be
- * decoded from its bundles once (then `<cache>/skins/<key>/` serves it). Doing
- * that in the background when a card is picked makes the studio feel instant;
- * at most one warm-up runs at a time so browsing cannot hammer the disk.
- */
-let warming: string | null = null;
-
-export function prefetchSkin(entry: SkinEntry): void {
-  if (!isTauri || warming) return;
-  const key = skinKeyOf(entry);
-  if (skinMemory.get(key)) return;
-  warming = key;
-  void loadSkin(entry)
-    .catch(() => undefined)
-    .finally(() => {
-      warming = null;
-    });
-}
 
 /**
  * Everything the studio shows for one skin.
  *
- * First visit parses the bundles and writes `<cache>/skins/<key>/`; later
- * visits read those four small files instead, so switching back is instant.
- * The in-memory LRU avoids even the disk read for the last few skins.
+ * The analysis decodes **every** roster skin up front (`GameCache/skins/<key>/`:
+ * meshes, geometry, thumbs, diffuse). So this normally reads four files and
+ * returns — no Python process, no bundle parsing, ~30 ms.
+ *
+ * If a skin has no pack (the game shipped one the analysis skipped), it is
+ * decoded once through `skinpack` and written into the same folder, so even that
+ * case is a single process and only ever happens once.
  */
 export async function loadSkin(
   entry: SkinEntry,
@@ -516,80 +410,80 @@ export async function loadSkin(
   }
   if (!isTauri) throw new Error("desktop only");
 
-  // report the first phase *before* the index lookup: if the studio ever hangs
-  // on startup the label tells us which step it is (index vs mesh vs texture)
   onPhase?.("meshes");
-  const index = await ensureTexIndex();
-  const texs = texturesFor(index, key);
-  const meshHashes = bundleHashesOf(entry);
-  const allHashes = [...meshHashes, ...texs.map((t) => t.bundle)];
-  const dir = await join(await skinsRoot(), key);
+  const cache = await ensureGameCache();
+  const dir = await join(cache.dir, "skins", key);
 
-  const signature = await bundleSignature(allHashes);
-  const meta = await readJson<{ version: number; signature: string; built_at: string }>(
-    await join(dir, "meta.json"),
-  );
-  if (meta && meta.version === SKIN_CACHE_VERSION && meta.signature === signature) {
+  const read = async () => {
+    const meta = await readJson<{ cache_built_at?: string; built_at?: string }>(
+      await join(dir, "meta.json"),
+    );
+    if (!meta || meta.cache_built_at !== cache.manifest.built_at) return null;
     const meshes = await readJson<SkinMesh[]>(await join(dir, "meshes.json"));
     const raw = await readJson<{ meshes: any[] }>(await join(dir, "geometry.json"));
     const thumbs = await readJson<TextureEntry[]>(await join(dir, "thumbs.json"));
-    if (meshes && raw && thumbs) {
-      let maps = await readJson<Record<string, string>>(await join(dir, "diffuse.json"));
-      if (!maps && meshes.length && texs.length) {
-        maps = await buildDiffuseMaps(key, meshes, texs);
-        await writeJson(await join(dir, "diffuse.json"), maps).catch(() => undefined);
-      }
-      const data: SkinData = {
-        key,
-        meshes,
-        geometry: decodeSet(raw),
-        textures: thumbs,
-        maps: maps ?? {},
-        cached: true,
-        builtAt: meta.built_at,
-      };
-      remember(data);
-      return data;
+    if (!meshes || !raw || !thumbs) return null;
+    const maps = (await readJson<Record<string, string>>(await join(dir, "diffuse.json"))) ?? {};
+    return { meshes, raw, thumbs, maps, builtAt: meta.built_at ?? null };
+  };
+
+  let pack = await read();
+
+  if (!pack) {
+    // not pre-decoded (or built by an older analysis): one process does it all
+    onPhase?.("geometry");
+    const textures = texturesFor(await ensureTexIndex(), key);
+    const groups = new Map<string, string[]>();
+    for (const tex of textures) {
+      const list = groups.get(tex.bundle) ?? [];
+      list.push(tex.name);
+      groups.set(tex.bundle, list);
     }
+    const spec = {
+      key,
+      dir,
+      bundle_dir: cache.manifest.bundle_dir,
+      cache_built_at: cache.manifest.built_at,
+      meshes: Object.entries(entry.parts ?? {}).map(([part, mesh]) => ({
+        mesh,
+        bundles: entry.part_bundles?.[part] ?? [entry.bundle],
+      })),
+      textures: [...groups.entries()].map(([bundle, names]) => ({ bundle, names })),
+      maps: Object.values(entry.parts ?? {})
+        .map((mesh) => {
+          const name = diffuseNameFor(mesh, textures.map((tex) => tex.name));
+          const bundle = textures.find((tex) => tex.name === name)?.bundle;
+          return name && bundle ? { mesh, texture: name, bundle } : null;
+        })
+        .filter(Boolean),
+      thumb_size: 160,
+      map_size: 1024,
+    };
+    const specPath = await join(cacheFolder.value, `skinpack-${key}.json`);
+    await mkdir(cacheFolder.value, { recursive: true }).catch(() => undefined);
+    await writeTextFile(specPath, JSON.stringify(spec));
+    const res = await runCore(["skinpack", specPath, ]);
+    if (res.code !== 0) {
+      throw new Error((res.stderr || res.stdout || "skin decode failed").trim().slice(-400));
+    }
+    pack = await read();
+    if (!pack) throw new Error(`skin ${key} could not be decoded`);
   }
 
-  onPhase?.("meshes");
-  const prefix = `${key}_`;
-  const found = await loadMeshes(meshHashes);
-  const meshes = found
-    .filter((mesh) => mesh.name.startsWith(prefix))
-    .sort((a, b) => a.name.localeCompare(b.name));
-
-  onPhase?.("geometry");
-  const raw = await geosetRaw(key, meshes);
-
   onPhase?.("textures");
-  const thumbs = await thumbsFor(texs);
-  const maps = await buildDiffuseMaps(key, meshes, texs);
-
-  const builtAt = new Date().toISOString();
-  await mkdir(dir, { recursive: true }).catch(() => undefined);
-  await Promise.all([
-    writeJson(await join(dir, "meshes.json"), meshes),
-    writeJson(await join(dir, "geometry.json"), raw),
-    writeJson(await join(dir, "thumbs.json"), thumbs),
-    writeJson(await join(dir, "diffuse.json"), maps),
-    writeJson(await join(dir, "meta.json"), {
-      version: SKIN_CACHE_VERSION,
-      key,
-      signature,
-      built_at: builtAt,
-    }),
-  ]).catch(() => undefined);
-
+  const meshes = pack.meshes
+    // a submesh whose buffers are missing (truncated weapon bundles) has no
+    // geometry row — showing it would be a row that opens nothing
+    .filter((mesh) => !(mesh as { error?: string }).error)
+    .sort((a, b) => a.name.localeCompare(b.name));
   const data: SkinData = {
     key,
     meshes,
-    geometry: decodeSet(raw),
-    textures: thumbs,
-    maps,
-    cached: false,
-    builtAt,
+    geometry: decodeSet(pack.raw),
+    textures: pack.thumbs.sort((a, b) => a.name.localeCompare(b.name)),
+    maps: pack.maps,
+    cached: true,
+    builtAt: pack.builtAt,
   };
   remember(data);
   return data;

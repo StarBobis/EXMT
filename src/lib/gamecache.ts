@@ -135,6 +135,8 @@ export interface AnalyzeEvent {
   phase: string | null;
   phases: { phase: string; seconds: number; [key: string]: unknown }[];
   seconds: number;
+  /** mid-phase counters, e.g. `{phase:"packs", done:87, total:249}` */
+  live?: { phase: string; done?: number; total?: number; seconds?: number } | null;
   error?: string;
 }
 

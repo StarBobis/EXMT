@@ -590,37 +590,48 @@ stream 2: count x 32   weights(16) + bones(16)
 
 **用户要求**：进程序先走四步引导（语言 → 缓存目录 → 游戏目录 → **强制分析**）；分析完才进主界面；
 主页/模型页只读 `<缓存目录>\GameCache`；设置页给「重新分析游戏缓存」；主页内容由分析结果决定，不再写死目录。
+**第二轮澄清**：不是"用到再解"，而是**分析时就把皮肤全部解好**，选立绘切模型页必须秒开。
 
 **做了什么**
 
 | 层 | 实现 |
 | --- | --- |
-| 核心 | 新 `analyze.py` + CLI `analyze` / `cache`：一次扫描写 `GameCache/{manifest,names,skins,clips,bones}.json` + 实时 `progress.json`；manifest **最后写**，它的存在 = 缓存完整；皮肤由网格名 `c_<skin>_<part>` 反推（`cw_` 武器并进同一皮肤；只留每个部件最低 lod；`emitter*` 不算部件） |
-| 前端 | 新 `lib/gamecache.ts`（读/校验/写探测/分析+轮询）、`lib/boot.ts`（启动三态）、`views/SetupView.vue`（四步向导）、`App.vue` 门禁；`roster.ts` 从 `skins.json` hydrate，`catalog.json` 退化成"中文名/头像字典"；`preview.ensure{Tex,Mesh,Anim}Index`/`ensureBoneNames` 改成读缓存 |
-| 设置页 | 新增「游戏资源缓存」行：已分析时间 + 四项计数 + 「重新分析游戏缓存」+ 打开；改缓存目录/游戏目录都会让缓存失效（`cacheState` = `elsewhere`） |
+| 核心 | 新 `analyze.py` + CLI `analyze` / `cache` / `skinpack` / `packs`：一次扫描写 `GameCache/{manifest,names,skins,clips,bones}.json` + `skins/<key>/`（每皮肤的 meshes/geometry/thumbs/diffuse/meta）+ 实时 `progress.json`（含 `live: {done,total}`）；manifest **最后写**，它的存在 = 缓存完整 |
+| 皮肤推导 | 网格名 `c_<skin>_<part>` 反推（`cw_` 武器并进同一皮肤）；每个部件只留**最低 lod，且同 lod 优先非移动版**（`_lodm0` 是移动端抽稀，之前被当成独立部件，导致子网格数量翻倍）；`emitter*` 不算部件 |
+| 皮肤包 | `skinpack.build`：一个进程内把 meshes+geometry+thumbs+diffuse 一次解完（以前是 16 个进程：9×skinfo + geoset + 9×thumbs + maps），写入 `GameCache/skins/<key>/`；`cache_built_at` **必须等于 manifest 的 `built_at`**，这样"重新分析"一次就能让所有旧包失效 |
+| 前端 | `lib/gamecache.ts`（读/校验/写探测/分析+轮询）、`lib/boot.ts`（启动三态）、`views/SetupView.vue`（四步向导，第 4 步显示 5 个阶段 + `done/total`）、`App.vue` 门禁；`roster.ts` 从 `skins.json` hydrate；`preview.loadSkin` 直接读 `<GameCache>/skins/<key>/`，没有包才回落到一次 `skinpack` |
+| 设置页 | 「游戏资源缓存」行：已分析时间 + 五项计数 + 「重新分析游戏缓存」+ 打开；改缓存目录/游戏目录都会让缓存失效 |
 
-**实测数字（AGameCache，`C:\EXMTCacheFolder\GameCache`）**
+**实测数字（`C:\EXMTCacheFolder\GameCache`）**
 
 | 项 | 值 |
 | --- | --- |
-| 规模 | 9613 bundles / **16482** 网格 / **47008** 贴图 / **39974** 动作 / **464** 皮肤 / **50005** 骨骼路径 |
-| 耗时 | 总 **242–245 s**（names 139–143 s、clips 70–74 s、skins 8–10 s、bones 17–26 s），8 workers |
-| 与原目录对照 | `catalog.json` 的 240 个皮肤**全部**能在分析结果里找到（100% 命中），另外多出 224 个（R/SR/`SLG` 基础体等）；464 个里 249 个有 `slg_` 部件 → 主页按"有 slg 部件或字典认识"过滤，得到 **92 个角色** |
-| 体积 | names 4.6 MB + clips 3.5 MB + skins 0.7 MB + bones 3.3 MB ≈ 12 MB |
+| 规模 | 9613 bundles / **16482** 网格 / **47008** 贴图 / **39974** 动作 / **464** 皮肤 / **249** 皮肤包 / **50005** 骨骼路径 |
+| 耗时 | 总 **384 s**（names 135 / clips 64 / skins 8.5 / **packs 152.5** / bones 22），8 workers；`packs` 单独重建 152 s |
+| 体积 | 缓存 JSON 约 12 MB + 皮肤包 **1.54 GB**（249 个 × 约 6 MB；去掉 lodm 重复后从 1.76 GB 降下来） |
+| 单皮肤成本 | 解一次 1.9–7.4 s（单进程）；因为全部预解，**切皮肤 0 进程 0 解码** |
+| 与原目录对照 | `catalog.json` 的 240 个皮肤**全部**能在分析结果里找到（100%），另外多出 224 个；249 个有 `slg_` 部件 → 主页 **92 个角色** |
 
 **验证**
 
-- 全新缓存（把 manifest 挪走）→ 启动即进入向导；四步截图：语言 / 缓存目录（写探测 ✓）/ 游戏目录（找到 bundle 目录 ✓）/ 分析（进度行 + 用时）；分析完成 242.1 s 后「进入」才可点。
-- 进主界面：主页 **92 个角色**、秋桦 4 画 5 皮，选中项落盘记忆仍在。
-- 「不再现场查」的证据：进模型页前先等 prefetch 完成，进入时**没有任何 `exmt_core` 进程**（用 250 ms 轮询抓 60 s），模型页 6 s 内出 5 个子网格 + 14 张贴图；动作栏展开立刻显示 `动作 155`（以前要 63 s 扫全库）。
-- 选立绘即 prefetch：选秋桦后 24 s 内后台跑完 6×skinfo + geoset + 2×thumbs + maps，用户还在主页。
+- 全新缓存（moved manifest）→ 启动即进向导；四步截图齐。
+- 主页 92 个角色；进模型页 **0 个 `exmt_core` 子进程**（150–250 ms 轮询 60 s）、2 s 内出 9 个子网格（巴斯提）。
+- **换到用户截图里的安德里斯**：点卡片 → 进入模型页，1.5 s 后 11 个子网格 + 3D 预览已出，同样 **0 进程**。
+- 动作栏展开立刻 `动作 155`（以前 63 s 扫全库）。
+- 重新分析（设置页）245→384 s，`built_at` 更新，249 个包的 `cache_built_at` 全部等于新 manifest（关键回归点）。
+
+**踩到的坑（都已修）**
+
+1. `_build_packs` 自己取 `time.strftime()` 当 `cache_built_at`，而 manifest 在更晚才取时间 → 248/249 个包的时间戳和 manifest **不一致**，前端判定"包过期"，于是又一次退回现场解（就是用户看到的"还得再解一次"）。现在**整个 analyze 只取一次时间戳**，manifest 与所有包共用。
+2. `lodm0`（移动端抽稀）被当成独立部件，子网格数量翻倍（巴斯提 17 行 → 现在 9 行）。
+3. `cw_..._WL_lod0` 这类武器挂件在打包里解不出几何（`buffer is smaller than requested size`），前端按 `error` 过滤，不再显示点不开的行。
 
 **未决**
 
-1. 单个皮肤第一次仍要解一次几何（~20–25 s，`<cache>/skins/<key>/` 存住）——彻底预解 464 个皮肤要几十 GB，不做；现在的折中是"选立绘就后台预热"。
-2. 分析结果里 224 个新皮肤没有中文名/头像（字典没有），主页显示首字母占位。
-3. 分析是同步阻塞的一次 `run_core`（进度靠轮询文件）；没有"取消分析"。
-4. 引导页中途若前端热更新会重置向导状态（分析本身在 Rust/Python 侧继续跑，完成后重进会落在第 4 步）。
+1. 224 个新皮肤没有中文名/头像（字典没有），主页显示首字母占位。
+2. 分析是同步阻塞的一次 `run_core`；没有"取消分析"。
+3. 缓存占用 1.54 GB（249 个包）；用户可在设置里改缓存目录到别的盘。
+4. `skins/<key>/geometry.json` 是 base64 f32，读进内存 + three.js 解码约 30–60 ms/皮肤（已可接受，但仍是 30 ms 级而非 0）。
 
 ---
 

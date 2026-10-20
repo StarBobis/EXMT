@@ -23,13 +23,16 @@ from __future__ import annotations
 import json
 import os
 import re
+import shutil
 import time
+from concurrent.futures import ProcessPoolExecutor
 
 FORMAT = "exmt-gamecache-1"
 
 #: `c_VepleySSR0102_slg_body_lod0` / `cw_GrozaSR0102_WL_slg_lod0`
 MESH_NAME = re.compile(r"^(c|cw)_([A-Za-z0-9]+)_(.+)$")
-LOD = re.compile(r"^(.*?)_lod(\d+)", re.IGNORECASE)
+#: `_lod0` and the mobile variant `_lodm0` both belong to the same part
+LOD = re.compile(r"^(.*?)_lod(m?)(\d+)", re.IGNORECASE)
 
 
 # --------------------------------------------------------------------------- #
@@ -42,27 +45,39 @@ class Progress:
         self.path = path
         self.phases: list[dict] = []
         self.started = time.time()
+        self.live: dict | None = None
         self._write("starting", None)
 
     def start(self, phase: str) -> None:
+        self.live = None
         self._write("running", phase)
+
+    def phase_progress(self, live: dict) -> None:
+        """Mid-phase counters (e.g. packs 87/249) so the bar moves."""
+        self.live = live
+        self._write("running", live.get("phase"), None, live)
 
     def done(self, phase: str, seconds: float, detail: dict | None = None) -> None:
         row = {"phase": phase, "seconds": round(seconds, 1)}
         row.update(detail or {})
         self.phases.append(row)
+        self.live = None
         self._write("running", None)
 
     def finish(self, error: str | None = None) -> None:
         self._write("error" if error else "done", None, error)
 
-    def _write(self, state: str, phase: str | None, error: str | None = None) -> None:
+    def _write(self, state: str, phase: str | None, error: str | None = None,
+               live: dict | None = None) -> None:
         payload = {
             "state": state,
             "phase": phase,
             "phases": self.phases,
             "seconds": round(time.time() - self.started, 1),
         }
+        current = live if live is not None else self.live
+        if current:
+            payload["live"] = current
         if error:
             payload["error"] = error
         try:
@@ -115,11 +130,15 @@ def skins_of(names: dict, clips: dict | None = None, textures: dict | None = Non
             "_lods": {},
             "_bundles": [],
         })
-        index = int(lod.group(2)) if lod else 0
+        # keep the best variant of each part: lowest lod, and on a tie the full
+        # (non-`lodm`) mesh, because `lodm0` is the mobile decimation
+        mobile = bool(lod and lod.group(2))
+        index = int(lod.group(3)) if lod else 0
+        rank = (index, 1 if mobile else 0)
         previous = skin["_lods"].get(part)
-        if previous is not None and previous <= index:
+        if previous is not None and previous <= rank:
             continue
-        skin["_lods"][part] = index
+        skin["_lods"][part] = rank
         skin["parts"][part] = mesh
         skin["part_bundles"][part] = list(bundles)
         for hash_ in bundles:
@@ -149,10 +168,114 @@ def skins_of(names: dict, clips: dict | None = None, textures: dict | None = Non
 
 
 # --------------------------------------------------------------------------- #
+# skin packs: decode every roster skin now, so the studio never decodes again
+# --------------------------------------------------------------------------- #
+def _pack_spec(out_dir: str, bundle_dir: str, names: dict, skin: dict,
+               built_at: str) -> dict:
+    """Everything `skinpack.build` needs for one skin, from the cache itself."""
+    key = skin["id"]
+    prefix = key + "_"
+    mesh_items = []
+    for part, mesh in (skin.get("parts") or {}).items():
+        mesh_items.append({"mesh": mesh, "bundles": list((skin.get("part_bundles") or {}).get(part) or [])})
+
+    texture_groups: dict[str, list] = {}
+    for name, bundles in (names.get("textures") or {}).items():
+        if not name.startswith(prefix) or not bundles:
+            continue
+        texture_groups.setdefault(bundles[0], []).append(name)
+
+    maps = []
+    stems = {mesh.replace("_lod", "_d_lod").split("_d_lod")[0] for mesh in
+             (skin.get("parts") or {}).values()}
+    for mesh in (skin.get("parts") or {}).values():
+        stem = re.sub(r"_lod\d+$", "", mesh)
+        for suffix in ("_d", "_da", "_dif"):
+            candidate = stem + suffix
+            bundles = (names.get("textures") or {}).get(candidate)
+            if bundles:
+                maps.append({"mesh": mesh, "texture": candidate, "bundle": bundles[0]})
+                break
+
+    return {
+        "key": key,
+        "dir": os.path.join(out_dir, "skins", key),
+        "bundle_dir": bundle_dir,
+        "meshes": mesh_items,
+        "textures": [{"bundle": h, "names": v} for h, v in texture_groups.items()],
+        "maps": maps,
+        "cache_built_at": built_at,
+        "thumb_size": 160,
+        "map_size": 1024,
+    }
+
+
+def _pack_one(spec: dict) -> dict:
+    from . import skinpack
+
+    try:
+        return skinpack.build(spec)
+    except Exception as exc:  # noqa: BLE001 - one bad skin must not sink the analysis
+        return {"key": spec.get("key"), "error": str(exc)[:200]}
+
+
+def _roster_skins(skins: list) -> list:
+    """The skins the studio can open: one `slg_` part, or a dorm skin."""
+    out = []
+    for skin in skins:
+        parts = skin.get("parts") or {}
+        if not parts:
+            continue
+        if any(part.startswith("slg") for part in parts) or \
+                skin.get("variant") == "dorm":
+            out.append(skin)
+    return out
+
+
+def _build_packs(out_dir: str, bundle_dir: str, names: dict, skins: list,
+                 progress, workers: int, limit: int | None,
+                 built_at: str) -> int:
+    """Decode every roster skin into `<cache>/skins/<key>/` and report progress.
+
+    `built_at` **must** be the same stamp the manifest gets: the studio only
+    accepts a pack whose `cache_built_at` matches the manifest, which is how a
+    re-analysis invalidates all the old packs in one go.
+    """
+    rows = _roster_skins(skins)
+    if not rows:
+        return 0
+    specs = [_pack_spec(out_dir, bundle_dir, names, row, built_at) for row in rows]
+    if limit:
+        specs = specs[: max(1, limit)]
+
+    done = 0
+    total = len(specs)
+    started = time.time()
+    progress.start("packs")
+    ok = 0
+    with ProcessPoolExecutor(max_workers=max(1, min(workers, 8))) as pool:
+        for result in pool.map(_pack_one, specs, chunksize=1):
+            done += 1
+            if not result.get("error"):
+                ok += 1
+            if done == 1 or done % 5 == 0 or done == total:
+                progress.phase_progress({
+                    "phase": "packs",
+                    "done": done,
+                    "total": total,
+                    "ok": ok,
+                    "seconds": round(time.time() - started, 1),
+                })
+    progress.done("packs", time.time() - started, {"packs": ok, "skins": total})
+    return ok
+
+
+# --------------------------------------------------------------------------- #
 # the analysis itself
 # --------------------------------------------------------------------------- #
 def analyze(bundle_dir: str, cache_root: str, workers: int | None = None,
-            limit: int | None = None, with_bones: bool = True) -> dict:
+            limit: int | None = None, with_bones: bool = True,
+            with_packs: bool = True) -> dict:
     """Scan `bundle_dir` once and (re)write `<cache_root>/GameCache`."""
     from . import animidx, meshidx
     from . import bonenames
@@ -169,9 +292,15 @@ def analyze(bundle_dir: str, cache_root: str, workers: int | None = None,
     manifest_path = os.path.join(out_dir, "manifest.json")
     if os.path.isfile(manifest_path):
         os.replace(manifest_path, manifest_path + ".old")
+    # skin packs are tied to one analysis: start from a clean tree
+    if with_packs:
+        shutil.rmtree(os.path.join(out_dir, "skins"), ignore_errors=True)
 
     progress = Progress(os.path.join(out_dir, "progress.json"))
     total = time.time()
+    # one stamp for the whole run: the manifest and every skin pack carry it, so
+    # "pack belongs to this analysis" is a single string comparison
+    built_at = time.strftime("%Y-%m-%dT%H:%M:%S")
     workers = workers or 0
     try:
         progress.start("names")
@@ -200,10 +329,17 @@ def analyze(bundle_dir: str, cache_root: str, workers: int | None = None,
         skins = skins_of(names, clips_table, names.get("textures") or {})
         _atomic_json(os.path.join(out_dir, "skins.json"), {
             "format": "exmt-skins-1",
-            "built_at": time.strftime("%Y-%m-%dT%H:%M:%S"),
+            "built_at": built_at,
             "skins": skins,
         })
         progress.done("skins", time.time() - started, {"skins": len(skins)})
+
+        # Decode every roster skin here, not on the studio's first visit: the
+        # user's requirement is "switch to another skin = instant".
+        pack_count = 0
+        if with_packs:
+            pack_count = _build_packs(out_dir, bundle_dir, names, skins, progress,
+                                      workers or 6, limit, built_at)
 
         bones_count = 0
         if with_bones:
@@ -216,7 +352,7 @@ def analyze(bundle_dir: str, cache_root: str, workers: int | None = None,
 
         manifest = {
             "format": FORMAT,
-            "built_at": time.strftime("%Y-%m-%dT%H:%M:%S"),
+            "built_at": built_at,
             "bundle_dir": os.path.abspath(bundle_dir),
             "cache_dir": os.path.abspath(out_dir),
             "bundles": len(bundles),
@@ -227,6 +363,7 @@ def analyze(bundle_dir: str, cache_root: str, workers: int | None = None,
                 "textures": len(names.get("textures") or {}),
                 "clips": len(clips_table),
                 "skins": len(skins),
+                "packs": pack_count,
                 "bones": bones_count,
             },
             "seconds": round(time.time() - total, 1),
@@ -247,8 +384,38 @@ def _read(path: str) -> dict:
         return json.load(fh)
 
 
+def rebuild_packs(cache_root: str, workers: int | None = None,
+                  limit: int | None = None) -> dict:
+    """Re-create `skins.json` + every skin pack **without** rescanning bundles.
+
+    Useful when the part/LOD rules change: the expensive name scan is reused and
+    the manifest stamp is kept, so the studio accepts the fresh packs.
+    """
+    out_dir = os.path.join(cache_root, "GameCache")
+    manifest_path = os.path.join(out_dir, "manifest.json")
+    if not os.path.isfile(manifest_path):
+        raise SystemExit("还没有分析结果，先跑 analyze：%s" % out_dir)
+    manifest = _read(manifest_path)
+    names = _read(os.path.join(out_dir, "names.json"))
+    clips = (_read(os.path.join(out_dir, "clips.json")).get("clips") or {})
+    built_at = manifest.get("built_at") or time.strftime("%Y-%m-%dT%H:%M:%S")
+
+    progress = Progress(os.path.join(out_dir, "progress.json"))
+    skins = skins_of(names, clips, names.get("textures") or {})
+    _atomic_json(os.path.join(out_dir, "skins.json"), {
+        "format": "exmt-skins-1", "built_at": built_at, "skins": skins,
+    })
+    shutil.rmtree(os.path.join(out_dir, "skins"), ignore_errors=True)
+    pack_count = _build_packs(out_dir, manifest["bundle_dir"], names, skins, progress,
+                              workers or 6, limit, built_at)
+    manifest.setdefault("counts", {})["packs"] = pack_count
+    manifest["counts"]["skins"] = len(skins)
+    _atomic_json(manifest_path, manifest)
+    progress.finish()
+    return {"skins": len(skins), "packs": pack_count, "built_at": built_at}
+
+
 def status(cache_root: str) -> dict:
-    """`{state, manifest}` — `ready` only when the manifest parses and matches."""
     out_dir = os.path.join(cache_root, "GameCache")
     manifest_path = os.path.join(out_dir, "manifest.json")
     if not os.path.isfile(manifest_path):

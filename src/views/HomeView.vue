@@ -11,7 +11,6 @@ import {
   type Character,
 } from "../lib/roster";
 import { pickCharacter, selectSkin, selectedChar, selectedSkin } from "../lib/selection";
-import { prefetchSkin } from "../lib/preview";
 
 const query = ref("");
 const listRef = ref<HTMLElement | null>(null);
@@ -47,14 +46,10 @@ const cards = computed(() =>
 
 function pick(character: Character) {
   pickCharacter(character);
-  // warm the skin the studio will open, so entering it is instant
-  const entry = selectedSkin.value;
-  if (entry) prefetchSkin(entry);
 }
 
 function choose(entry: CatalogEntry) {
   selectSkin(entry);
-  prefetchSkin(entry);
 }
 
 function enterStudio() {

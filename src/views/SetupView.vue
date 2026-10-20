@@ -287,7 +287,7 @@ function chooseLanguage(value: Locale): void {
         </div>
         <ul class="setup__phases">
           <li
-            v-for="phase in ['names', 'clips', 'skins', 'bones']"
+            v-for="phase in ['names', 'clips', 'skins', 'packs', 'bones']"
             :key="phase"
             class="setup__phase-row"
             :class="{
@@ -297,7 +297,10 @@ function chooseLanguage(value: Locale): void {
           >
             <span class="setup__dot" aria-hidden="true" />
             {{ t(`setup.phase.${phase}` as never) }}
-            <span class="setup__phase-sec">
+            <span v-if="progress?.phase === phase && progress?.live?.total" class="setup__phase-sec">
+              {{ progress.live.done }}/{{ progress.live.total }}
+            </span>
+            <span v-else class="setup__phase-sec">
               {{ (progress?.phases ?? []).find((row) => row.phase === phase)?.seconds ?? "" }}
             </span>
           </li>
