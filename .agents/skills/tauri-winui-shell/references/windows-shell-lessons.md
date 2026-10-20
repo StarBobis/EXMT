@@ -551,3 +551,33 @@ foreach ($p in @("$env:LOCALAPPDATA\<identifier>","$env:APPDATA\<identifier>","$
 
 另外：`Start-Process -RedirectStandardError`、`cargo run`、`bun tauri dev` 这三种拉起方式的**父进程上下文不同**，
 同一个 exe 可能在一种下必挂、另一种下全过 —— 先把「谁拉起它」固定住，再谈复现率。
+
+## 12. Startup gates must be total: a blocked "Enter app" may never bounce back silently
+
+**Symptom.** On the last page of a first-run wizard, clicking *Enter* looks like a hang: no spinner, no
+error, no page change. The user reports "it takes forever" or "nothing happens".
+
+**Root cause pattern.** The button re-runs the same `boot()` that decides wizard-vs-app. `boot()` returns
+to `setup` because one precondition is missing (here: the stored game path was gone after the WebView2
+profile was rebuilt), and the wizard's `onMounted` then takes its *cache-is-ready* shortcut back to the
+last page. The screen is pixel-identical, the blocker is never named, and every further click repeats it.
+
+**Rule.** Make the gate transition total: every failed precondition must land on the step that can fix it
+and be visible there, before any "everything is fine" shortcut. Order the mount logic as
+`missing inputs -> invalid inputs -> work already done`, and keep "work done" state (`analyzed`) so a lost
+setting never forces an expensive rescan.
+
+**Numbers first (measured, this app, 2026-10-20, ready cache).** Enter click = **205 ms** warm / **212 ms**
+after a cold process start; breakdown from inside the page: `manifest.json` 5 ms, `names.json`
+4.6 MB = 41 ms read + 19 ms parse, `clips.json` 3.6 MB = 31 + 16 ms, `skins.json` 0.57 MB = 9 + 1 ms,
+home render ~30 ms. So a correctly wired entry is *not* slow — if it feels slow, measure the transition
+and look for a silent bounce before blaming I/O or JSON.
+
+**How to measure without instrumenting the app.** WebView2 exposes CDP:
+launch the exe with `WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS=--remote-debugging-port=9222`, then drive
+`http://127.0.0.1:9222/json/list` from Node (global `WebSocket`): `Runtime.evaluate` with
+`awaitPromise:true`, click the button, poll `.app__body` every 10 ms, and collect
+`PerformanceObserver({type:'longtask'})`. For the cold case, set the persisted state, kill the process,
+relaunch, and run the same probe — that is the only honest way to tell "slow" from "stuck".
+Repro of this bug: clear `localStorage` (the WebView profile was recreated) while the cache on disk is
+still valid, reopen the wizard, click Enter, and watch the DOM stay identical for 3 s.

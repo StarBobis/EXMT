@@ -169,11 +169,26 @@ onMounted(async () => {
   if (gamePath.value) await checkGamePath(gamePath.value);
 
   // already analysed (an earlier run, or a restart right after it finished):
-  // land on the last step with "进入" enabled instead of walking through again
+  // the analysis stays "done" even when the install is not set up, so a lost
+  // setting never costs another 6-minute scan
   const { state, manifest } = await cacheState();
   if (state === "ready" && manifest) {
     analyzed.value = true;
     doneText.value = describe(manifest);
+  }
+
+  // The install is the one thing `boot()` cannot do without. When it is missing
+  // or unverifiable, "进入" goes straight back to this wizard without a spinner
+  // or a message, so the page looks frozen. Land on the step that fixes it.
+  if (!gamePath.value) {
+    step.value = analyzed.value ? 3 : 1;
+    return;
+  }
+  if (!gameReady.value) {
+    step.value = 3;
+    return;
+  }
+  if (analyzed.value) {
     step.value = 4;
     return;
   }
@@ -183,8 +198,6 @@ onMounted(async () => {
   if (live?.phases?.length) {
     progress.value = live;
     step.value = 4;
-  } else if (setupReason.value === "no-game") {
-    step.value = 3;
   } else if (setupReason.value !== "first-run") {
     step.value = 4;
   }
