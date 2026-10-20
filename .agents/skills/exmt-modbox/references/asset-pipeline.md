@@ -196,7 +196,7 @@ basis = (父pose · 父matrix_local⁻¹ · 本matrix_local)⁻¹ · pose
   - `cw_*` 里出现 `WL` 一律归到 `wl` 头：整把枪的 `cw_X_WL_*` 图集由 WL/Silencer/Sight/Stool 共享。
   - 没有自有贴图的 `body`/`body1` → 共享 `B_body_*`（UV 岛对齐；`face_d` 会把胸口落在黑缝上）。
   - 数字肢体兄弟（`hand2` 映射 `hand1`）同 P 组才继承；最终仍有缺口的道具按**精确 token** 匹配共享资产（`cw_MP443_WL`、`SabrinaSSR01_Pizza`、`cw_Tongyong_SmokeGrenade`），但 `body/hair/face/hip/cloth/head...` 这类通用头禁止跨角色借。
-- **实测**：249 个 roster 皮肤 2549/2603 个子网格有 diffuse（97.9%）。审计把缺口分成三类（`pairs` 的 JSON）：`missing_bug` **必须为 0**（有 diffuse 家族却没配上 = 解析 bug）；`missing_no_diffuse` = 只有 n/rmo/spc、缓存里没有 base color（当前 4 个：OTs14 机械臂）；`no_texture_in_cache` = 任何合理命名下都没有贴图（当前 50 个：NPC/未下载皮肤包）。2026-10-21 实测：bug 0 / no_diffuse 4 / no_texture 50。审计命令：`python -m exmt_core pairs <cacheDir>`。
+- **实测**：249 个 roster 皮肤 2551/2603 个子网格有 diffuse（98.0%）；218 个皮肤全网格覆盖，31 个只差道具/未下载资产。审计把缺口分成三类（`pairs` 的 JSON）：`missing_bug` **必须为 0**（有 diffuse 家族却没配上 = 解析 bug）；`missing_no_diffuse` = 只有 n/rmo/spc、缓存里没有 base color（当前 4 个：OTs14 机械臂）；`no_texture_in_cache` = 任何合理命名下都没有贴图（当前 48 个：NPC/未下载皮肤包）。2026-10-21 实测：bug 0 / no_diffuse 4 / no_texture 48。审计命令：`python -m exmt_core pairs <cacheDir>`。
 - 材质不可用：全部 18467 个 `SkinnedMeshRenderer.m_Materials` 指向 `<external>`，`cab-*` 材质包未下载 → 只能靠命名 + UV 证据，别试图解析材质。
 
 - 部件键 = lod 前的茎 + **lod 数字之后的全部后缀**（`_Dorm`/`_Fight`/`_trans`）；丢了后缀会让 `slg_cloth` 与 `slg_cloth_Dorm` 撞键，默认战斗服被宿舍服顶掉。
