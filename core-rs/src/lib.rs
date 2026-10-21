@@ -20,5 +20,6 @@ pub mod container;
 pub mod error;
 pub mod lz4;
 pub mod serialized;
+pub mod typetree;
 
 pub use error::{Error, Result};

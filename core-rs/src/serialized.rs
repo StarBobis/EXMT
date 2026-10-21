@@ -53,10 +53,6 @@ impl<'a> Reader<'a> {
         Self { data, pos: 0, endian, limit: data.len() }
     }
 
-    pub fn size(&self) -> usize {
-        self.limit
-    }
-
     pub fn remaining(&self) -> usize {
         self.limit.saturating_sub(self.pos)
     }
