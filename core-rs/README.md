@@ -33,6 +33,17 @@ cargo test --lib      # unit tests only, no sample file needed
 
 Requires a stable Rust toolchain (developed against 1.99.1). Nothing else.
 
+The repo-wide gate is `scripts/check.ps1`. On a machine with the default
+execution policy it must be launched through bypass, otherwise PowerShell
+refuses to load it:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\check.ps1
+```
+
+It runs frontend types, the Rust build, `cargo test` for this crate, the Python
+core's syntax/smoke/tests, and the docs build, and ends with `all checks passed`.
+
 ## Sample data
 
 Several integration tests read one real bundle:
