@@ -4,6 +4,11 @@ $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
 $py = 'C:\Users\Administrator\.dsh\dsh-runtimes\dsh-primary-runtime\dependencies\python\python.exe'
 if (-not (Test-Path $py)) { $py = 'python' }
+$cargo = Join-Path $env:USERPROFILE '.cargo\bin\cargo.exe'
+if (-not (Test-Path $cargo)) {
+  $found = Get-Command cargo -ErrorAction SilentlyContinue
+  if ($found) { $cargo = $found.Source } else { $cargo = $null }
+}
 
 function Step($name, $block) {
   Write-Host "== $name" -ForegroundColor Cyan
@@ -32,6 +37,17 @@ Step 'rust build' {
   } else {
     Push-Location (Join-Path $root 'src-tauri')
     try { & $cargo check --quiet } finally { Pop-Location }
+  }
+}
+
+Step 'core-rs tests' {
+  # The self-hosted Rust asset core. Its test suite is the contract for the
+  # Unity format work, so a red test must fail the gate, not just log.
+  if (-not $cargo) {
+    Write-Host 'skip: cargo not found'
+  } else {
+    Push-Location (Join-Path $root 'core-rs')
+    try { & $cargo test --quiet } finally { Pop-Location }
   }
 }
 

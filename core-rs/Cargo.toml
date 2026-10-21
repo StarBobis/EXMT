@@ -1,0 +1,14 @@
+[package]
+name = "exmt-core"
+version = "0.1.0"
+edition = "2021"
+description = "Self-hosted Unity asset pipeline for EXMT Modbox (no third-party crates)"
+license = "MIT"
+
+[lib]
+name = "exmt_core"
+path = "src/lib.rs"
+
+# Intentionally empty: the asset core uses only the standard library. Tauri's
+# own dependencies live in src-tauri and are not part of this crate.
+[dependencies]
