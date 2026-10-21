@@ -5,6 +5,7 @@
 //! (`skinpack` today), and everything else still goes through the Python core
 //! (`core/exmt_core`) until it is ported.
 
+pub mod analyze;
 pub mod exmtmesh;
 pub mod interchange;
 pub mod modpack;

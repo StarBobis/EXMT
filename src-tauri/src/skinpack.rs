@@ -328,7 +328,7 @@ fn write_json<T: Serialize>(path: &Path, value: &T) -> Result<(), String> {
 }
 
 /// Local wall-clock time as `YYYY-MM-DDTHH:MM:SS`, matching `time.strftime`.
-pub(crate) fn local_timestamp() -> String {
+pub fn local_timestamp() -> String {
     #[cfg(windows)]
     {
         #[repr(C)]
@@ -423,3 +423,4 @@ mod tests {
         assert!(run(Path::new("nope.json"), &tool()).is_err());
     }
 }
+

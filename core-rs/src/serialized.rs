@@ -465,6 +465,33 @@ impl SerializedFile {
         &self.data[start..end]
     }
 
+    /// Read just `m_Name` without decoding the object.
+    ///
+    /// Unity writes named objects with `m_Name` as the first field and a plain
+    /// length-prefixed UTF-8 string, so a name scan does not need to touch the
+    /// mesh/texture payloads. Returns `None` when the type tree does not start
+    /// that way or the string does not fit.
+    pub fn peek_name(&self, obj: &ObjectInfo) -> Option<String> {
+        let ty = self.type_of(obj)?;
+        let first = ty.nodes.get(1)?;
+        if first.level != 1 || first.name != "m_Name" || first.type_name != "string" {
+            return None;
+        }
+        let data = self.object_bytes(obj);
+        if data.len() < 4 {
+            return None;
+        }
+        let len = i32::from_le_bytes([data[0], data[1], data[2], data[3]]);
+        if len < 0 || 4 + len as usize > data.len() {
+            return None;
+        }
+        if len == 0 {
+            return None;
+        }
+        let text = std::str::from_utf8(&data[4..4 + len as usize]).ok()?;
+        Some(text.to_string())
+    }
+
     /// Rebuild this file with some object payloads replaced.
     ///
     /// Only the header sizes, the object table and the data section change.

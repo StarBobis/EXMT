@@ -34,9 +34,9 @@
 | 预览 `thumbs` / `skinfo` | `src-tauri/src/preview.rs` | 完成，贴图网格走 texconv |
 | `backup` / `restore` / `backup-size` | `src-tauri/src/store.rs` | 完成，Tauri 已直接调用 |
 | `workspace`（Blender 导出） | `src-tauri/src/workspace.rs` + `skeleton.rs` + `anim.rs` | 完成（网格/贴图/骨架/动画） |
-| analyze（GameCache） | — | 未开始（仍 Python） |
+| analyze（GameCache） | `src-tauri/src/analyze.rs` | 索引/皮肤/骨骼完成；packs 待迁 |
 
-156 个测试。`cargo test` 在 `core-rs/` 下跑；`src-tauri` 另有 18 个单测和 6 个可选
+156 个测试。`cargo test` 在 `core-rs/` 下跑；`src-tauri` 另有 21 个单测和 6 个可选
 端到端测试（skinpack、modpack、exmtmesh、preview×2、workspace）。`texconv.exe`（966 KB，MIT，许可证同目录）随仓库放在
 `src-tauri/bin/`，并由 `tauri.conf.json` 的 `bundle.resources` 打进安装包；`EXMT_TEXCONV`
 可覆盖路径，找不到时 `skinpack` 回退 Python。

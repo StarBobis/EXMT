@@ -31,7 +31,7 @@ ship without upstream churn.
 | preview `thumbs` / `skinfo` | done | `../src-tauri/src/preview.rs` |
 | `backup` / `restore` / `backup-size` | done | `../src-tauri/src/store.rs` |
 | `workspace` export (meshes, textures, skeleton, clips) | done | `../src-tauri/src/workspace.rs`, `src/skeleton.rs`, `src/anim.rs` |
-| `analyze` (GameCache) | **not started** (still Python) | — |
+| `analyze` (GameCache) | index/skins/bones done; packs pending | `../src-tauri/src/analyze.rs` |
 
 `156 tests`, all green. See "Verification" below for what they actually prove.
 
@@ -163,6 +163,12 @@ Every layer is checked three ways, and the third is the one that matters:
    - preview and store: `thumbs`/`skinfo` return the shapes the frontend reads;
      `backup`/`restore` match Python field-for-field on a fixture with a
      preferred pristine copy and a missing hash.
+   - analyze, 200-bundle sample: `names.json` (386 meshes, 821 textures),
+     `clips.json` (1,265 clips, equal `anim_bundles`) and all 41 `skins.json`
+     rows are equal to Python. Rust takes 6.8 s where Python takes 29.6 s. The
+     bone scan finds 31,906 paths (Python's truncated-prefix scan sees 928);
+     every Python path is present with the identical string.
+   - The full 9,613-bundle scan and skin packs are the remaining analyze work.
 
 DirectXTex (`texconv.exe`) is vendored under `../src-tauri/bin/` with its MIT
 licence and bundled through `tauri.conf.json`. `EXMT_TEXCONV` overrides the
@@ -320,13 +326,12 @@ Each of these cost a debugging round; all are now pinned by tests.
 
 ## Next steps
 
-1. **`analyze` (GameCache) in Rust**: the multi-process library scan that
-   produces `manifest.json`, `names.json`, `skins.json` and the skin packs. This
-   is the last large Python-owned command.
-2. **Retire the Python core** once `analyze` is ported; until then `run_core`
+1. **Finish `analyze`**: port `pairings.py` + the pack spec, build every roster
+   skin into `GameCache/skins/`, then run the full 9,613-bundle scan.
+2. **Retire the Python core** once packs are done; until then `run_core`
    falls back to it only for `analyze`.
-3. Keep `modpack`'s Python fallback out of the runtime: mesh patches are already
-   adapted in Rust, so the only remaining Python path is the GameCache scan.
+3. Remove the Python defaults (`DEFAULT_PYTHON`, `DEFAULT_CORE`), the `core/`
+   runtime dependency and installation docs that mention Python.
 
 ## Conventions
 
