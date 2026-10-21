@@ -9,6 +9,7 @@ pub mod exmtmesh;
 pub mod modpack;
 pub mod preview;
 pub mod skinpack;
+pub mod store;
 
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -127,6 +128,12 @@ fn run_rust_core(app: &tauri::AppHandle, args: &[String]) -> Option<CoreOutput> 
             let size = args.get(2)?.parse::<usize>().ok()?;
             let bundle = asset::open(&args[1]).ok()?;
             Some(match preview::thumbs(&bundle, size, &args[3..], &tool) {
+                Ok(stdout) => CoreOutput { code: 0, stdout, stderr: String::new() },
+                Err(e) => CoreOutput { code: 1, stdout: String::new(), stderr: e },
+            })
+        }
+        Some("backup") | Some("restore") | Some("backup-size") => {
+            Some(match store::run(args) {
                 Ok(stdout) => CoreOutput { code: 0, stdout, stderr: String::new() },
                 Err(e) => CoreOutput { code: 1, stdout: String::new(), stderr: e },
             })

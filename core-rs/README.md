@@ -28,6 +28,7 @@ ship without upstream churn.
 | `modpack` texture path | done | `../src-tauri/src/modpack.rs` |
 | `.exmtmesh` mesh patches | done (same cook; other cooks fall back) | `../src-tauri/src/exmtmesh.rs`, `src/mesh.rs` |
 | preview `thumbs` / `skinfo` | done | `../src-tauri/src/preview.rs` |
+| `backup` / `restore` / `backup-size` | done | `../src-tauri/src/store.rs` |
 | `analyze` (GameCache) | **not started** (still Python) | — |
 
 `142 tests`, all green. See "Verification" below for what they actually prove.
