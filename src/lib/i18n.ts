@@ -206,7 +206,7 @@ const zh = {
   "setup.gameOk": "找到资源目录：{dir}",
   "setup.gameBad": "这个路径下没有 GF2_Exilium_Data\\LocalCache\\Data\\AssetBundles_Windows",
   "setup.analyzeDesc":
-    "只要有游戏本体就能分析：先一次性扫描资源库，再把每个皮肤的网格/几何/贴图解出来存进缓存。首次约 6–10 分钟（249 个皮肤，约 3 GB）；期间可随时停止，之后切模型秒开。",
+    "只要有游戏本体就能分析：先一次性扫描资源库，再把每个皮肤的网格/几何/贴图解出来存进缓存。首次约 3–5 分钟（249 个皮肤，约 3 GB）；期间可随时停止，之后切模型秒开。",
   "setup.analyzeStart": "开始分析",
   "setup.analyzeAgain": "重新分析",
   "setup.analyzeRunning": "正在分析 {phase}…",
@@ -452,7 +452,7 @@ const en: Record<MessageKey, string> = {
   "setup.gameOk": "Bundle folder: {dir}",
   "setup.gameBad": "No GF2_Exilium_Data\\LocalCache\\Data\\AssetBundles_Windows under that path",
   "setup.analyzeDesc":
-    "The installed game is all it needs: one pass scans the asset library, then every skin's meshes, geometry and textures are decoded into the cache. About 6-10 minutes the first time (249 skins, ~3 GB); you can stop at any time, and switching is instant afterwards.",
+    "The installed game is all it needs: one pass scans the asset library, then every skin's meshes, geometry and textures are decoded into the cache. About 3-5 minutes the first time (249 skins, ~3 GB); you can stop at any time, and switching is instant afterwards.",
   "setup.analyzeStart": "Start analysis",
   "setup.analyzeAgain": "Analyse again",
   "setup.analyzeRunning": "Analysing {phase}…",
