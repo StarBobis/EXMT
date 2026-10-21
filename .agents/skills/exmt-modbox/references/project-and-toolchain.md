@@ -37,7 +37,7 @@ node scripts/dev.mjs                   # 只起前端
 & $bun run check                       # 质量门
 cargo test --manifest-path core-rs/Cargo.toml          # 资产核心测试
 cargo test --manifest-path src-tauri/Cargo.toml        # 外壳/命令测试
-# analyze 在应用内跑（设置里选游戏目录 → 重建缓存），全量约 12 分钟
+# analyze 在应用内跑（设置里选游戏目录 → 重建缓存），全量约 12 分钟，可随时停止
 C:\DevCache\gf2\app2.ps1 shot -out p.png
 C:\DevCache\gf2\app2.ps1 click <cx> <cy>
 & 'C:\Program Files\Blender Foundation\Blender 5.2\blender.exe' --background --factory-startup --python x.py

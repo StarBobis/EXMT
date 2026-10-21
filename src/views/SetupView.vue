@@ -8,7 +8,17 @@
  */
 import { computed, onMounted, ref } from "vue";
 import { locale, setLocale, t, type Locale } from "../lib/i18n";
-import { analyzeGame, cacheState, readAnalyzeProgress, verifyCacheFolder, type AnalyzeEvent, type GameCacheManifest } from "../lib/gamecache";
+import {
+  analyzeGame,
+  cacheState,
+  cancelAnalyze,
+  isCancelled,
+  readAnalyzeProgress,
+  verifyCacheFolder,
+  type AnalyzeEvent,
+  type GameCacheManifest,
+} from "../lib/gamecache";
+import AnalyzeProgress from "../components/AnalyzeProgress.vue";
 import { finishSetup, setupReason } from "../lib/boot";
 import {
   cacheFolder,
@@ -88,14 +98,11 @@ const analyzed = ref(false);
 const analyzeError = ref("");
 const progress = ref<AnalyzeEvent | null>(null);
 const running = ref(false);
+const cancelling = ref(false);
+const cancelled = ref(false);
 /** seconds since the button was pressed: progress.json only ticks per phase */
 const elapsed = ref(0);
 let ticker: ReturnType<typeof setInterval> | null = null;
-
-const phaseLabel = computed(() => {
-  const phase = progress.value?.phase;
-  return phase ? t(`setup.phase.${phase}` as never) : "";
-});
 
 const doneText = ref("");
 
@@ -103,6 +110,8 @@ async function runAnalysis(): Promise<void> {
   running.value = true;
   analyzeError.value = "";
   analyzed.value = false;
+  cancelled.value = false;
+  cancelling.value = false;
   elapsed.value = 0;
   const started = Date.now();
   ticker = setInterval(() => {
@@ -118,11 +127,28 @@ async function runAnalysis(): Promise<void> {
     analyzed.value = true;
     doneText.value = describe(manifest);
   } catch (error) {
-    analyzeError.value = String(error);
+    if (cancelling.value || isCancelled(error)) {
+      cancelled.value = true;
+      analyzeError.value = "";
+    } else {
+      analyzeError.value = String(error);
+    }
   } finally {
     running.value = false;
+    cancelling.value = false;
     if (ticker) clearInterval(ticker);
     ticker = null;
+  }
+}
+
+async function stopAnalysis(): Promise<void> {
+  if (!running.value || cancelling.value) return;
+  cancelling.value = true;
+  try {
+    await cancelAnalyze();
+  } catch (error) {
+    analyzeError.value = String(error);
+    cancelling.value = false;
   }
 }
 
@@ -134,10 +160,6 @@ function describe(manifest: GameCacheManifest): string {
     skins: manifest.counts.skins,
     s: manifest.seconds,
   });
-}
-
-function finishedPhases(): string[] {
-  return (progress.value?.phases ?? []).map((row) => row.phase);
 }
 
 // ------------------------------------------------------------------------- //
@@ -289,35 +311,20 @@ function chooseLanguage(value: Locale): void {
       <!-- 4 · analysis -->
       <div v-else class="setup__panel">
         <p class="setup__desc">{{ t("setup.analyzeDesc") }}</p>
-        <div class="setup__row">
-          <button class="btn btn--accent" type="button" :disabled="running || !gameReady" @click="runAnalysis">
-            {{ running ? t("settings.cacheRebuilding") : analyzed ? t("setup.analyzeAgain") : t("setup.analyzeStart") }}
+        <div v-if="!running" class="setup__row">
+          <button class="btn btn--accent" type="button" :disabled="!gameReady" @click="runAnalysis">
+            {{ analyzed ? t("setup.analyzeAgain") : cancelled ? t("setup.analyzeResume") : t("setup.analyzeStart") }}
           </button>
-          <span v-if="running" class="setup__phase">
-            {{ t("setup.analyzeRunning", { phase: phaseLabel }) }}
-            <span class="setup__elapsed">{{ running ? elapsed : (progress?.seconds ?? 0) }}s</span>
-          </span>
+          <span v-if="cancelled" class="setup__phase">{{ t("setup.analyzeStopped") }}</span>
         </div>
-        <ul class="setup__phases">
-          <li
-            v-for="phase in ['names', 'clips', 'skins', 'packs', 'bones']"
-            :key="phase"
-            class="setup__phase-row"
-            :class="{
-              'setup__phase-row--done': analyzed || finishedPhases().includes(phase),
-              'setup__phase-row--live': progress?.phase === phase,
-            }"
-          >
-            <span class="setup__dot" aria-hidden="true" />
-            {{ t(`setup.phase.${phase}` as never) }}
-            <span v-if="progress?.phase === phase && progress?.live?.total" class="setup__phase-sec">
-              {{ progress.live.done }}/{{ progress.live.total }}
-            </span>
-            <span v-else class="setup__phase-sec">
-              {{ (progress?.phases ?? []).find((row) => row.phase === phase)?.seconds ?? "" }}
-            </span>
-          </li>
-        </ul>
+        <AnalyzeProgress
+          v-if="running"
+          :event="progress"
+          :running="running"
+          :elapsed="elapsed"
+          :cancelling="cancelling"
+          @stop="stopAnalysis"
+        />
         <p v-if="analyzed" class="setup__ok">✓ {{ doneText }}</p>
         <p v-if="analyzeError" class="setup__err">{{ t("setup.analyzeFail", { error: analyzeError }) }}</p>
       </div>

@@ -171,11 +171,16 @@ Every layer is checked three ways, and the third is the one that matters:
      `groups.json` and `meshes.json`. Rust takes 15.7 s where Python takes 41.1 s.
      The bone scan finds 31,906 paths (Python's truncated-prefix scan sees 928);
      every Python path is present with the identical string.
+   - analyze cancellation/atomicity: `GameCache.new` is built beside the live
+     cache and swapped only after `manifest.json` is written. An integration test
+     stops a second run part-way and asserts the previous `manifest.json`
+     `built_at` is unchanged; progress reports the current file, files done/total,
+     total files, bytes-based ETA and accepts a Stop command.
    - analyze, **full installed game** (9,613 bundles, 66 GB): 16,482 meshes,
      47,008 textures, 39,974 clips, 464 skins, **249/249 packs** and 621,845 bone
-     paths in **744.9 s** (names 182.6 s, packs 337.2 s with 8 threads, bones
-     180.3 s). Manifest, names, clips and skins are written atomically, manifest
-     last.
+     paths in **623.2 s** (names 175.2 s, packs 248.6 s with 8 threads, bones
+     170.6 s). The run builds into `GameCache.new` and swaps only after the
+     manifest is written, so Stop leaves the previous cache usable.
 
 DirectXTex (`texconv.exe`) is vendored under `../src-tauri/bin/` with its MIT
 licence and bundled through `tauri.conf.json`. `EXMT_TEXCONV` overrides the

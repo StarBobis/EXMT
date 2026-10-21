@@ -175,6 +175,12 @@ async fn run_core(app: tauri::AppHandle, args: Vec<String>) -> Result<CoreOutput
     }))
 }
 
+/// Ask the running `analyze` to stop after the current bundle/skin.
+#[tauri::command]
+fn cancel_analyze() {
+    analyze::cancel();
+}
+
 /// Reveal the main window once web content is ready.
 #[tauri::command]
 fn show_main_window(app: tauri::AppHandle) {
@@ -262,7 +268,7 @@ pub fn run() {
             }
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![show_main_window, run_core])
+        .invoke_handler(tauri::generate_handler![show_main_window, run_core, cancel_analyze])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

@@ -25,6 +25,7 @@ fn main() {
         limit,
         workers,
         &built_at,
+        None,
     )
     .expect("indexes");
     let skins = exmt_modbox_lib::analyze::skins_of(&index);
@@ -36,6 +37,7 @@ fn main() {
             limit,
             workers,
             &built_at,
+            None,
         )
         .expect("bones")
         .1

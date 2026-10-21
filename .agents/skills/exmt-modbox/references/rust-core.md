@@ -34,7 +34,7 @@
 | 预览 `thumbs` / `skinfo` | `src-tauri/src/preview.rs` | 完成，贴图网格走 texconv |
 | `backup` / `restore` / `backup-size` | `src-tauri/src/store.rs` | 完成，Tauri 已直接调用 |
 | `workspace`（Blender 导出） | `src-tauri/src/workspace.rs` + `skeleton.rs` + `anim.rs` | 完成（网格/贴图/骨架/动画） |
-| analyze（GameCache） | `src-tauri/src/analyze.rs` + `pairings.rs` | 完成：索引/皮肤/249 包/骨骼 |
+| analyze（GameCache） | `src-tauri/src/analyze.rs` + `pairings.rs` | 完成：索引/皮肤/249 包/骨骼；文件级进度、可停止、原子替换 |
 
 156 个测试。`cargo test` 在 `core-rs/` 下跑；`src-tauri` 另有 27 个单测和 7 个可选
 端到端测试（skinpack、modpack、exmtmesh、preview×2、workspace、analyze）。`texconv.exe`（966 KB，MIT，许可证同目录）随仓库放在
@@ -54,6 +54,16 @@ Python core 与 Python 测试已删除。
 - **texconv 路径**（预览/skinpack 用）对 Pillow：BC7 42/42 完全一致，BC1/BC3 全部 ±1；
   RGBA32 有意不同（Python 把它当 BGRA 交换了红蓝，Unity 实际就是 RGBA）。
   缩略图尺寸 283/283 与 Pillow `thumbnail` 一致；像素差异来自 FANT vs Lanczos。
+
+## analyze 的等待体验（2026-10-21）
+
+- 扫描进度写到 `<缓存目录>/GameCache.progress.json`（**在缓存目录之外**），字段
+  `live.current` / `done` / `total` / `eta_seconds` / `bytes_done` / `bytes_total`，
+  `files_total` 是整库包数。UI 显示总文件数、已扫数、当前文件名/皮肤名、已用/约剩。
+- `cancel_analyze` 只置一个全局 AtomicBool；worker 在每个 bundle/皮肤之间检查，
+  当前文件会做完再停。返回错误串 `已停止分析`，前端按“停止”而非失败处理。
+- 输出先写 `<缓存目录>/GameCache.new`，manifest 落盘后才把旧目录改名 `.old`、
+  新目录换上；停止/失败会删 `.new`，旧缓存保持可用。不要退回“先删旧 manifest”的做法。
 
 ## 三条硬规矩
 

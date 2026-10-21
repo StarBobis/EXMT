@@ -12,6 +12,7 @@
  * a half-finished or interrupted analysis is never treated as usable.
  */
 import { join } from "@tauri-apps/api/path";
+import { invoke } from "@tauri-apps/api/core";
 import { exists, mkdir, readTextFile, remove, stat, writeTextFile } from "@tauri-apps/plugin-fs";
 import { shallowRef } from "vue";
 import { gameBundles, runCore } from "./core";
@@ -70,7 +71,7 @@ export async function cacheState(): Promise<{
   const dir = await gameCacheDir();
   const path = await join(dir, "manifest.json");
   if (!(await exists(path).catch(() => false))) {
-    const half = await exists(await join(dir, "progress.json")).catch(() => false);
+    const half = await exists(await join(cacheFolder.value, "GameCache.progress.json")).catch(() => false);
     return { state: half ? "incomplete" : "missing", manifest: null };
   }
   try {
@@ -135,21 +136,41 @@ export interface AnalyzeEvent {
   phase: string | null;
   phases: { phase: string; seconds: number; [key: string]: unknown }[];
   seconds: number;
-  /** mid-phase counters, e.g. `{phase:"packs", done:87, total:249}` */
-  live?: { phase: string; done?: number; total?: number; seconds?: number } | null;
+  /** total .bundle files in the game folder (shown while scanning) */
+  files_total?: number;
+  /** mid-phase counters, e.g. `{phase:"packs", done:87, total:249, current:"c_Vepley…"}` */
+  live?: {
+    phase: string;
+    done?: number;
+    total?: number;
+    current?: string;
+    eta_seconds?: number;
+    bytes_done?: number;
+    bytes_total?: number;
+    seconds?: number;
+  } | null;
   error?: string;
 }
 
-/** Live progress the core writes while it scans (`GameCache/progress.json`). */
+/** Live progress the core writes beside the cache (`GameCache.progress.json`). */
 export async function readAnalyzeProgress(): Promise<AnalyzeEvent | null> {
-  const dir = await gameCacheDir();
-  const path = await join(dir, "progress.json");
+  const path = await join(cacheFolder.value, "GameCache.progress.json");
   if (!(await exists(path).catch(() => false))) return null;
   try {
     return JSON.parse(await readTextFile(path)) as AnalyzeEvent;
   } catch {
     return null;
   }
+}
+
+/** Ask the running analysis to stop after the current bundle/skin. */
+export async function cancelAnalyze(): Promise<void> {
+  await invoke("cancel_analyze");
+}
+
+/** True when an analysis rejection is the user's Stop, not a real failure. */
+export function isCancelled(error: unknown): boolean {
+  return String(error).includes("已停止分析") || String(error).includes("cancelled");
 }
 
 /** Prove the folder is writable before we spend minutes writing into it. */

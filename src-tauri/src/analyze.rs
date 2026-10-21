@@ -14,6 +14,8 @@
 
 use std::collections::{BTreeMap, HashMap};
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering};
+use std::sync::Mutex;
 use std::time::Instant;
 
 use exmt_core::asset;
@@ -28,6 +30,20 @@ const MESH: i32 = 43;
 const TEXTURE: i32 = 28;
 const CLIP: i32 = 74;
 const AVATAR: i32 = 90;
+
+/// Returned to the UI when the user presses Stop; the frontend shows this as a
+/// cancellation, not as a failure.
+pub const CANCELLED_MESSAGE: &str = "已停止分析";
+static CANCELLED: AtomicBool = AtomicBool::new(false);
+
+/// Ask the running analysis to stop after the bundle/skin it is on.
+pub fn cancel() {
+    CANCELLED.store(true, Ordering::SeqCst);
+}
+
+fn cancelled() -> bool {
+    CANCELLED.load(Ordering::SeqCst)
+}
 
 #[derive(Debug, Clone, Default)]
 pub struct Scan {
@@ -98,6 +114,13 @@ pub fn scan_all(
     limit: Option<usize>,
     workers: usize,
 ) -> Result<(Vec<Scan>, usize), String> {
+    let files = limited_files(bundle_dir, limit)?;
+    let total = files.len();
+    let scans = scan_files(&files, workers, None)?;
+    Ok((scans, total))
+}
+
+pub fn limited_files(bundle_dir: &Path, limit: Option<usize>) -> Result<Vec<PathBuf>, String> {
     let mut files = bundle_files(bundle_dir)?;
     if let Some(limit) = limit {
         if limit > 0 {
@@ -107,16 +130,37 @@ pub fn scan_all(
     if files.is_empty() {
         return Err(format!("no .bundle files in {}", bundle_dir.display()));
     }
+    Ok(files)
+}
+
+fn scan_files(
+    files: &[PathBuf],
+    workers: usize,
+    tracker: Option<&ScanTracker<'_>>,
+) -> Result<Vec<Scan>, String> {
     let total = files.len();
-    let workers = workers.max(1).min(16).min(total);
-    let chunk = (total + workers - 1) / workers;
+    let workers = workers.max(1).min(16).min(total.max(1));
+    let chunk = (total + workers - 1) / workers.max(1);
     let scans: Vec<Scan> = std::thread::scope(|scope| {
         let mut handles = Vec::new();
-        for part in files.chunks(chunk) {
+        for part in files.chunks(chunk.max(1)) {
             handles.push(scope.spawn(move || {
-                part.iter()
-                    .map(|path| scan_bundle(path))
-                    .collect::<Vec<_>>()
+                let mut rows = Vec::with_capacity(part.len());
+                for path in part {
+                    if cancelled() {
+                        break;
+                    }
+                    if let Some(tracker) = tracker {
+                        tracker.start_file(path);
+                    }
+                    let size = std::fs::metadata(path).map(|m| m.len()).unwrap_or(0);
+                    let scan = scan_bundle(path);
+                    if let Some(tracker) = tracker {
+                        tracker.finish_file(size);
+                    }
+                    rows.push(scan);
+                }
+                rows
             }));
         }
         handles
@@ -124,7 +168,10 @@ pub fn scan_all(
             .flat_map(|handle| handle.join().expect("scan worker"))
             .collect()
     });
-    Ok((scans, total))
+    if cancelled() {
+        return Err(CANCELLED_MESSAGE.into());
+    }
+    Ok(scans)
 }
 
 pub fn bundle_files(bundle_dir: &Path) -> Result<Vec<PathBuf>, String> {
@@ -370,9 +417,13 @@ pub fn build_indexes(
     limit: Option<usize>,
     workers: usize,
     built_at: &str,
+    progress: Option<&Progress>,
 ) -> Result<(Index, f64), String> {
     let started = Instant::now();
-    let (scans, total) = scan_all(bundle_dir, limit, workers)?;
+    let files = limited_files(bundle_dir, limit)?;
+    let total = files.len();
+    let tracker = progress.map(|progress| ScanTracker::new(&files, "names", progress));
+    let scans = scan_files(&files, workers, tracker.as_ref())?;
     let mut index = merge(&scans);
     index.bundles = total;
     write_json(
@@ -400,23 +451,33 @@ pub fn build_bones(
     limit: Option<usize>,
     workers: usize,
     built_at: &str,
+    progress: Option<&Progress>,
 ) -> Result<(usize, usize), String> {
-    let mut files = bundle_files(bundle_dir)?;
-    if let Some(limit) = limit {
-        if limit > 0 {
-            files.truncate(limit);
-        }
-    }
+    let files = limited_files(bundle_dir, limit)?;
     let total = files.len();
+    let tracker = progress.map(|progress| ScanTracker::new(&files, "bones", progress));
     let workers = workers.max(1).min(16).min(total.max(1));
     let chunk = (total + workers - 1) / workers.max(1);
     let scans: Vec<Vec<BoneRow>> = std::thread::scope(|scope| {
         let mut handles = Vec::new();
         for part in files.chunks(chunk.max(1)) {
+            let tracker = tracker.as_ref();
             handles.push(scope.spawn(move || {
-                part.iter()
-                    .map(|path| scan_bones_bundle(path))
-                    .collect::<Vec<_>>()
+                let mut rows = Vec::with_capacity(part.len());
+                for path in part {
+                    if cancelled() {
+                        break;
+                    }
+                    if let Some(tracker) = tracker {
+                        tracker.start_file(path);
+                    }
+                    let size = std::fs::metadata(path).map(|m| m.len()).unwrap_or(0);
+                    rows.push(scan_bones_bundle(path));
+                    if let Some(tracker) = tracker {
+                        tracker.finish_file(size);
+                    }
+                }
+                rows
             }));
         }
         handles
@@ -424,6 +485,9 @@ pub fn build_bones(
             .flat_map(|handle| handle.join().expect("bone worker"))
             .collect()
     });
+    if cancelled() {
+        return Err(CANCELLED_MESSAGE.into());
+    }
 
     let mut paths: HashMap<u32, (String, i32)> = HashMap::new();
     for rows in scans {
@@ -606,21 +670,31 @@ pub struct Options {
     pub with_packs: bool,
 }
 
-struct Progress {
+pub struct Progress {
     path: PathBuf,
     phases: Vec<serde_json::Value>,
     started: Instant,
+    files_total: AtomicUsize,
 }
 
 impl Progress {
     fn new(path: PathBuf) -> Self {
-        let progress = Progress { path, phases: Vec::new(), started: Instant::now() };
+        let progress = Progress {
+            path,
+            phases: Vec::new(),
+            started: Instant::now(),
+            files_total: AtomicUsize::new(0),
+        };
         progress.write("starting", None, None);
         progress
     }
 
     fn start(&self, phase: &str) {
         self.write("running", Some(phase), None);
+    }
+
+    fn set_files_total(&self, total: usize) {
+        self.files_total.store(total, Ordering::Relaxed);
     }
 
     fn done(&mut self, phase: &str, seconds: f64, detail: serde_json::Value) {
@@ -638,15 +712,121 @@ impl Progress {
         self.write(if error.is_some() { "error" } else { "done" }, None, error);
     }
 
+    /// Mid-phase progress with the concrete file/skin being worked on.
+    fn live(
+        &self,
+        phase: &str,
+        done: usize,
+        total: usize,
+        current: &str,
+        eta_seconds: Option<f64>,
+        bytes_done: u64,
+        bytes_total: u64,
+    ) {
+        let payload = serde_json::json!({
+            "state": "running",
+            "phase": phase,
+            "phases": self.phases,
+            "seconds": (self.started.elapsed().as_secs_f64() * 10.0).round() / 10.0,
+            "files_total": self.files_total.load(Ordering::Relaxed),
+            "live": {
+                "phase": phase,
+                "done": done,
+                "total": total,
+                "current": current,
+                "eta_seconds": eta_seconds.map(|v| (v * 10.0).round() / 10.0),
+                "bytes_done": bytes_done,
+                "bytes_total": bytes_total,
+                "seconds": (self.started.elapsed().as_secs_f64() * 10.0).round() / 10.0,
+            },
+        });
+        // A monitor-style write: workers race rarely and a torn read is ignored
+        // by the UI until the next tick, so a direct write is cheaper than a
+        // temp-file rename per bundle.
+        let _ = std::fs::write(&self.path, serde_json::to_string(&payload).unwrap_or_default());
+    }
+
     fn write(&self, state: &str, phase: Option<&str>, error: Option<&str>) {
         let payload = serde_json::json!({
             "state": state,
             "phase": phase,
             "phases": self.phases,
             "seconds": (self.started.elapsed().as_secs_f64() * 10.0).round() / 10.0,
+            "files_total": self.files_total.load(Ordering::Relaxed),
             "error": error,
         });
         let _ = write_json(&self.path, &payload);
+    }
+}
+
+/// Shared counters for one file-scanning phase (`names` / `bones`).
+struct ScanTracker<'a> {
+    progress: &'a Progress,
+    phase: &'static str,
+    total: usize,
+    bytes_total: u64,
+    done: AtomicUsize,
+    bytes_done: AtomicU64,
+    current: Mutex<String>,
+    started: Instant,
+    write_lock: Mutex<()>,
+}
+
+impl<'a> ScanTracker<'a> {
+    fn new(files: &[PathBuf], phase: &'static str, progress: &'a Progress) -> Self {
+        let bytes_total = files
+            .iter()
+            .filter_map(|path| std::fs::metadata(path).ok())
+            .map(|meta| meta.len())
+            .sum();
+        ScanTracker {
+            progress,
+            phase,
+            total: files.len(),
+            bytes_total,
+            done: AtomicUsize::new(0),
+            bytes_done: AtomicU64::new(0),
+            current: Mutex::new(String::new()),
+            started: Instant::now(),
+            write_lock: Mutex::new(()),
+        }
+    }
+
+    fn start_file(&self, path: &Path) {
+        let first = self.done.load(Ordering::Relaxed) == 0;
+        if let Ok(mut current) = self.current.lock() {
+            *current = path
+                .file_name()
+                .map(|name| name.to_string_lossy().to_string())
+                .unwrap_or_default();
+        }
+        if first {
+            self.publish();
+        }
+    }
+
+    fn finish_file(&self, bytes: u64) {
+        self.bytes_done.fetch_add(bytes, Ordering::Relaxed);
+        let done = self.done.fetch_add(1, Ordering::Relaxed) + 1;
+        if done % 4 == 0 || done == self.total {
+            self.publish();
+        }
+    }
+
+    fn publish(&self) {
+        let Ok(_guard) = self.write_lock.try_lock() else { return };
+        let done = self.done.load(Ordering::Relaxed);
+        let bytes = self.bytes_done.load(Ordering::Relaxed);
+        let elapsed = self.started.elapsed().as_secs_f64();
+        let eta = if bytes > 0 && self.bytes_total > bytes {
+            Some(elapsed * (self.bytes_total - bytes) as f64 / bytes as f64)
+        } else if done > 0 && done < self.total {
+            Some(elapsed * (self.total - done) as f64 / done as f64)
+        } else {
+            None
+        };
+        let current = self.current.lock().map(|v| v.clone()).unwrap_or_default();
+        self.progress.live(self.phase, done, self.total, &current, eta, bytes, self.bytes_total);
     }
 }
 
@@ -751,6 +931,7 @@ fn build_packs(
     let done = std::sync::atomic::AtomicUsize::new(0);
     let ok = std::sync::atomic::AtomicUsize::new(0);
     let started = Instant::now();
+    let total_started = progress.started;
     let thread_count = workers.clamp(1, 8).min(total);
     let chunk = (total + thread_count - 1) / thread_count;
     let progress_path = progress.path.clone();
@@ -763,22 +944,52 @@ fn build_packs(
             let phases = &phases;
             scope.spawn(move || {
                 for spec in part {
+                    if cancelled() {
+                        break;
+                    }
+                    let started_count = done.load(std::sync::atomic::Ordering::Relaxed);
+                    if started_count == 0 {
+                        let payload = serde_json::json!({
+                            "state": "running",
+                            "phase": "packs",
+                            "phases": phases,
+                            "seconds": (total_started.elapsed().as_secs_f64() * 10.0).round() / 10.0,
+                            "live": {
+                                "phase": "packs",
+                                "done": 0,
+                                "total": total,
+                                "current": spec.key,
+                                "ok": ok.load(std::sync::atomic::Ordering::Relaxed),
+                                "seconds": (total_started.elapsed().as_secs_f64() * 10.0).round() / 10.0,
+                            },
+                        });
+                        let _ = std::fs::write(progress_path, serde_json::to_string(&payload).unwrap_or_default());
+                    }
                     if skinpack::build(spec, texconv).is_ok() {
                         ok.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
                     }
                     let finished = done.fetch_add(1, std::sync::atomic::Ordering::Relaxed) + 1;
                     if finished == 1 || finished % 5 == 0 || finished == total {
+                        let elapsed = total_started.elapsed().as_secs_f64();
+                        let phase_elapsed = started.elapsed().as_secs_f64();
+                        let eta = if finished > 0 && finished < total {
+                            Some(phase_elapsed * (total - finished) as f64 / finished as f64)
+                        } else {
+                            None
+                        };
                         let payload = serde_json::json!({
                             "state": "running",
                             "phase": "packs",
                             "phases": phases,
-                            "seconds": (started.elapsed().as_secs_f64() * 10.0).round() / 10.0,
+                            "seconds": (elapsed * 10.0).round() / 10.0,
                             "live": {
                                 "phase": "packs",
                                 "done": finished,
                                 "total": total,
+                                "current": spec.key,
+                                "eta_seconds": eta.map(|v| (v * 10.0).round() / 10.0),
                                 "ok": ok.load(std::sync::atomic::Ordering::Relaxed),
-                                "seconds": (started.elapsed().as_secs_f64() * 10.0).round() / 10.0,
+                                "seconds": (elapsed * 10.0).round() / 10.0,
                             },
                         });
                         let _ = std::fs::write(progress_path, serde_json::to_string(&payload).unwrap_or_default());
@@ -801,6 +1012,28 @@ pub fn run(
     options: &Options,
     texconv: &Texconv,
 ) -> Result<String, String> {
+    CANCELLED.store(false, Ordering::SeqCst);
+    let result = run_inner(bundle_dir, cache_root, options, texconv);
+    if let Err(error) = &result {
+        let _ = std::fs::remove_dir_all(cache_root.join("GameCache.new"));
+        let progress_path = cache_root.join("GameCache.progress.json");
+        let _ = write_json(&progress_path, &serde_json::json!({
+            "state": "error",
+            "phase": null,
+            "phases": [],
+            "seconds": 0.0,
+            "error": error,
+        }));
+    }
+    result
+}
+
+fn run_inner(
+    bundle_dir: &Path,
+    cache_root: &Path,
+    options: &Options,
+    texconv: &Texconv,
+) -> Result<String, String> {
     if !bundle_dir.is_dir() {
         return Err(format!("game asset directory does not exist: {}", bundle_dir.display()));
     }
@@ -809,23 +1042,31 @@ pub fn run(
         return Err(format!("no .bundle files in {}", bundle_dir.display()));
     }
 
-    let out_dir = cache_root.join("GameCache");
-    std::fs::create_dir_all(&out_dir).map_err(|e| format!("create {}: {e}", out_dir.display()))?;
-    let manifest_path = out_dir.join("manifest.json");
-    if manifest_path.is_file() {
-        let _ = std::fs::rename(&manifest_path, out_dir.join("manifest.json.old"));
-    }
-    if options.with_packs {
-        let _ = std::fs::remove_dir_all(out_dir.join("skins"));
-    }
+    let final_dir = cache_root.join("GameCache");
+    // Build into a sibling first: Stop or a crash must leave the working cache
+    // untouched. Only a complete manifest is swapped into `GameCache`.
+    let work_dir = cache_root.join("GameCache.new");
+    let _ = std::fs::remove_dir_all(&work_dir);
+    std::fs::create_dir_all(&work_dir)
+        .map_err(|e| format!("create {}: {e}", work_dir.display()))?;
+    std::fs::create_dir_all(&final_dir)
+        .map_err(|e| format!("create {}: {e}", final_dir.display()))?;
 
     let built_at = skinpack::local_timestamp();
     let total = Instant::now();
-    let mut progress = Progress::new(out_dir.join("progress.json"));
+    let mut progress = Progress::new(cache_root.join("GameCache.progress.json"));
+    progress.set_files_total(bundles.len());
 
     progress.start("names");
     let (index, names_seconds) =
-        build_indexes(bundle_dir, &out_dir, options.limit, options.workers, &built_at)?;
+        build_indexes(
+            bundle_dir,
+            &work_dir,
+            options.limit,
+            options.workers,
+            &built_at,
+            Some(&progress),
+        )?;
     progress.done("names", names_seconds, serde_json::json!({
         "scanned": index.bundles,
         "meshes": index.meshes.len(),
@@ -837,7 +1078,7 @@ pub fn run(
 
     progress.start("skins");
     let skins = skins_of(&index);
-    write_json(&out_dir.join("skins.json"), &serde_json::json!({
+    write_json(&work_dir.join("skins.json"), &serde_json::json!({
         "format": "exmt-skins-1",
         "built_at": built_at,
         "skins": skins,
@@ -847,7 +1088,7 @@ pub fn run(
     let mut pack_count = 0usize;
     if options.with_packs {
         pack_count = build_packs(
-            &out_dir,
+            &work_dir,
             bundle_dir,
             &index,
             &skins,
@@ -857,6 +1098,9 @@ pub fn run(
             &built_at,
             &mut progress,
         );
+        if cancelled() {
+            return Err(CANCELLED_MESSAGE.into());
+        }
     }
 
     let mut bone_count = 0usize;
@@ -864,7 +1108,12 @@ pub fn run(
         progress.start("bones");
         let started = Instant::now();
         let (_, names) = build_bones(
-            bundle_dir, &out_dir, options.limit, options.workers, &built_at,
+            bundle_dir,
+            &work_dir,
+            options.limit,
+            options.workers,
+            &built_at,
+            Some(&progress),
         )?;
         bone_count = names;
         progress.done("bones", started.elapsed().as_secs_f64(), serde_json::json!({"bones": names}));
@@ -874,7 +1123,7 @@ pub fn run(
         "format": FORMAT,
         "built_at": built_at,
         "bundle_dir": bundle_dir.canonicalize().unwrap_or_else(|_| bundle_dir.to_path_buf()).display().to_string(),
-        "cache_dir": out_dir.canonicalize().unwrap_or_else(|_| out_dir.clone()).display().to_string(),
+        "cache_dir": final_dir.canonicalize().unwrap_or_else(|_| final_dir.clone()).display().to_string(),
         "bundles": bundles.len(),
         "limited_to": options.limit,
         "workers": options.workers,
@@ -888,7 +1137,23 @@ pub fn run(
         },
         "seconds": (total.elapsed().as_secs_f64() * 10.0).round() / 10.0,
     });
-    write_json(&manifest_path, &manifest)?;
+    write_json(&work_dir.join("manifest.json"), &manifest)?;
+
+    // Swap only after the manifest is on disk: this is the point where the new
+    // cache becomes the one the UI reads. Stop cannot reach this branch.
+    let old_dir = cache_root.join("GameCache.old");
+    let _ = std::fs::remove_dir_all(&old_dir);
+    if final_dir.is_dir() {
+        std::fs::rename(&final_dir, &old_dir)
+            .map_err(|e| format!("move old cache: {e}"))?;
+    }
+    if let Err(error) = std::fs::rename(&work_dir, &final_dir) {
+        if old_dir.is_dir() {
+            let _ = std::fs::rename(&old_dir, &final_dir);
+        }
+        return Err(format!("install new cache: {error}"));
+    }
+    let _ = std::fs::remove_dir_all(&old_dir);
     progress.finish(None);
     serde_json::to_string(&manifest).map_err(|e| e.to_string())
 }
@@ -977,4 +1242,5 @@ mod tests {
         );
     }
 }
+
 

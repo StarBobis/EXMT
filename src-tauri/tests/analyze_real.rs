@@ -36,5 +36,32 @@ fn scans_a_real_bundle_slice() {
     assert!(cache.join("GameCache/skins.json").is_file());
     assert!(cache.join("GameCache/bones.json").is_file());
     assert!(cache.join("GameCache/manifest.json").is_file());
+
+    // Stop must be observed between bundles and surface as the cancellation
+    // message, not as a generic failure — and the previous cache must survive.
+    let before: serde_json::Value =
+        serde_json::from_str(&std::fs::read_to_string(cache.join("GameCache/manifest.json")).unwrap())
+            .unwrap();
+    let options = exmt_modbox_lib::analyze::Options {
+        workers: 2,
+        limit: Some(200),
+        with_packs: false,
+        with_bones: false,
+    };
+    let handle = std::thread::spawn({
+        let options = options.clone();
+        let cache = cache.clone();
+        move || {
+            exmt_modbox_lib::analyze::run(Path::new(&bundle_dir), &cache, &options, &tool)
+        }
+    });
+    std::thread::sleep(std::time::Duration::from_millis(120));
+    exmt_modbox_lib::analyze::cancel();
+    let error = handle.join().expect("cancel thread").expect_err("must cancel");
+    assert!(error.contains("已停止分析"), "unexpected error: {error}");
+    let after: serde_json::Value =
+        serde_json::from_str(&std::fs::read_to_string(cache.join("GameCache/manifest.json")).unwrap())
+            .unwrap();
+    assert_eq!(before["built_at"], after["built_at"], "cancelled run replaced the cache");
     let _ = std::fs::remove_dir_all(&cache);
 }

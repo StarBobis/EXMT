@@ -23,7 +23,16 @@ import {
   useGamePath,
 } from "../lib/settings";
 import { backupOriginals, restoreOriginals } from "../lib/preview";
-import { analyzeGame, cacheState, dropGameCache, type AnalyzeEvent, type GameCacheManifest } from "../lib/gamecache";
+import {
+  analyzeGame,
+  cacheState,
+  cancelAnalyze,
+  dropGameCache,
+  isCancelled,
+  type AnalyzeEvent,
+  type GameCacheManifest,
+} from "../lib/gamecache";
+import AnalyzeProgress from "../components/AnalyzeProgress.vue";
 import { boot } from "../lib/boot";
 import AppLogo from "../components/AppLogo.vue";
 
@@ -178,6 +187,7 @@ async function changeCacheFolder() {
 const cacheInfo = ref<GameCacheManifest | null>(null);
 const cacheNote = ref("");
 const cacheBusy = ref(false);
+const cacheCancelling = ref(false);
 const cacheProgress = ref<AnalyzeEvent | null>(null);
 
 async function refreshCacheInfo(): Promise<void> {
@@ -204,6 +214,7 @@ async function refreshCacheInfo(): Promise<void> {
 async function rebuildCache(): Promise<void> {
   if (cacheBusy.value) return;
   cacheBusy.value = true;
+  cacheCancelling.value = false;
   cacheNote.value = t("settings.cacheRebuilding");
   try {
     const manifest = await analyzeGame({
@@ -220,10 +231,22 @@ async function rebuildCache(): Promise<void> {
     // the roster lives in memory: re-boot so every page sees the new cache
     await boot();
   } catch (e) {
-    cacheNote.value = String(e);
+    cacheNote.value = cacheCancelling.value || isCancelled(e) ? t("setup.analyzeStopped") : String(e);
   } finally {
     cacheBusy.value = false;
+    cacheCancelling.value = false;
     cacheProgress.value = null;
+  }
+}
+
+async function stopCache(): Promise<void> {
+  if (!cacheBusy.value || cacheCancelling.value) return;
+  cacheCancelling.value = true;
+  try {
+    await cancelAnalyze();
+  } catch (e) {
+    cacheNote.value = String(e);
+    cacheCancelling.value = false;
   }
 }
 
@@ -351,10 +374,6 @@ async function openLink(url: string) {
               <div class="setting-row__title">{{ t("settings.cacheTitle") }}</div>
               <div class="setting-row__desc">{{ t("settings.cacheDesc2") }}</div>
               <div class="pathline" :title="cacheNote">{{ cacheNote }}</div>
-              <div v-if="cacheBusy && cacheProgress" class="pathline">
-                {{ t("setup.analyzeRunning", { phase: cacheProgress.phase || "" }) }}
-                · {{ cacheProgress.seconds }}s
-              </div>
             </div>
             <div class="setting-row__control setting-row__control--col">
               <button class="btn btn--accent" type="button" :disabled="!isTauri || cacheBusy" @click="rebuildCache">
@@ -365,6 +384,15 @@ async function openLink(url: string) {
                 {{ t("settings.cacheOpen") }}
               </button>
             </div>
+          </div>
+          <div v-if="cacheBusy" class="settings__progress">
+            <AnalyzeProgress
+              :event="cacheProgress"
+              :running="cacheBusy"
+              :elapsed="cacheProgress?.seconds ?? 0"
+              :cancelling="cacheCancelling"
+              @stop="stopCache"
+            />
           </div>
           <div class="setting-row">
             <div class="setting-row__text">
@@ -498,6 +526,10 @@ async function openLink(url: string) {
 </template>
 
 <style scoped>
+.settings__progress {
+  margin: -4px 0 6px;
+}
+
 .settings {
   display: grid;
   grid-template-columns: minmax(0, 7fr) minmax(0, 3fr);
