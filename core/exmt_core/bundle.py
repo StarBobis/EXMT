@@ -15,7 +15,7 @@ from __future__ import annotations
 import struct
 from dataclasses import dataclass, field
 
-import lz4.block
+from . import lz4b
 
 ENC_PREFIX = 0x8000
 BLOCK_SIZE = 0x20000
@@ -51,14 +51,20 @@ def encrypt(plain: bytes, head4: bytes) -> bytes:
 # LZ4 helpers (Unity blocks are plain LZ4 block streams)
 # --------------------------------------------------------------------------- #
 def lz4_dec(src: bytes, expected: int):
+    """Decode one block, returning None on malformed input.
+
+    The callers treat a None result as "this block is not LZ4 or is corrupt",
+    which is how a wrong decryption key is distinguished from a wrong block
+    table, so decode errors must not escape here.
+    """
     try:
-        return lz4.block.decompress(src, uncompressed_size=expected)
-    except Exception:
+        return lz4b.decompress(src, expected)
+    except (lz4b.Error, TypeError):
         return None
 
 
 def lz4_comp(data: bytes) -> bytes:
-    return lz4.block.compress(data, mode="high_compression", compression=12, store_size=False)
+    return lz4b.compress(data)
 
 
 # --------------------------------------------------------------------------- #
