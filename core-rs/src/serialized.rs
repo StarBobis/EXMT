@@ -240,6 +240,12 @@ pub struct SerializedFile {
     /// Object table in file order; path IDs are signed and genuinely negative.
     pub objects: Vec<(i64, ObjectInfo)>,
     pub externals: Vec<External>,
+    /// `userInformation` string that closes the metadata block (usually empty).
+    pub user_information: String,
+    /// Byte ranges of the object table inside `data`, used by [`SerializedFile::rebuild`].
+    objects_start: usize,
+    objects_end: usize,
+    tables_end: usize,
 }
 
 impl SerializedFile {
@@ -298,6 +304,7 @@ impl SerializedFile {
             });
         }
         let mut objects = Vec::with_capacity(object_count.min(4096) as usize);
+        let objects_start = r.pos;
         for _ in 0..object_count {
             // Unity aligns every object entry to 4 bytes before the path ID.
             // When the table starts unaligned this byte decides the whole layout.
@@ -312,6 +319,7 @@ impl SerializedFile {
             let type_id = r.i32("object type_id")?;
             objects.push((path_id, ObjectInfo { byte_start, byte_size, type_id }));
         }
+        let objects_end = r.pos;
 
         if version >= 11 {
             let script_count = r.u32("script type count")?;
@@ -371,6 +379,20 @@ impl SerializedFile {
             }
         }
 
+        // `userInformation` closes the metadata; without reading it the object
+        // table would still parse, but a rebuild would drop or double the byte.
+        let mut user_information = String::new();
+        if r.pos < data_offset as usize {
+            user_information = r.cstr("user information")?;
+        }
+        let tables_end = r.pos;
+        if tables_end > data_offset as usize {
+            return Err(Error::Invalid {
+                what: "SerializedFile metadata",
+                detail: format!("tables end at {tables_end}, data starts at {data_offset}"),
+            });
+        }
+
         let sf = SerializedFile {
             data: data.to_vec(),
             metadata_size,
@@ -385,6 +407,10 @@ impl SerializedFile {
             ref_types,
             objects,
             externals,
+            user_information,
+            objects_start,
+            objects_end,
+            tables_end,
         };
         sf.validate()?;
         Ok(sf)
@@ -437,6 +463,97 @@ impl SerializedFile {
         let start = (self.data_offset + obj.byte_start) as usize;
         let end = start + obj.byte_size as usize;
         &self.data[start..end]
+    }
+
+    /// Rebuild this file with some object payloads replaced.
+    ///
+    /// Only the header sizes, the object table and the data section change.
+    /// Type trees, external and reference-type tables, and the user-information
+    /// string are copied from the parsed bytes, so nothing this crate does not
+    /// understand can be damaged. File order is preserved, and every unpatched
+    /// object keeps its exact payload bytes.
+    ///
+    /// v22 files are refused: the header layout for that version differs from
+    /// the one this reader implements, and writing it untested would be worse
+    /// than falling back to Python.
+    pub fn rebuild(
+        &self,
+        replacements: &std::collections::BTreeMap<i64, Vec<u8>>,
+    ) -> Result<Vec<u8>> {
+        if self.version >= 22 {
+            return Err(Error::Unsupported { what: "SerializedFile v22 write" });
+        }
+        for path_id in replacements.keys() {
+            if self.object(*path_id).is_none() {
+                return Err(Error::Invalid {
+                    what: "object replacement",
+                    detail: format!("object {path_id} is not in this file"),
+                });
+            }
+        }
+
+        // 16 header bytes + the endian boolean and its three reserved bytes.
+        const HEADER_SIZE: usize = 20;
+        let u32_bytes = |v: u32| match self.endian {
+            Endian::Little => v.to_le_bytes(),
+            Endian::Big => v.to_be_bytes(),
+        };
+        let i64_bytes = |v: i64| match self.endian {
+            Endian::Little => v.to_le_bytes(),
+            Endian::Big => v.to_be_bytes(),
+        };
+
+        let mut table = Vec::with_capacity(self.objects.len() * 20 + 4);
+        let mut payload = Vec::new();
+        for (path_id, obj) in &self.objects {
+            while payload.len() % 8 != 0 {
+                payload.push(0);
+            }
+            let start = payload.len();
+            let bytes = match replacements.get(path_id) {
+                Some(bytes) => bytes.as_slice(),
+                None => self.object_bytes(obj),
+            };
+            if bytes.len() > u32::MAX as usize {
+                return Err(Error::Implausible {
+                    what: "object size",
+                    value: bytes.len() as u64,
+                });
+            }
+            payload.extend_from_slice(bytes);
+
+            // Entries align against the file, not against the table start; the
+            // type table before it can leave the object count unaligned.
+            while (self.objects_start + table.len()) % 4 != 0 {
+                table.push(0);
+            }
+            table.extend_from_slice(&i64_bytes(*path_id));
+            table.extend_from_slice(&u32_bytes(start as u32));
+            table.extend_from_slice(&u32_bytes(bytes.len() as u32));
+            table.extend_from_slice(&u32_bytes(obj.type_id as u32));
+        }
+
+        let mut file = Vec::with_capacity(self.data_offset as usize + payload.len());
+        file.extend_from_slice(&self.data[..self.objects_start]);
+        file.extend_from_slice(&table);
+        file.extend_from_slice(&self.data[self.objects_end..self.tables_end]);
+        let data_offset = (file.len() + 15) & !15;
+        let file_size = data_offset + payload.len();
+        if file_size > u32::MAX as usize {
+            return Err(Error::Implausible {
+                what: "SerializedFile size",
+                value: file_size as u64,
+            });
+        }
+        // Unity records the *unpadded* metadata length here; `data_offset` is
+        // that plus the alignment to 16.
+        let metadata_size = file.len() - HEADER_SIZE;
+        file[0..4].copy_from_slice(&(metadata_size as u32).to_be_bytes());
+        file[4..8].copy_from_slice(&(file_size as u32).to_be_bytes());
+        file[12..16].copy_from_slice(&(data_offset as u32).to_be_bytes());
+        file.resize(data_offset, 0);
+        file.extend_from_slice(&payload);
+        Ok(file)
     }
 }
 
@@ -726,6 +843,84 @@ mod tests {
         data[8..12].copy_from_slice(&99u32.to_be_bytes());
         assert!(matches!(
             SerializedFile::parse(&data),
+            Err(Error::Unsupported { .. })
+        ));
+    }
+
+    /// Smallest valid v21 file: one typeless type, one 4-byte object.
+    fn minimal_v21() -> Vec<u8> {
+        let payload = [1u8, 2, 3, 4];
+        let mut meta = Vec::new();
+        meta.extend_from_slice(b"2019.4.29f1\0");
+        meta.extend_from_slice(&19i32.to_le_bytes());
+        meta.push(0); // has_type_tree
+        meta.extend_from_slice(&1u32.to_le_bytes()); // type count
+        meta.extend_from_slice(&999i32.to_le_bytes()); // class id
+        meta.push(0); // stripped
+        meta.extend_from_slice(&(-1i16).to_le_bytes()); // script index
+        meta.extend_from_slice(&[0u8; 16]); // old hash
+        meta.extend_from_slice(&0i32.to_le_bytes()); // v21 dependencies
+        meta.extend_from_slice(&1u32.to_le_bytes()); // object count
+        meta.extend_from_slice(&42i64.to_le_bytes());
+        meta.extend_from_slice(&0u32.to_le_bytes()); // byte start
+        meta.extend_from_slice(&4u32.to_le_bytes()); // byte size
+        meta.extend_from_slice(&0i32.to_le_bytes()); // type id
+        meta.extend_from_slice(&0u32.to_le_bytes()); // scripts
+        meta.extend_from_slice(&0u32.to_le_bytes()); // externals
+        meta.extend_from_slice(&0u32.to_le_bytes()); // ref types
+        meta.push(0); // user information
+
+        let data_offset = (20 + meta.len() + 15) & !15;
+        let file_size = data_offset + payload.len();
+        let mut out = Vec::new();
+        // Unity stores the unpadded metadata length here.
+        out.extend_from_slice(&(meta.len() as u32).to_be_bytes());
+        out.extend_from_slice(&(file_size as u32).to_be_bytes());
+        out.extend_from_slice(&21u32.to_be_bytes());
+        out.extend_from_slice(&(data_offset as u32).to_be_bytes());
+        out.extend_from_slice(&0u32.to_be_bytes()); // little-endian + reserved
+        out.extend_from_slice(&meta);
+        out.resize(data_offset, 0);
+        out.extend_from_slice(&payload);
+        out
+    }
+
+    #[test]
+    fn rebuilding_without_changes_is_byte_identical() {
+        let data = minimal_v21();
+        let sf = SerializedFile::parse(&data).expect("parse fixture");
+        assert_eq!(sf.data_offset % 16, 0);
+        let rebuilt = sf.rebuild(&std::collections::BTreeMap::new()).unwrap();
+        assert_eq!(rebuilt, data, "an untouched rebuild must not move bytes");
+    }
+
+    #[test]
+    fn rebuilding_replaces_one_payload_and_updates_the_table() {
+        let sf = SerializedFile::parse(&minimal_v21()).expect("parse fixture");
+        let mut replacements = std::collections::BTreeMap::new();
+        replacements.insert(42i64, vec![9u8; 12]);
+        let rebuilt = sf.rebuild(&replacements).unwrap();
+        let back = SerializedFile::parse(&rebuilt).expect("parse rebuilt");
+        let (path_id, obj) = &back.objects[0];
+        assert_eq!(*path_id, 42);
+        assert_eq!(obj.byte_size, 12);
+        assert_eq!(back.object_bytes(obj), &[9u8; 12]);
+        assert_eq!(back.data_offset % 16, 0);
+        assert_eq!(back.file_size as usize, rebuilt.len());
+        assert_eq!(back.data_offset as usize + 12, rebuilt.len());
+    }
+
+    #[test]
+    fn rebuilding_rejects_unknown_objects_and_v22() {
+        let sf = SerializedFile::parse(&minimal_v21()).expect("parse fixture");
+        let mut replacements = std::collections::BTreeMap::new();
+        replacements.insert(7i64, vec![0u8]);
+        assert!(sf.rebuild(&replacements).is_err());
+
+        let mut modern = sf;
+        modern.version = 22;
+        assert!(matches!(
+            modern.rebuild(&std::collections::BTreeMap::new()),
             Err(Error::Unsupported { .. })
         ));
     }

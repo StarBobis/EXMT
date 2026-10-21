@@ -5,6 +5,7 @@
 //! (`skinpack` today), and everything else still goes through the Python core
 //! (`core/exmt_core`) until it is ported.
 
+pub mod modpack;
 pub mod skinpack;
 
 use std::path::{Path, PathBuf};
@@ -91,19 +92,33 @@ fn texconv_for(app: &tauri::AppHandle) -> Option<Texconv> {
 /// Returning `None` falls back to the Python process, which keeps the app
 /// working on a checkout where `texconv.exe` is missing.
 fn run_rust_core(app: &tauri::AppHandle, args: &[String]) -> Option<CoreOutput> {
-    match args.first().map(String::as_str) {
+    let spec = args.get(1)?.clone();
+    let result = match args.first().map(String::as_str) {
         Some("skinpack") => {
-            let spec = args.get(1)?.clone();
             let tool = texconv_for(app)?;
-            Some(
-                match skinpack::run(Path::new(&spec), &tool) {
-                    Ok(stdout) => CoreOutput { code: 0, stdout, stderr: String::new() },
-                    Err(e) => CoreOutput { code: 1, stdout: String::new(), stderr: e },
-                },
-            )
+            skinpack::run(Path::new(&spec), &tool)
         }
-        _ => None,
-    }
+        Some("modpack") => {
+            // Mesh patches need the `.exmtmesh` reader, which the Python core
+            // still owns; let it handle those specs instead of dropping meshes.
+            let text = std::fs::read_to_string(&spec).ok()?;
+            let value: serde_json::Value = serde_json::from_str(&text).ok()?;
+            let has_meshes = value
+                .get("meshes")
+                .and_then(|m| m.as_array())
+                .map(|m| !m.is_empty())
+                .unwrap_or(false);
+            if has_meshes {
+                return None;
+            }
+            modpack::run(Path::new(&spec), true)
+        }
+        _ => return None,
+    };
+    Some(match result {
+        Ok(stdout) => CoreOutput { code: 0, stdout, stderr: String::new() },
+        Err(e) => CoreOutput { code: 1, stdout: String::new(), stderr: e },
+    })
 }
 
 /// Async wrapper so a long run never blocks the window's event loop.
@@ -118,17 +133,17 @@ async fn run_core(
     core_dir: String,
     args: Vec<String>,
 ) -> Result<CoreOutput, String> {
-    if args.first().map(String::as_str) == Some("skinpack") {
-        let rust = {
-            let app = app.clone();
-            let args = args.clone();
-            tauri::async_runtime::spawn_blocking(move || run_rust_core(&app, &args))
-                .await
-                .map_err(|e| format!("core task failed: {e}"))?
-        };
-        if let Some(out) = rust {
-            return Ok(out);
-        }
+    // Commands with a Rust implementation run here; everything else (and any
+    // spec Rust deliberately declines) falls through to the Python core.
+    let rust = {
+        let app = app.clone();
+        let args = args.clone();
+        tauri::async_runtime::spawn_blocking(move || run_rust_core(&app, &args))
+            .await
+            .map_err(|e| format!("core task failed: {e}"))?
+    };
+    if let Some(out) = rust {
+        return Ok(out);
     }
     tauri::async_runtime::spawn_blocking(move || run_core_blocking(python, core_dir, args))
         .await

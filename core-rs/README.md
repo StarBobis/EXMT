@@ -21,11 +21,14 @@ ship without upstream churn.
 | DDS adapter for texconv | done | `src/dds.rs` |
 | texconv process wrapper | done | `src/texconv.rs` |
 | Geometry payload (three.js) | done | `src/skin.rs` |
+| SerializedFile rebuild (v17–v21) | done | `src/serialized.rs` |
+| Bundle patch + rebuild | done | `src/asset.rs` |
 | `skinpack` command in Rust | done | `../src-tauri/src/skinpack.rs` |
-| `modpack` write path | **not started** | — |
+| `modpack` texture path | done | `../src-tauri/src/modpack.rs` |
+| `modpack` mesh patches (`.exmtmesh`) | **not started** (Python fallback) | — |
 | `analyze` (GameCache) | **not started** (still Python) | — |
 
-`123 tests`, all green. See "Verification" below for what they actually prove.
+`128 tests`, all green. See "Verification" below for what they actually prove.
 
 Pixel work is **not** implemented here: decoding, resizing, PNG output and BC
 encoding all go through the bundled DirectXTex `texconv.exe`
@@ -36,7 +39,7 @@ DDS header, the process call and the asset logic around them.
 
 ```powershell
 cd core-rs
-cargo test            # 123 tests; skips sample-dependent ones if the file is absent
+cargo test            # 128 tests; skips sample-dependent ones if the file is absent
 cargo test --lib      # unit tests only, no sample file needed
 ```
 
@@ -113,6 +116,12 @@ Every layer is checked three ways, and the third is the one that matters:
      most 3 levels (one 2048² BC7 edge reaches 33 from FANT vs Lanczos); diffuse
      maps are exact, ±1, and mean 0.05 respectively. Wall clock: Rust 0.99 s,
      Python 3.21 s.
+   - write path: rebuilding two real Unity 2019.4 SerializedFiles with no
+     changes (48,528 B `sharedassets0.assets` and 19,353,096 B `resources.assets`)
+     reproduces every byte; on the synthetic 43,685-object bundle a texture-only
+     `modpack` built by Rust and by Python yields **identical object payloads for
+     all 43,685 objects**, the patched texture decodes red in both, and an
+     untouched BC7 texture hashes the same across source/Python/Rust.
 
 DirectXTex (`texconv.exe`) is vendored under `../src-tauri/bin/` with its MIT
 licence and bundled through `tauri.conf.json`. `EXMT_TEXCONV` overrides the
@@ -213,18 +222,36 @@ Each of these cost a debugging round; all are now pinned by tests.
 - **DirectXTex has no Lanczos filter.** `-if FANT` is the closest windowed-sinc
   choice; pixels sit within a few levels of Pillow's LANCZOS, and the 160px
   thumbnails are visually indistinguishable.
+- **`metadata_size` is the unpadded metadata length, and `data_offset` is that
+  plus the 16-byte alignment** (v21: `data_offset = align16(20 + metadata_size)`).
+  Writing the padded value into `metadata_size` makes an untouched rebuild differ
+  by a few bytes even though it still loads.
+- **The object table aligns against the file, not against the table start.**
+  `objects_start + table.len()` must be 4-aligned; getting this wrong shifts the
+  table by one byte and only shows up on files whose type table leaves the count
+  unaligned.
+- **Object payloads align to 8 bytes relative to the data section.** `byte_start`
+  is relative to `data_offset`, so the padding belongs before each payload, not
+  after.
+- **Never re-encode the type tables.** Their string references mix offsets into
+  the per-type buffer and indices into Unity's built-in name table; copying the
+  parsed byte range preserves both. The same goes for external and reference-type
+  tables: there is no reason to round-trip what this crate does not modify.
+- **v22 header layout differs** (the modern header repeats sizes after the
+  reserved bytes), and no v22 sample exists here, so `rebuild` refuses v22 and
+  the shell falls back to Python for those files.
 
 ## Next steps
 
-1. **`modpack` write path in Rust**: patch mesh/texture payloads, re-encode
-   replaced images through texconv, rebuild the bundle with `container::build`,
-   and route the command from `src-tauri`. The read/write layers are all here;
-   `skinpack` already proves the texconv + bundle plumbing.
+1. **`.exmtmesh` reader** (NPZ archive + full typetree JSON) to finish `modpack`:
+   the texture half already runs in Rust and is byte-identical to Python; mesh
+   patches are the only reason a spec still falls back.
 2. **`analyze` (GameCache) in Rust**: the multi-process library scan that
    produces `manifest.json`, `names.json`, `skins.json` and the skin packs. This
    is the last large Python-owned command.
 3. **Retire the Python core** once `analyze` is ported; until then `run_core`
-   falls back to it for every command except `skinpack`.
+   falls back to it for every command except `skinpack` and texture-only
+   `modpack`.
 
 ## Conventions
 

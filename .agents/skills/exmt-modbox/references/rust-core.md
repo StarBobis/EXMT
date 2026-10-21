@@ -24,12 +24,15 @@
 | DDS 封装/解析 | `dds.rs` | 完成 |
 | texconv 调用 | `texconv.rs` | 完成 |
 | geometry（three.js） | `skin.rs` | 完成 |
+| SerializedFile 重建（v17–v21） | `serialized.rs` | 完成 |
+| bundle 补丁重打包 | `asset.rs` | 完成 |
 | skinpack 命令 | `src-tauri/src/skinpack.rs` | 完成，Tauri 已直接调用 |
-| modpack 写路径 | — | 未开始 |
+| modpack 贴图路径 | `src-tauri/src/modpack.rs` | 完成，Tauri 已直接调用 |
+| modpack 网格补丁（`.exmtmesh`） | — | 未开始（回退 Python） |
 | analyze（GameCache） | — | 未开始（仍 Python） |
 
-123 个测试。`cargo test` 在 `core-rs/` 下跑；`src-tauri` 另有 6 个单测和 1 个可选
-skinpack 端到端测试。`texconv.exe`（966 KB，MIT，许可证同目录）随仓库放在
+128 个测试。`cargo test` 在 `core-rs/` 下跑；`src-tauri` 另有 9 个单测和 2 个可选
+端到端测试。`texconv.exe`（966 KB，MIT，许可证同目录）随仓库放在
 `src-tauri/bin/`，并由 `tauri.conf.json` 的 `bundle.resources` 打进安装包；`EXMT_TEXCONV`
 可覆盖路径，找不到时 `skinpack` 回退 Python。
 
@@ -80,6 +83,13 @@ skinpack 端到端测试。`texconv.exe`（966 KB，MIT，许可证同目录）�
   的 `thumbnail` 算法算好两个尺寸（`texture::thumbnail_size`，含 floor/ceil 取最近比例）。
 - `-o` 指定的目录**不会自动创建**；输出名沿用输入主名换扩展名（`in.dds` → `in.png`）。
 - DirectXTex 没有 Lanczos；最接近的是 `-if FANT`，与 Pillow LANCZOS 相差几个灰阶。
+- `metadata_size` 是**不含填充**的元数据长度，`data_offset = align16(20 + metadata_size)`
+  （v21）；把填充后的值写进去，未修改重建也会差几字节。
+- object 表按**文件绝对位置**做 4 字节对齐（`objects_start + table.len()`），不是按表起点；
+  对象 payload 按 data 段起点做 8 字节对齐，`byte_start` 相对 `data_offset`。
+- 类型表**不要重新编码**：字符串引用混用 type 内偏移和 Unity 内置名表索引，直接原样拷贝
+  解析到的字节区间才是安全的；外部表、引用类型表同理。
+- v22 头布局与 v17–v21 不同，手头没有 v22 样例，`rebuild` 直接拒绝 v22 并回退 Python。
 
 以上每条都在 `core-rs/README.md` 有更长的解释和对应测试名。
 
@@ -100,6 +110,11 @@ skinpack 的端到端验法（无 GF2 数据也能做）：
    `python -m exmt_core skinpack spec.json` 与 `src-tauri/tests/skinpack_real.rs`。
 3. 对比：`meshes/geometry/groups/meta` 必须相等；缩略图尺寸必须相等；像素允许
    FANT/Lanczos 的几灰阶差。2026-10-21 实测 Rust 0.99 s、Python 3.21 s。
+
+写路径的验法：`EXMT_WRITE_BUNDLE=<bundle>` 跑 `tests/real_bundle_write.rs`，它会检查
+「无修改重建后每个对象 payload 逐字节相同」和「只改一张贴图、其他对象不动、再解码像素不变」。
+2026-10-21 用一个 43,685 对象的合成包实测：Rust 与 Python 各自 modpack 出的包，**43,685 个
+对象 payload 全部逐字节相同**；`resources.assets` 与 `sharedassets0.assets` 未修改重建也逐字节相同。
 
 ## 换机器后恢复真实数据
 
