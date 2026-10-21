@@ -358,4 +358,43 @@ mod tests {
         let packed = compress(&data);
         assert!(packed.len() < data.len() + data.len() / 100 + 16);
     }
+
+    #[test]
+    fn round_trips_every_length_up_to_600() {
+        // Length boundaries are where offset/length encodings change, so sweep
+        // them with three different content shapes.
+        for len in 0..600usize {
+            let sequential: Vec<u8> = (0..len).map(|i| i as u8).collect();
+            round_trip(&sequential);
+
+            let periodic: Vec<u8> = (0..len).map(|i| (i * 37 % 256) as u8).collect();
+            round_trip(&periodic);
+
+            let sparse: Vec<u8> = (0..len).map(|i| if i % 17 == 0 { 1 } else { 0 }).collect();
+            round_trip(&sparse);
+        }
+    }
+
+    #[test]
+    fn round_trips_structured_table_like_data() {
+        // Mimics the blocksInfo table: header words, then records with narrow
+        // fields, then NUL-terminated names. This shape found a real bug where
+        // a match could be emitted at an offset larger than the output so far.
+        let mut data = vec![0u8; 16];
+        data.extend_from_slice(&3u32.to_be_bytes());
+        for i in 0..3u32 {
+            data.extend_from_slice(&(0x20000u32 + i).to_be_bytes());
+            data.extend_from_slice(&(0x8000u32 + i * 7).to_be_bytes());
+            data.extend_from_slice(&3u16.to_be_bytes());
+        }
+        data.extend_from_slice(&2u32.to_be_bytes());
+        for name in ["CAB-da88ca698e51a177b5a2f870531774a8", "resources.assets"] {
+            data.extend_from_slice(&0i64.to_be_bytes());
+            data.extend_from_slice(&(0x20000i64).to_be_bytes());
+            data.extend_from_slice(&4u32.to_be_bytes());
+            data.extend_from_slice(name.as_bytes());
+            data.push(0);
+        }
+        round_trip(&data);
+    }
 }

@@ -15,6 +15,7 @@
 //! the same fixtures are asserted on both sides while the Rust path is built out,
 //! and it is removed once Rust covers them.
 
+pub mod container;
 pub mod error;
 pub mod lz4;
 
