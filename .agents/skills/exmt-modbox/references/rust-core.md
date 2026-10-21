@@ -19,11 +19,15 @@
 | SerializedFile v17–v22 | `serialized.rs` | 完成 |
 | TypeTree 读写 | `typetree.rs` | 完成 |
 | Mesh 顶点/索引 | `mesh.rs` | 完成 |
-| Texture2D | — | 未开始 |
-| BCn 解码 | — | 未开始 |
+| Texture2D | `texture.rs` | 完成 |
+| BC1/3/4/5/7 解码 | `bc.rs` | 完成 |
 | Tauri 接 Rust | — | 未开始 |
 
-86 个测试。`cargo test` 在 `core-rs/` 下跑。
+103 个测试。`cargo test` 在 `core-rs/` 下跑。
+
+贴图验收用的 oracle 是 Python 侧的 `texture2ddecoder` 1.0.6（AssetStudio 系解码器）与
+UnityPy，不是 D3D 规范：7,508 个任意 BC 块逐字节一致，283 个真实贴图的 RGBA 哈希一致。
+**按规范"修正"BC1 三色模式的透明黑会直接让差分变红**——这里要的是与 Python 输出相同。
 
 ## 三条硬规矩
 
@@ -47,8 +51,24 @@
 - `m_IndexBuffer` 是 `vector<UInt8>`（数组），`m_DataSize` 是 `TypelessData`（bytes）。
 - ChannelInfo 字段是 `UInt8`，`m_VertexCount` 是 `unsigned int`。
 - Mesh 的 stream stride 不对齐，只有 stream **起点**对齐到 16 字节。
+- 贴图行序是**自下而上**，解码器输出的是 **BGRA**：翻正 = 垂直翻转 + 红蓝交换，缺一不可。
+- 像素字段名是 `image data`（带空格）；写 `m_ImageData` 会多出一个键并在序列化时丢掉。
+- `.resS` 路径按**最后一段**匹配节点（`archive:/CAB-x/CAB-x.resS` vs `CAB-x.resS`）；
+  `m_StreamData.offset` 在 2019.4 是 u32，别的版本是 u64，统一走 `as_u64`。
+- 替换流式贴图要内联并清空 `m_StreamData`，因为 `.resS` 是同包所有贴图共用的。
+- 对象表每条 path ID 前有 4 字节对齐；外部引用是 `string, GUID, type, path`；
+  class 114 类型条目多 16 字节 `script_id`；v20+ 的引用类型是真表（含三条字符串）。
+  这四条只有在非 GF2 样例的真实资产上才会暴露。
 
 以上每条都在 `core-rs/README.md` 有更长的解释和对应测试名。
+
+## 真实贴图数据怎么验
+
+`core-rs/tests/real_texture.rs` 由环境变量开闸：把 `EXMT_TEXTURE_ASSETS` 指向任何带
+Texture2D 的 Unity `SerializedFile`（`.resS` 放在同目录），它会对每个可解码贴图检查
+mip 链长度、mip 0 解码，以及「存回 → 序列化 → 再读 → 解码」逐像素不变。
+不设变量就打印 skip，不失败。差分导出工具是 `examples/dump_textures`（输出
+`name|WxH|format|bytes|fnv64`，可直接和 Python 侧输出比较）。
 
 ## 换机器后恢复真实数据
 

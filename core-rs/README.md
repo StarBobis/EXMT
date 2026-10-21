@@ -17,17 +17,17 @@ ship without upstream churn.
 | SerializedFile v17–v22 | done | `src/serialized.rs` |
 | Type-tree read/write | done | `src/typetree.rs` |
 | Mesh vertex/index layer | done | `src/mesh.rs` |
-| Texture2D semantics | **not started** | — |
-| BC1/BC3/BC4/BC5/BC7 decode | **not started** | — |
+| Texture2D semantics | done | `src/texture.rs` |
+| BC1/BC3/BC4/BC5/BC7 decode | done | `src/bc.rs` |
 | Tauri calls Rust instead of Python | **not started** | — |
 
-`86 tests`, all green. See "Verification" below for what they actually prove.
+`103 tests`, all green. See "Verification" below for what they actually prove.
 
 ## Build and test
 
 ```powershell
 cd core-rs
-cargo test            # 86 tests; skips sample-dependent ones if the file is absent
+cargo test            # 103 tests; skips sample-dependent ones if the file is absent
 cargo test --lib      # unit tests only, no sample file needed
 ```
 
@@ -62,6 +62,14 @@ To restore it on another machine: it is a hot-update bundle cached by the game
 Copy it from the old machine, or let the game download the Vepley SSR skin again
 and take the file from its update cache. Do not commit it to the repo.
 
+The texture layer has a second, stronger harness that needs no committed data:
+set `EXMT_TEXTURE_ASSETS` to any Unity `SerializedFile` containing Texture2D
+objects (a shipped `.assets` from any Unity 2017–2022 game works, its `.resS`
+sibling must sit next to it). `cargo test --test real_texture -- --nocapture`
+then checks every decodable texture for mip-chain length, mip-0 decode, and a
+full store → serialize → re-read → decode round trip. Unset the variable and the
+test prints a skip line instead of failing.
+
 ## Verification approach
 
 Every layer is checked three ways, and the third is the one that matters:
@@ -76,9 +84,18 @@ Every layer is checked three ways, and the third is the one that matters:
      bit patterns, strings as bytes)
    - rebuilt bundle: same byte size as the Python rebuild (1,832,463), original
      cipher head preserved, and UnityPy enumerates the same 5 objects
+   - block decoders: 7,508 deliberately arbitrary BC1/BC3/BC4/BC5/BC7 blocks
+     (every BC7 mode forced at least once) decode byte-identically to
+     `texture2ddecoder` 1.0.6, the library the Python core calls
+   - real textures: on a shipped Unity 2019.4 `.assets` with 283 decodable
+     Texture2D objects (42 BC7, 154 DXT5, 3 DXT1, 84 RGBA32, streamed through
+     `.resS`), the upright RGBA image hash matches UnityPy + `texture2ddecoder`
+     for every one, and all 283 survive store → serialize → decode unchanged
 
 Tools for this live in `examples/`: `rebuild_bundle`, `dump_typetree`,
-`dump_values`. They are the intended way to re-run the differential check.
+`dump_values`, `dump_textures`. They are the intended way to re-run the
+differential check. `dump_textures` prints one `name|WxH|format|bytes|fnv64`
+line per texture so the two implementations can be diffed with plain `Compare-Object`.
 
 ## Format facts worth not rediscovering
 
@@ -120,18 +137,50 @@ Each of these cost a debugging round; all are now pinned by tests.
 - **`m_VertexData.m_DataSize` is `TypelessData`** (arrives as bytes) while
   `m_IndexBuffer` arrives as an array — accept both shapes and preserve which
   one the tree declares.
+- **Texture pixels are stored bottom-up**, and the block decoders emit BGRA.
+  Turning storage into an upright picture needs *both* a vertical flip and a
+  red/blue swap; doing only one still produces a plausible-looking image on a
+  symmetric test texture.
+- **Texture2D's pixel field is spelled `image data`** (with a space). Writing
+  `m_ImageData` on a type-tree dict silently adds a new key that serialization
+  drops, which looks like "the replacement did nothing".
+- **`m_StreamData.offset` is `unsigned int` in Unity 2019.4** and `unsigned long
+  long` in other versions; read it through `as_u64`. Match the stream node by
+  the path's last component: assets say `archive:/CAB-0123/CAB-0123.resS` while
+  the node is `CAB-0123.resS`. A two-node bundle with a `.resS` name is the
+  fallback.
+- **Replacing a streamed texture inlines it** (`m_StreamData` cleared): the
+  `.resS` payload is shared by every texture in the bundle, so growing it means
+  relocating every offset, which is a rebuild concern.
+- **`m_CompleteImageSize` covers the whole mip chain**, not mip 0: 2048² DXT1
+  with 12 levels is 2,796,216 bytes, BC7 twice that. `m_MipCount` can be 0 or
+  absent on odd assets; a missing count means 1.
+- **Zero-sized textures exist** (render targets, disabled assets). They parse
+  fine and must not abort a bundle walk; decoding one is an error.
+- **The object table aligns to 4 bytes before each path ID.** When the table
+  starts unaligned, skipping that byte shifts every entry and yields
+  "object 256 has type 256 of 74".
+- **`FileIdentifier` (external) is `string, GUID, type, path`**, not
+  `path, name, GUID, type`. Reading two strings first desynchronises the tail of
+  the metadata on any file with externals.
+- **Class 114 (MonoBehaviour) type entries carry a 16-byte `script_id`** after
+  `script_type_index`. Omitting it shifts the type table and only fails on files
+  that contain scripts.
+- **v20+ reference types are a real table**, each entry a full type plus class
+  name, namespace and assembly strings — not a fixed class-id+hash pair. Files
+  with zero ref types never notice the difference; others parse garbage.
 
 ## Next steps
 
-1. **Texture2D** (`class 28`): `m_StreamData` (path/offset/size, usually a
-   sibling `.resS`), `m_Width`/`m_Height`, `m_TextureFormat`, `m_MipCount`,
-   `m_CompleteImageSize`, `m_ImageData`. Acceptance: image data round-trips
-   byte-exact and dimensions/format match the Python oracle.
-2. **BCn decode**: BC1/BC3/BC4/BC5/BC7 to RGBA8. Acceptance: compare against
-   UnityPy's `image` output for the same texture, pixel for pixel.
-3. **Wire into Tauri**: `src-tauri` depends on this crate by path; replace the
-   `run_core` Python subprocess in `src/lib.rs` with direct calls.
-4. **Retire the Python core** once Rust covers texture work too.
+1. **Wire into Tauri**: `src-tauri` depends on this crate by path; replace the
+   `run_core` Python subprocess in `src/lib.rs` with direct calls. The commands
+   the UI issues first (`cache`, `meshes`, `texture`, `thumb`) are the cheapest
+   to move, since the layering is complete.
+2. **Std-only PNG writer** (deflate + CRC32): the previewer and thumbnails
+   currently get PNGs from PIL through Python, and retiring that subprocess
+   needs an encoder in this crate.
+3. **Retire the Python core** once texture work and the analysis products
+   (`GameCache`) are covered.
 
 ## Conventions
 

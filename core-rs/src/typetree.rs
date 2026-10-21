@@ -97,6 +97,24 @@ impl Value {
         }
     }
 
+    /// Read any integer-shaped value as u64.
+    ///
+    /// StreamingInfo offsets are declared `unsigned long long` in some Unity
+    /// versions and `unsigned int` in others; callers should not care.
+    pub fn as_u64(&self) -> Option<u64> {
+        match self {
+            Value::I8(v) => u64::try_from(*v).ok(),
+            Value::U8(v) => Some(*v as u64),
+            Value::I16(v) => u64::try_from(*v).ok(),
+            Value::U16(v) => Some(*v as u64),
+            Value::I32(v) => u64::try_from(*v).ok(),
+            Value::U32(v) => Some(*v as u64),
+            Value::I64(v) => u64::try_from(*v).ok(),
+            Value::U64(v) => Some(*v),
+            _ => None,
+        }
+    }
+
     pub fn as_str(&self) -> Option<&str> {
         match self {
             Value::Str(s) => Some(s),

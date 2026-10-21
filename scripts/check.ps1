@@ -22,7 +22,17 @@ function Step($name, $block) {
 
 Step 'frontend types' {
   Push-Location $root
-  try { & npx --no-install vue-tsc --noEmit } finally { Pop-Location }
+  try {
+    # `npx --no-install` cannot see the shims bun writes on Windows (`.exe`
+    # only, no `.cmd`), so run the package entry point through node when it is
+    # present and keep npx as the fallback for npm-installed trees.
+    $entry = Join-Path $root 'node_modules\vue-tsc\bin\vue-tsc.js'
+    if (Test-Path $entry) {
+      & node $entry --noEmit
+    } else {
+      & npx --no-install vue-tsc --noEmit
+    }
+  } finally { Pop-Location }
 }
 
 Step 'rust build' {

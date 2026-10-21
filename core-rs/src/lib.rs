@@ -15,12 +15,14 @@
 //! the same fixtures are asserted on both sides while the Rust path is built out,
 //! and it is removed once Rust covers them.
 
+pub mod bc;
 pub mod commonstrings;
 pub mod container;
 pub mod error;
 pub mod lz4;
 pub mod mesh;
 pub mod serialized;
+pub mod texture;
 pub mod typetree;
 
 pub use error::{Error, Result};

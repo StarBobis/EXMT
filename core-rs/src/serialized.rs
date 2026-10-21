@@ -169,14 +169,28 @@ impl TypeNode {
     }
 }
 
+/// The managed type name a reference-type entry describes.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RefTypeName {
+    pub class_name: String,
+    pub namespace: String,
+    pub assembly: String,
+}
+
 #[derive(Debug, Clone)]
 pub struct SerializedType {
     pub class_id: i32,
     pub is_stripped: bool,
+    /// True for entries of the file's reference-type table (v20+).
+    pub is_ref_type: bool,
     pub script_type_index: i16,
+    /// Present for class 114 (MonoBehaviour) and for ref types that point at a script.
+    pub script_id: Option<[u8; 16]>,
     pub old_type_hash: [u8; 16],
     pub nodes: Vec<TypeNode>,
     pub type_dependencies: Vec<i32>,
+    /// Only set for reference types: the managed class this tree describes.
+    pub ref_name: Option<RefTypeName>,
 }
 
 impl SerializedType {
@@ -201,8 +215,10 @@ impl ObjectInfo {
 
 #[derive(Debug, Clone)]
 pub struct External {
+    /// Leading string Unity calls `tempEmpty`; normally empty.
+    pub temp_empty: String,
+    /// The referenced file, historically called `pathName` in Unity's code.
     pub path: String,
-    pub name: String,
     pub guid: [u8; 16],
     pub kind: i32,
 }
@@ -219,6 +235,8 @@ pub struct SerializedFile {
     pub platform: i32,
     pub has_type_tree: bool,
     pub types: Vec<SerializedType>,
+    /// Reference types (v20+): trees for managed classes, looked up by name.
+    pub ref_types: Vec<SerializedType>,
     /// Object table in file order; path IDs are signed and genuinely negative.
     pub objects: Vec<(i64, ObjectInfo)>,
     pub externals: Vec<External>,
@@ -269,7 +287,7 @@ impl SerializedFile {
         }
         let mut types = Vec::with_capacity(type_count as usize);
         for _ in 0..type_count {
-            types.push(read_type(&mut r, version, has_type_tree)?);
+            types.push(read_type(&mut r, version, has_type_tree, false)?);
         }
 
         let object_count = r.u32("object_count")?;
@@ -281,6 +299,9 @@ impl SerializedFile {
         }
         let mut objects = Vec::with_capacity(object_count.min(4096) as usize);
         for _ in 0..object_count {
+            // Unity aligns every object entry to 4 bytes before the path ID.
+            // When the table starts unaligned this byte decides the whole layout.
+            r.align(4);
             let path_id = r.i64("object path_id")?;
             let byte_start = if version >= 22 {
                 r.i64("object byte_start")? as u64
@@ -294,10 +315,19 @@ impl SerializedFile {
 
         if version >= 11 {
             let script_count = r.u32("script type count")?;
-            if script_count < 1_000_000 {
-                for _ in 0..script_count {
-                    let _ = r.i32("script file_id")?;
+            if script_count > 1_000_000 {
+                return Err(Error::Implausible {
+                    what: "script type count",
+                    value: script_count as u64,
+                });
+            }
+            for _ in 0..script_count {
+                let _ = r.i32("script file_id")?;
+                if version >= 14 {
+                    r.align(4);
                     let _ = r.i64("script identifier")?;
+                } else {
+                    let _ = r.i32("script identifier")?;
                 }
             }
         }
@@ -312,24 +342,32 @@ impl SerializedFile {
                 });
             }
             for _ in 0..ext_count {
-                let path = r.cstr("external path")?;
-                let name = r.cstr("external name")?;
+                // Layout follows Unity's FileIdentifier: leading empty string,
+                // 16-byte GUID, type, then the referenced path last.
+                let temp_empty = r.cstr("external temp_empty")?;
                 let mut guid = [0u8; 16];
                 guid.copy_from_slice(r.take(16, "external guid")?);
                 let kind = r.i32("external type")?;
-                externals.push(External { path, name, guid, kind });
+                let path = r.cstr("external path")?;
+                externals.push(External { temp_empty, path, guid, kind });
             }
         }
 
-        // v20+ reference types are consumed defensively: they do not affect
-        // payload offsets, so a malformed tail is better ignored than fatal.
+        // v20+ reference types carry a full tree per managed class. They sit at
+        // the end of the metadata and do not move payload offsets, but skipping
+        // them with a guessed size leaves the reader misaligned on the next
+        // table, which is how a MonoBehaviour-only field becomes a parse error.
+        let mut ref_types = Vec::new();
         if version >= 20 {
             let ref_count = r.u32("ref type count")?;
-            if ref_count < 1_000_000 {
-                for _ in 0..ref_count {
-                    let _ = r.i32("ref type class_id")?;
-                    let _ = r.take(16, "ref type hash")?;
-                }
+            if ref_count > 1_000_000 {
+                return Err(Error::Implausible {
+                    what: "ref type count",
+                    value: ref_count as u64,
+                });
+            }
+            for _ in 0..ref_count {
+                ref_types.push(read_type(&mut r, version, has_type_tree, true)?);
             }
         }
 
@@ -344,6 +382,7 @@ impl SerializedFile {
             platform,
             has_type_tree,
             types,
+            ref_types,
             objects,
             externals,
         };
@@ -401,10 +440,27 @@ impl SerializedFile {
     }
 }
 
-fn read_type(r: &mut Reader<'_>, version: u32, has_type_tree: bool) -> Result<SerializedType> {
+fn read_type(
+    r: &mut Reader<'_>,
+    version: u32,
+    has_type_tree: bool,
+    is_ref_type: bool,
+) -> Result<SerializedType> {
     let class_id = r.i32("type class_id")?;
-    let is_stripped = r.u8("type is_stripped")? != 0;
+    let is_stripped = if version >= 16 { r.u8("type is_stripped")? != 0 } else { false };
     let script_type_index = if version >= 17 { r.i16("script_type_index")? } else { -1 };
+
+    // A MonoBehaviour entry (class 114), and a ref type bound to a script, carry
+    // a 16-byte script identifier before the hash. Omitting it shifts the whole
+    // type table by 16 bytes and only shows up on files that contain scripts.
+    let script_id = if class_id == 114 || (is_ref_type && script_type_index >= 0) {
+        let mut id = [0u8; 16];
+        id.copy_from_slice(r.take(16, "type script_id")?);
+        Some(id)
+    } else {
+        None
+    };
+
     let mut old_type_hash = [0u8; 16];
     old_type_hash.copy_from_slice(r.take(16, "old_type_hash")?);
 
@@ -413,28 +469,41 @@ fn read_type(r: &mut Reader<'_>, version: u32, has_type_tree: bool) -> Result<Se
         nodes = read_type_tree(r, version)?;
     }
 
-    // v21+ trailing dependency list. Omitting it shifts every later type.
+    // v21+ trailing metadata. Reference types name their managed class; ordinary
+    // types list the type indices their tree references.
     let mut type_dependencies = Vec::new();
-    if version >= 21 && script_type_index < 0 {
-        let count = r.i32("type dependency count")?;
-        if !(0..=100_000).contains(&count) {
-            return Err(Error::Implausible {
-                what: "type dependency count",
-                value: count.max(0) as u64,
+    let mut ref_name = None;
+    if version >= 21 {
+        if is_ref_type {
+            ref_name = Some(RefTypeName {
+                class_name: r.cstr("ref type class_name")?,
+                namespace: r.cstr("ref type namespace")?,
+                assembly: r.cstr("ref type assembly")?,
             });
-        }
-        for _ in 0..count {
-            type_dependencies.push(r.i32("type dependency")?);
+        } else {
+            let count = r.i32("type dependency count")?;
+            if !(0..=100_000).contains(&count) {
+                return Err(Error::Implausible {
+                    what: "type dependency count",
+                    value: count.max(0) as u64,
+                });
+            }
+            for _ in 0..count {
+                type_dependencies.push(r.i32("type dependency")?);
+            }
         }
     }
 
     Ok(SerializedType {
         class_id,
         is_stripped,
+        is_ref_type,
         script_type_index,
+        script_id,
         old_type_hash,
         nodes,
         type_dependencies,
+        ref_name,
     })
 }
 
