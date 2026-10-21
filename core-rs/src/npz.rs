@@ -93,7 +93,7 @@ impl Npz {
         let mut central = Vec::new();
         for (name, data) in &self.entries {
             let offset = out.len() as u32;
-            let crc = crc32(data);
+            let crc = crate::crc32::crc32(data);
             write_local(&mut out, name, data, crc);
             write_central(&mut central, name, data, crc, offset);
         }
@@ -149,16 +149,6 @@ fn write_central(out: &mut Vec<u8>, name: &str, data: &[u8], crc: u32, offset: u
     out.extend_from_slice(name.as_bytes());
 }
 
-fn crc32(data: &[u8]) -> u32 {
-    let mut crc = 0xFFFF_FFFFu32;
-    for &byte in data {
-        crc ^= byte as u32;
-        for _ in 0..8 {
-            crc = (crc >> 1) ^ (0xEDB8_8320 & (crc & 1).wrapping_neg());
-        }
-    }
-    !crc
-}
 
 #[cfg(test)]
 mod tests {
@@ -206,6 +196,8 @@ mod tests {
 
     #[test]
     fn crc32_matches_the_standard_check_value() {
-        assert_eq!(crc32(b"123456789"), 0xCBF4_3926);
+        assert_eq!(crate::crc32::crc32(b"123456789"), 0xCBF4_3926);
     }
 }
+
+

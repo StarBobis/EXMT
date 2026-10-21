@@ -6,10 +6,12 @@
 //! (`core/exmt_core`) until it is ported.
 
 pub mod exmtmesh;
+pub mod interchange;
 pub mod modpack;
 pub mod preview;
 pub mod skinpack;
 pub mod store;
+pub mod workspace;
 
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -129,6 +131,25 @@ fn run_rust_core(app: &tauri::AppHandle, args: &[String]) -> Option<CoreOutput> 
         }
         Some("backup") | Some("restore") | Some("backup-size") => {
             Some(match store::run(args) {
+                Ok(stdout) => CoreOutput { code: 0, stdout, stderr: String::new() },
+                Err(e) => CoreOutput { code: 1, stdout: String::new(), stderr: e },
+            })
+        }
+        Some("workspace") => {
+            let outdir = args.get(1)?;
+            let spec_path = args.get(2)?;
+            let text = std::fs::read_to_string(spec_path).ok()?;
+            let value: serde_json::Value = serde_json::from_str(&text).ok()?;
+            let has_animations = value
+                .get("animations")
+                .and_then(|v| v.as_array())
+                .map(|a| !a.is_empty())
+                .unwrap_or(false);
+            if has_animations {
+                return None;
+            }
+            let tool = texconv_for(app)?;
+            Some(match workspace::run(Path::new(outdir), Path::new(spec_path), &tool) {
                 Ok(stdout) => CoreOutput { code: 0, stdout, stderr: String::new() },
                 Err(e) => CoreOutput { code: 1, stdout: String::new(), stderr: e },
             })

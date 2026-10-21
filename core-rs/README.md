@@ -27,12 +27,13 @@ ship without upstream churn.
 | NPZ writer (stored ZIP + `.npy`) | done | `src/npz.rs` |
 | `skinpack` command in Rust | done | `../src-tauri/src/skinpack.rs` |
 | `modpack` texture path | done | `../src-tauri/src/modpack.rs` |
-| `.exmtmesh` mesh patches | done (same cook; other cooks fall back) | `../src-tauri/src/exmtmesh.rs`, `src/mesh.rs` |
+| `.exmtmesh` mesh patches | done, including different cooks | `../src-tauri/src/exmtmesh.rs`, `src/mesh.rs` |
 | preview `thumbs` / `skinfo` | done | `../src-tauri/src/preview.rs` |
 | `backup` / `restore` / `backup-size` | done | `../src-tauri/src/store.rs` |
+| `workspace` export (meshes, textures, skeleton) | done; animations still Python | `../src-tauri/src/workspace.rs`, `src/skeleton.rs` |
 | `analyze` (GameCache) | **not started** (still Python) | — |
 
-`148 tests`, all green. See "Verification" below for what they actually prove.
+`154 tests`, all green. See "Verification" below for what they actually prove.
 
 Pixel work is **not** implemented here: decoding, resizing, PNG output and BC
 encoding all go through the bundled DirectXTex `texconv.exe`
@@ -43,7 +44,7 @@ DDS header, the process call and the asset logic around them.
 
 ```powershell
 cd core-rs
-cargo test            # 148 tests; skips sample-dependent ones if the file is absent
+cargo test            # 154 tests; skips sample-dependent ones if the file is absent
 cargo test --lib      # unit tests only, no sample file needed
 ```
 
@@ -151,6 +152,12 @@ Every layer is checked three ways, and the third is the one that matters:
      while an untouched BC7 texture keeps its hash. A 152-bundle sample under
      20 MB parsed with **0 errors** (42,335 objects), including five files that
      concatenate several UnityFS archives.
+   - workspace: real Vepley skin (4 meshes, 2 textures, no clips). The merged
+     161-bone skeleton matches Python (`local` identical, rest matrices within
+     4.4e-16), `workspace.json` mesh rows are equal, every exported `.exmtmesh`
+     array is byte-identical to `interchange.save`, and the 2048² PNGs differ by
+     at most 1 level. The Rust files are stored (uncompressed) NPZ, so the
+     folder's `bytes` total is larger than Python's compressed total.
 
 DirectXTex (`texconv.exe`) is vendored under `../src-tauri/bin/` with its MIT
 licence and bundled through `tauri.conf.json`. `EXMT_TEXCONV` overrides the
