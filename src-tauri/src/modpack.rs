@@ -13,10 +13,11 @@
 //! `mod.json` reproduces `core/exmt_core/modpack.py`'s shape so the installer
 //! does not care which implementation produced it.
 //!
-//! Mesh patches are accepted only when the file's channel layout and bone table
-//! match the target asset. A different cook needs bone remapping and channel
-//! fitting, which the Python core already implements; [`RunError::NeedsPython`]
-//! makes the shell fall back to it before any bundle is written.
+//! Mesh patches are adapted to the target asset: attributes are trimmed or
+//! zero-padded to its channel dimensions, and bone slots are remapped through
+//! its bone table (by exact hash, or by short name when a names index exists).
+//! A bundle that stores the same mesh with float16 UVs, two bone influences or a
+//! different bone order is therefore still patchable.
 
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::path::{Path, PathBuf};
@@ -32,8 +33,6 @@ pub const FORMAT: &str = "exmt-mod-1";
 /// Why a spec could not be packed by this module.
 #[derive(Debug)]
 pub enum RunError {
-    /// The spec needs behaviour only the Python core has (bone remapping).
-    NeedsPython(String),
     /// The spec or an input file is genuinely broken.
     Failed(String),
 }
@@ -175,6 +174,7 @@ pub fn run(spec_path: &Path, compress: bool) -> RunResult<String> {
         let mut patched_meshes: Vec<String> = Vec::new();
         let mut patched_verts = 0usize;
         let mut patched_textures: Vec<String> = Vec::new();
+        let names = bone_names();
 
         for item in &meshes {
             if !Path::new(&item.file).is_file() {
@@ -185,18 +185,16 @@ pub fn run(spec_path: &Path, compress: bool) -> RunResult<String> {
                 }));
                 continue;
             }
-            let patch = crate::exmtmesh::load(Path::new(&item.file))
+            let mut patch = crate::exmtmesh::load(Path::new(&item.file))
                 .map_err(|e| format!("{}: {e}", item.file))?
                 .into_patch();
             let (path_id, mut tree) =
                 find_mesh_tree(&bundle, &item.mesh).map_err(|e| format!("{hash}: {e}"))?;
-            if mesh::channels_of(&tree).map_err(|e| e.to_string())? != patch.channels
-                || mesh::bone_hashes_of(&tree) != patch.bone_hashes
-            {
-                return Err(RunError::NeedsPython(format!(
-                    "mesh {:?} is cooked differently in {hash}",
-                    item.mesh
-                )));
+            let target_channels = mesh::channels_of(&tree).map_err(|e| e.to_string())?;
+            let target_bones = mesh::bone_hashes_of(&tree);
+            if target_channels != patch.channels || target_bones != patch.bone_hashes {
+                mesh::adapt_to_target(&mut patch, &target_channels, &target_bones, &names)
+                    .map_err(|e| format!("mesh {:?}: {e}", item.mesh))?;
             }
             let report = mesh::apply_patch(&mut tree, &patch)
                 .map_err(|e| format!("mesh {:?}: {e}", item.mesh))?;
@@ -409,6 +407,48 @@ fn relative_to(file: &str, outdir: &Path) -> (String, bool) {
         }
     }
     (file.to_string(), false)
+}
+
+/// `crc32(transform path) -> path` index, when the app has built one.
+///
+/// Without it, bone remapping keeps only exact hashes; with it, a bone that was
+/// re-parented between game versions can be matched by its short name.
+fn bone_names() -> HashMap<u32, String> {
+    let mut candidates = Vec::new();
+    if let Ok(appdata) = std::env::var("APPDATA") {
+        let config = PathBuf::from(appdata)
+            .join("com.exmt.modbox")
+            .join("EXMTConfig.json");
+        if let Ok(text) = std::fs::read_to_string(&config) {
+            if let Ok(value) = serde_json::from_str::<serde_json::Value>(&text) {
+                if let Some(path) = value.get("bone_names").and_then(|v| v.as_str()) {
+                    if !path.is_empty() {
+                        candidates.push(PathBuf::from(path));
+                    }
+                }
+            }
+        }
+    }
+    candidates.push(PathBuf::from(r"C:\EXMTCacheFolder\bonenames.json"));
+    for path in candidates {
+        if let Some(map) = load_bone_index(&path) {
+            return map;
+        }
+    }
+    HashMap::new()
+}
+
+fn load_bone_index(path: &Path) -> Option<HashMap<u32, String>> {
+    let text = std::fs::read_to_string(path).ok()?;
+    let value: serde_json::Value = serde_json::from_str(&text).ok()?;
+    let paths = value.get("paths")?.as_object()?;
+    let mut out = HashMap::new();
+    for (key, value) in paths {
+        if let (Ok(hash), Some(name)) = (key.parse::<u32>(), value.as_str()) {
+            out.insert(hash, name.to_string());
+        }
+    }
+    Some(out)
 }
 
 #[cfg(test)]

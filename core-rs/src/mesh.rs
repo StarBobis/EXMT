@@ -18,6 +18,8 @@
 //! normalised (bone indices) keep their exact value, which is safe because a
 //! mesh cannot have more than 2^24 bones.
 
+use std::collections::HashMap;
+
 use crate::error::{Error, Result};
 use crate::typetree::Value;
 
@@ -690,9 +692,7 @@ pub fn to_value(tree: &mut Value, mesh: &Mesh) -> Result<()> {
 ///
 /// Only layout-compatible patches are accepted: the target's channels and bone
 /// table must match the file's. A different cook (float16 versus float32 UVs,
-/// different bone order) needs the bone remapping and channel fitting the
-/// Python core implements; silently writing one layout into the other would
-/// corrupt fields the user never touched.
+/// different bone order) is adapted by [`adapt_to_target`] before writing.
 #[derive(Debug, Clone)]
 pub struct MeshPatch {
     pub name: String,
@@ -711,6 +711,158 @@ pub struct PatchReport {
     pub verts: usize,
     pub indices: usize,
     pub submeshes: usize,
+}
+
+/// Reshape a patch's attributes to the target channel dimensions.
+///
+/// Wider attributes are truncated, narrower ones are zero-padded, and channels
+/// the target does not use are dropped. This mirrors `_fit_channels` in the
+/// Python packer; it is what makes a patch exported from one cook applicable to
+/// a bundle that stores the same mesh with different UV formats or dimensions.
+pub fn fit_channels(patch: &mut MeshPatch, target: &[Channel; 14]) -> Result<()> {
+    for attr in 0..14 {
+        let source_dim = patch.channels[attr].dimension as usize;
+        let target_dim = target[attr].dimension as usize;
+        let values = patch.attributes[attr].take();
+        if let Some(values) = values {
+            if target_dim == 0 {
+                patch.channels[attr] = target[attr];
+                continue;
+            }
+            if source_dim == 0 {
+                return Err(Error::Invalid {
+                    what: "mesh patch",
+                    detail: format!("attribute {attr} has values but an unused channel"),
+                });
+            }
+            if values.len() != patch.vertex_count * source_dim {
+                return Err(Error::Invalid {
+                    what: "mesh patch",
+                    detail: format!(
+                        "attribute {attr} has {} values, expected {}",
+                        values.len(),
+                        patch.vertex_count * source_dim
+                    ),
+                });
+            }
+            if source_dim != target_dim {
+                let mut fitted = vec![0.0f32; patch.vertex_count * target_dim];
+                let copy = source_dim.min(target_dim);
+                for row in 0..patch.vertex_count {
+                    let from = row * source_dim;
+                    let to = row * target_dim;
+                    fitted[to..to + copy].copy_from_slice(&values[from..from + copy]);
+                }
+                patch.attributes[attr] = Some(fitted);
+            } else {
+                patch.attributes[attr] = Some(values);
+            }
+        }
+        patch.channels[attr] = target[attr];
+    }
+    Ok(())
+}
+
+/// Rewrite bone slots from the file's bone table to the target asset's table.
+///
+/// Exact hashes are preferred; when a names index is available, a bone that was
+/// re-parented between game versions is matched by its short name. Weighted
+/// slots with no target are zeroed, and the count of lost influences is
+/// returned — the same policy as `_remap_bones` in Python.
+pub fn remap_bones(
+    patch: &mut MeshPatch,
+    target: &[u32],
+    names: &HashMap<u32, String>,
+) -> Result<usize> {
+    let source = patch.bone_hashes.clone();
+    let weights = patch.attributes[12].clone();
+    let bones = patch.attributes[13].clone();
+    let (Some(mut weights), Some(mut bones)) = (weights, bones) else {
+        if source != target && !target.is_empty() {
+            return Err(Error::Invalid {
+                what: "mesh patch",
+                detail: "target has a different bone table but the file has no skin weights".into(),
+            });
+        }
+        patch.bone_hashes = target.to_vec();
+        return Ok(0);
+    };
+    // GF2 meshes use 2 or 4 influences per vertex; the channel dimension is the
+    // authority (the Python packer iterates `slots.shape[1]` the same way).
+    let slots = patch.channels[12].dimension as usize;
+    if slots == 0
+        || patch.channels[13].dimension as usize != slots
+        || weights.len() != patch.vertex_count * slots
+        || bones.len() != patch.vertex_count * slots
+    {
+        return Err(Error::Invalid {
+            what: "mesh patch",
+            detail: format!(
+                "weights/bones do not match {slots} slots per vertex ({} / {})",
+                weights.len(),
+                bones.len()
+            ),
+        });
+    }
+
+    let exact: HashMap<u32, u32> = target
+        .iter()
+        .enumerate()
+        .map(|(i, hash)| (*hash, i as u32))
+        .collect();
+    let mut by_short: HashMap<&str, u32> = HashMap::new();
+    for (index, hash) in target.iter().enumerate() {
+        if let Some(path) = names.get(hash) {
+            by_short.entry(short_name(path)).or_insert(index as u32);
+        }
+    }
+
+    let mut dropped = 0usize;
+    for vertex in 0..patch.vertex_count {
+        for slot in 0..slots {
+            let at = vertex * slots + slot;
+            let old_index = bones[at] as usize;
+            let mapped = source.get(old_index).and_then(|hash| {
+                exact.get(hash).copied().or_else(|| {
+                    names
+                        .get(hash)
+                        .and_then(|path| by_short.get(short_name(path)).copied())
+                })
+            });
+            match mapped {
+                Some(new) => bones[at] = new as f32,
+                None => {
+                    if weights[at] > 0.0 {
+                        dropped += 1;
+                        weights[at] = 0.0;
+                    }
+                    bones[at] = 0.0;
+                }
+            }
+        }
+    }
+    patch.attributes[12] = Some(weights);
+    patch.attributes[13] = Some(bones);
+    patch.bone_hashes = target.to_vec();
+    Ok(dropped)
+}
+
+/// Adapt a patch exported from a different cook to the target's layout.
+pub fn adapt_to_target(
+    patch: &mut MeshPatch,
+    target_channels: &[Channel; 14],
+    target_bones: &[u32],
+    names: &HashMap<u32, String>,
+) -> Result<usize> {
+    if *target_channels == patch.channels && target_bones == patch.bone_hashes.as_slice() {
+        return Ok(0);
+    }
+    fit_channels(patch, target_channels)?;
+    remap_bones(patch, target_bones, names)
+}
+
+fn short_name(path: &str) -> &str {
+    path.rsplit('/').next().unwrap_or(path)
 }
 
 /// Write `patch` into a target Mesh tree, replacing only geometry-owned fields.
@@ -1275,6 +1427,59 @@ mod tests {
         let mut patch = patch_fixture();
         patch.submesh_count = vec![2];
         assert!(apply_patch(&mut tree, &patch).is_err());
+    }
+
+    #[test]
+    fn adapting_fits_channels_and_remaps_bones_by_short_name() {
+        let mut patch = patch_fixture();
+        // Source bone table is empty, so put fake influences in explicitly.
+        patch.bone_hashes = vec![10, 30];
+        let mut weights = vec![0.0f32; patch.vertex_count * 4];
+        let mut bones = vec![0.0f32; patch.vertex_count * 4];
+        weights[0] = 1.0;
+        bones[0] = 0.0; // hash 10
+        weights[1] = 1.0;
+        bones[1] = 1.0; // hash 30
+        patch.attributes[12] = Some(weights);
+        patch.attributes[13] = Some(bones);
+
+        let mut target = patch.channels;
+        target[1] = Channel::UNUSED; // target has no normals
+        target[4] = Channel {
+            dimension: 3,
+            ..target[4]
+        }; // uv0 gains a column
+        let mut names = HashMap::new();
+        names.insert(20u32, "root/extra".to_string());
+        names.insert(30u32, "other/extra".to_string());
+
+        let dropped = adapt_to_target(&mut patch, &target, &[10, 20], &names).unwrap();
+        assert_eq!(dropped, 0, "short-name match must keep the influence");
+        assert_eq!(patch.bone_hashes, vec![10, 20]);
+        assert!(patch.attributes[1].is_none(), "unused channel is dropped");
+        let uv = patch.attributes[4].as_ref().unwrap();
+        assert_eq!(uv.len(), 3 * 3);
+        assert_eq!(&uv[..3], &[0.0, 0.0, 0.0]);
+        let bones = patch.attributes[13].as_ref().unwrap();
+        assert_eq!(&bones[..4], &[0.0, 1.0, 0.0, 0.0]);
+    }
+
+    #[test]
+    fn adapting_without_names_drops_unknown_weighted_bones() {
+        let mut patch = patch_fixture();
+        patch.bone_hashes = vec![10, 30];
+        let mut weights = vec![0.0f32; 12];
+        let mut bones = vec![0.0f32; 12];
+        weights[1] = 1.0;
+        bones[1] = 1.0;
+        patch.attributes[12] = Some(weights);
+        patch.attributes[13] = Some(bones);
+
+        let target = patch.channels;
+        let dropped = adapt_to_target(&mut patch, &target, &[10, 20], &HashMap::new()).unwrap();
+        assert_eq!(dropped, 1);
+        assert_eq!(patch.attributes[12].as_ref().unwrap()[1], 0.0);
+        assert_eq!(patch.attributes[13].as_ref().unwrap()[1], 0.0);
     }
 
     #[test]

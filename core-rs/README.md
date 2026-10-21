@@ -31,7 +31,7 @@ ship without upstream churn.
 | `backup` / `restore` / `backup-size` | done | `../src-tauri/src/store.rs` |
 | `analyze` (GameCache) | **not started** (still Python) | — |
 
-`142 tests`, all green. See "Verification" below for what they actually prove.
+`145 tests`, all green. See "Verification" below for what they actually prove.
 
 Pixel work is **not** implemented here: decoding, resizing, PNG output and BC
 encoding all go through the bundled DirectXTex `texconv.exe`
@@ -42,7 +42,7 @@ DDS header, the process call and the asset logic around them.
 
 ```powershell
 cd core-rs
-cargo test            # 142 tests; skips sample-dependent ones if the file is absent
+cargo test            # 145 tests; skips sample-dependent ones if the file is absent
 cargo test --lib      # unit tests only, no sample file needed
 ```
 
@@ -288,10 +288,12 @@ Each of these cost a debugging round; all are now pinned by tests.
   `indexCount`, `firstVertex`, `vertexCount` and a per-submesh `localAABB` are
   derived from the new index buffer, and zero-count entries disappear. Unity
   culls with the per-submesh box, so it must cover only the referenced vertices.
-- **Different cooks stay in Python**: if the file's `m_Channels` or
-  `m_BoneNameHashes` differ from the target tree, `modpack` raises
-  `NeedsPython` before writing anything. Bone remapping and channel fitting are
-  implemented there and are not worth duplicating badly.
+- **Different cooks are adapted, not refused**: `adapt_to_target` trims or
+  zero-pads each attribute to the target channel dimensions and remaps bone
+  slots through the target's bone table (exact hash first, then short name via
+  `bones.json`). Weighted slots with no target bone are zeroed. Real pair:
+  Alva cloth3 in `0e834224…` has float16 UVs and 2 bone slots, while `a75eb9c2…`
+  has float32 UVs and 2 slots; the Rust and Python packs match all 8 objects.
 - **Some GF2 hot-update files concatenate several UnityFS archives.** Each
   sub-archive has its own 4-byte cipher head, and the declared `size` covers
   only the first one. Reads use the first archive and record the leftover bytes

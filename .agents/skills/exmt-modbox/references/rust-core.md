@@ -29,13 +29,13 @@
 | skinpack 命令 | `src-tauri/src/skinpack.rs` | 完成，Tauri 已直接调用 |
 | modpack 贴图路径 | `src-tauri/src/modpack.rs` | 完成，Tauri 已直接调用 |
 | NPZ 读取（ZIP + DEFLATE + `.npy`） | `inflate.rs` / `zip.rs` / `npy.rs` | 完成 |
-| modpack 网格补丁（`.exmtmesh`） | `mesh.rs` + `src-tauri/src/exmtmesh.rs` | 完成（同 cook）；异 cook 回退 Python |
+| modpack 网格补丁（`.exmtmesh`） | `mesh.rs` + `src-tauri/src/exmtmesh.rs` | 完成；异 cook 自动裁剪/补齐与骨骼重映射 |
 | 预览 `thumbs` / `skinfo` | `src-tauri/src/preview.rs` | 完成，贴图网格走 texconv |
 | `backup` / `restore` / `backup-size` | `src-tauri/src/store.rs` | 完成，Tauri 已直接调用 |
 | `workspace`（Blender 导出） | — | 未开始（仍 Python） |
 | analyze（GameCache） | — | 未开始（仍 Python） |
 
-143 个测试。`cargo test` 在 `core-rs/` 下跑；`src-tauri` 另有 14 个单测和 5 个可选
+145 个测试。`cargo test` 在 `core-rs/` 下跑；`src-tauri` 另有 14 个单测和 5 个可选
 端到端测试（skinpack、modpack、exmtmesh、preview×2）。`texconv.exe`（966 KB，MIT，许可证同目录）随仓库放在
 `src-tauri/bin/`，并由 `tauri.conf.json` 的 `bundle.resources` 打进安装包；`EXMT_TEXCONV`
 可覆盖路径，找不到时 `skinpack` 回退 Python。
@@ -111,8 +111,10 @@ Vepley 网格包 `872f1c4f93f07d6ba65b103ae5d1a337.bundle`、贴图包
 - `.exmtmesh` 的 bones 是 uint32，但顶点编码器吃 f32；读入后转换即可。
 - 子网格是**重建**的：firstByte/indexCount/firstVertex/vertexCount/localAABB 全部由新
   索引缓冲推导，零长度子网格会被丢掉；Unity 用每个子网格自己的 localAABB 做剔除。
-- 通道或骨骼表不一致就是不同 cook，必须 `NeedsPython` 回退；骨骼重映射和通道裁剪在
-  Python 侧，不要半吊子重写。
+- 通道或骨骼表不一致时不再回退：`mesh::adapt_to_target` 按目标通道裁剪/补零，并用目标
+  骨骼表重映射（先精确 hash，再用 `bones.json` 的短名）；找不到的加权骨骼清零并计数。
+  真实异 cook 例：`0e834224…` 的 Alva cloth3 是 f16 UV、2 骨骼槽，`a75eb9c2…` 是 f32 UV，
+  Rust/Python 各自打包后 8/8 对象 payload 完全一致。
 - GF2 有些热更新文件把**多个 UnityFS 顺序拼接**（每个子包头用自己的 4 字节派生密钥，
   header 的 size 只覆盖第一个）。读时用第一个并记录 `BundleInfo::trailing`；写回必须拒绝，
   否则会把后面的子包截掉。

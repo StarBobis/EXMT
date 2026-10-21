@@ -106,12 +106,7 @@ fn run_rust_core(app: &tauri::AppHandle, args: &[String]) -> Option<CoreOutput> 
             })
         }
         Some("modpack") => match modpack::run(Path::new(&spec), true) {
-            Ok(stdout) => {
-                Some(CoreOutput { code: 0, stdout, stderr: String::new() })
-            }
-            // Bone remapping and channel fitting still live in Python; let the
-            // fallback pack this spec instead of writing a partial Mod.
-            Err(modpack::RunError::NeedsPython(_)) => None,
+            Ok(stdout) => Some(CoreOutput { code: 0, stdout, stderr: String::new() }),
             Err(modpack::RunError::Failed(e)) => {
                 Some(CoreOutput { code: 1, stdout: String::new(), stderr: e })
             }
