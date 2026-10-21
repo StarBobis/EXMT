@@ -20,6 +20,7 @@ EXMT 是一个 Tauri 2 + Vue 3 + Python 核心的桌面 Mod 工具箱，目标�
 | 跨领域的坑（编码、PowerShell、CDP、Unity 资产、UI） | `references/pitfalls.md` |
 | GF2 的保护层、UnityFS 加密、IL2CPP、运行时 hook、关键地址 | `references/game-recon.md` |
 | 选路线：Unity 拦截阶梯 vs Unreal pak 覆盖、成本判据 | `references/feasibility.md` |
+| Rust 资产核心 `core-rs/`：模块、进度、验收、格式陷阱 | `references/rust-core.md` |
 
 ## 核心不变量（动代码前先确认）
 
