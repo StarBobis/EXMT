@@ -34,5 +34,6 @@
 ## 3. 任务完成通知（WxPusher）
 
 - 只能走 GET 路径：`https://wxpusher.zjiecode.com/api/send/message/<SPT_TOKEN>/<URL_ENCODED_TEXT>`。
-- 简报用 `[uri]::EscapeDataString('中文简报')` 编码后拼进路径：**百分号编码的中文实测可用**（2026-10-20 返回 `code:1000, success:true`）。不编码的中文会 400；路径里的 `/` 不能来自简报。
+- 简报用 `[uri]::EscapeDataString('中文简报')` 编码后拼进路径：**百分号编码的中文实测可用**（2026-10-20 / 10-21 均返回 `code:1000, success:true`）。不编码的中文会 400。
+- **简报里不要出现 `/`**：即使 `EscapeDataString` 编成 `%2F`，服务端仍回 400（2026-10-21 实测）；写成 `BC1/3/4/5/7` 会失败，改成 `BC 解码` 这类说法。
 - POST `/api/send/message` 用该 SPT token 会回 `appToken不正确`，不要用。
