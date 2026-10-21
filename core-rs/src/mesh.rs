@@ -14,13 +14,31 @@
 //! * Padding is skipped, not interpreted: 2283 * 92 = 210036, yet the blob is
 //!   210048.
 //!
+//! Vertex bytes live in one of two places, like textures:
+//!
+//! * inline in `m_VertexData.m_DataSize` (the common case), or
+//! * streamed into a sibling `.resS` node described by the **top-level**
+//!   `m_StreamData`; `m_DataSize` is then empty. Use
+//!   [`from_value_with_nodes`] so the node can be resolved. Passing only the
+//!   type tree fails with "truncated vertex stream ... 0 available", which is
+//!   the symptom, not the cause.
+//!
+//! Streamed meshes also pack their normal: the channel's `dimension` byte is
+//! `0x34`, i.e. three logical components stored in four half-float slots (the
+//! fourth is `0`). `Channel::physical` keeps the 4-slot width for stride and
+//! layout while `Channel::dimension` stays at 3 for decoding and for the
+//! interchange format. Treating 0x34 as a literal dimension produces a stride
+//! that is too small (and a 52-wide normal array).
+//!
 //! Values are stored as `f32` after normalisation. Integer formats that are not
 //! normalised (bone indices) keep their exact value, which is safe because a
 //! mesh cannot have more than 2^24 bones.
 
 use std::collections::HashMap;
 
+use crate::container::Node;
 use crate::error::{Error, Result};
+use crate::texture::find_stream;
 use crate::typetree::Value;
 
 /// Vertex attribute slots, in Unity's enum order.
@@ -88,7 +106,31 @@ pub struct Channel {
     pub stream: u32,
     pub offset: u32,
     pub format: u32,
+    /// Components this attribute contributes to the decoded arrays.
     pub dimension: u32,
+    /// Components actually stored per vertex.
+    ///
+    /// Usually the same as `dimension`. Unity's packed normal marker
+    /// (`dimension = 0x34`, format Float16) stores four half floats but only
+    /// three are a normal; the fourth slot is padding the stride still counts.
+    /// Serialized as `dimension` 0x34: high nibble = logical, low = stored.
+    pub physical: u32,
+}
+
+/// Split Unity's packed `dimension` byte into (logical, stored) components.
+///
+/// Plain values are 1..=4 and have no high nibble. A packed attribute puts the
+/// logical count in the high nibble and the stored count in the low one:
+/// `0x34` is "3 floats of meaning stored in 4 slots". GF2 uses exactly this for
+/// streamed meshes, where the normal becomes four half floats with `w = 0`.
+fn dimension_parts(raw: u32) -> (u32, u32) {
+    let logical = raw >> 4;
+    let stored = raw & 0xF;
+    if logical != 0 && stored != 0 {
+        (logical, stored)
+    } else {
+        (raw, raw)
+    }
 }
 
 impl Channel {
@@ -97,10 +139,11 @@ impl Channel {
         offset: 0,
         format: 0,
         dimension: 0,
+        physical: 0,
     };
 
     pub fn is_used(&self) -> bool {
-        self.dimension != 0
+        self.physical != 0
     }
 
     /// Bytes this attribute occupies inside its stream.
@@ -109,7 +152,7 @@ impl Channel {
             what: "vertex format",
             detail: format!("unknown format code {}", self.format),
         })?;
-        Ok(size * self.dimension as usize)
+        Ok(size * self.physical as usize)
     }
 
     /// End offset inside the stream.
@@ -520,29 +563,108 @@ pub fn channels_of(tree: &Value) -> Result<[Channel; 14]> {
     let mut channels = [Channel::UNUSED; 14];
     if let Some(list) = vd.get("m_Channels").and_then(|v| v.as_array()) {
         for (i, ch) in list.iter().enumerate().take(14) {
+            let raw = ch.get("dimension").and_then(|v| v.as_i32()).unwrap_or(0) as u32;
+            let (dimension, physical) = dimension_parts(raw);
             channels[i] = Channel {
                 stream: ch.get("stream").and_then(|v| v.as_i32()).unwrap_or(0) as u32,
                 offset: ch.get("offset").and_then(|v| v.as_i32()).unwrap_or(0) as u32,
                 format: ch.get("format").and_then(|v| v.as_i32()).unwrap_or(0) as u32,
-                dimension: ch.get("dimension").and_then(|v| v.as_i32()).unwrap_or(0) as u32,
+                dimension,
+                physical,
             };
         }
     }
     Ok(channels)
 }
 
-/// Extract a [`Mesh`] from a decoded Mesh object.
+/// Where a mesh keeps its vertex buffer when it is not inline.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct VertexStream {
+    pub path: String,
+    pub offset: u64,
+    pub size: u64,
+}
+
+/// Read the mesh's `m_StreamData`, if it points at a bundle stream.
+///
+/// Unity 2019.4 keeps this field on the Mesh itself (not inside
+/// `m_VertexData`); older or hand-edited trees may nest it, so both are read.
+/// A streamed mesh has `m_VertexData.m_DataSize` **empty** and the whole vertex
+/// buffer lives at `offset..offset+size` of the `.resS` node.
+pub fn vertex_stream(tree: &Value) -> Result<Option<VertexStream>> {
+    let Some(sd) = tree.get("m_StreamData").or_else(|| {
+        tree.get("m_VertexData").and_then(|vd| vd.get("m_StreamData"))
+    }) else {
+        return Ok(None);
+    };
+    let path = sd
+        .get("path")
+        .and_then(|v| v.as_str())
+        .unwrap_or("")
+        .to_string();
+    if path.is_empty() {
+        return Ok(None);
+    }
+    let offset = sd.get("offset").and_then(|v| v.as_u64()).ok_or(Error::Invalid {
+        what: "mesh m_StreamData.offset",
+        detail: "missing or non-integer".into(),
+    })?;
+    let size = sd.get("size").and_then(|v| v.as_u64()).unwrap_or(0);
+    Ok(Some(VertexStream { path, offset, size }))
+}
+
+/// Extract a [`Mesh`] from a decoded Mesh object, without bundle streams.
+///
+/// A streamed mesh (empty `m_DataSize`) fails here; use
+/// [`from_value_with_nodes`] when the bundle's nodes are available.
 pub fn from_value(tree: &Value) -> Result<Mesh> {
+    from_value_with_nodes(tree, &[])
+}
+
+/// Extract a [`Mesh`], resolving streamed vertex data from bundle `nodes`.
+pub fn from_value_with_nodes(tree: &Value, nodes: &[Node]) -> Result<Mesh> {
     let vd = tree.get("m_VertexData").ok_or(Error::Invalid {
         what: "mesh",
         detail: "missing m_VertexData".into(),
     })?;
     let vertex_count = get_i32(vd, "m_VertexCount")? as usize;
-
     let channels = channels_of(tree)?;
 
-    let data = get_bytes_owned(vd, "m_DataSize")?;
-    let streams = decode_vertices(&data, vertex_count, &channels)?;
+    let inline = get_bytes_owned(vd, "m_DataSize")?;
+    let needed = layout_size(&strides(&channels)?, vertex_count);
+    let data = if inline.len() >= needed {
+        inline
+    } else if let Some(stream) = vertex_stream(tree)? {
+        let node = find_stream(nodes, &stream.path).ok_or_else(|| Error::Invalid {
+            what: "mesh vertex stream",
+            detail: format!("no bundle node for {}", stream.path),
+        })?;
+        let start = stream.offset as usize;
+        let end = start.saturating_add(stream.size as usize);
+        if end > node.len() {
+            return Err(Error::Truncated {
+                what: "mesh vertex stream",
+                offset: start,
+                wanted: stream.size as usize,
+                available: node.len().saturating_sub(start),
+            });
+        }
+        node[start..end].to_vec()
+    } else {
+        inline
+    };
+
+    mesh_from_bytes(tree, channels, vertex_count, &data)
+}
+
+/// Build the [`Mesh`] once the vertex bytes are in hand.
+fn mesh_from_bytes(
+    tree: &Value,
+    channels: [Channel; 14],
+    vertex_count: usize,
+    data: &[u8],
+) -> Result<Mesh> {
+    let streams = decode_vertices(data, vertex_count, &channels)?;
 
     let index_format = get_i32(tree, "m_IndexFormat")?;
     let ib = get_bytes_owned(tree, "m_IndexBuffer")?;
@@ -619,6 +741,32 @@ pub fn from_value(tree: &Value) -> Result<Mesh> {
     })
 }
 
+/// Clear `m_StreamData` so inline vertex bytes are what the engine reads.
+fn clear_stream(tree: &mut Value) {
+    let top = tree.get_mut("m_StreamData");
+    if let Some(sd) = top {
+        clear_stream_fields(sd);
+    }
+    if let Some(sd) = tree
+        .get_mut("m_VertexData")
+        .and_then(|vd| vd.get_mut("m_StreamData"))
+    {
+        clear_stream_fields(sd);
+    }
+}
+
+fn clear_stream_fields(sd: &mut Value) {
+    if let Some(Value::Str(path)) = sd.get_mut("path") {
+        path.clear();
+    }
+    if let Some(slot) = sd.get_mut("offset") {
+        set_int(slot, 0);
+    }
+    if let Some(slot) = sd.get_mut("size") {
+        set_int(slot, 0);
+    }
+}
+
 /// Write a [`Mesh`] back into its type tree (mutates `tree`).
 ///
 /// Only the fields the vertex/index work owns are touched, so unrelated fields
@@ -661,6 +809,9 @@ pub fn to_value(tree: &mut Value, mesh: &Mesh) -> Result<()> {
             });
         }
     }
+    // The patched mesh is inline. A stale stream path would make the engine read
+    // the original vertex bytes from `.resS` and silently ignore the patch.
+    clear_stream(tree);
 
     let index_bytes: Vec<u8> = if mesh.index_format == 0 {
         mesh.indices
@@ -1029,17 +1180,7 @@ pub fn apply_patch(tree: &mut Value, patch: &MeshPatch) -> Result<PatchReport> {
     }
 
     // Keep meshes inline, exactly as `mesh.to_tree` does.
-    if let Some(stream) = tree.get_mut("m_StreamData") {
-        if let Some(path) = stream.get_mut("path") {
-            *path = Value::Str(String::new());
-        }
-        if let Some(offset) = stream.get_mut("offset") {
-            set_int(offset, 0);
-        }
-        if let Some(size) = stream.get_mut("size") {
-            set_int(size, 0);
-        }
-    }
+    clear_stream(tree);
 
     Ok(PatchReport {
         verts: patch.vertex_count,
@@ -1158,6 +1299,102 @@ mod tests {
     }
 
     #[test]
+    fn packed_dimension_splits_logical_and_stored() {
+        // 0x34 = "normal: 3 values, 4 slots". GF2 streamed meshes store the
+        // normal as four half floats with the fourth always 0.
+        assert_eq!(dimension_parts(0x34), (3, 4));
+        assert_eq!(dimension_parts(3), (3, 3));
+        assert_eq!(dimension_parts(4), (4, 4));
+        assert_eq!(dimension_parts(0), (0, 0));
+    }
+
+    #[test]
+    fn streamed_mesh_reads_packed_normals() {
+        fn channel(stream: u8, offset: u8, format: u8, dimension: u8) -> Value {
+            Value::Struct(vec![
+                ("stream".into(), Value::U8(stream)),
+                ("offset".into(), Value::U8(offset)),
+                ("format".into(), Value::U8(format)),
+                ("dimension".into(), Value::U8(dimension)),
+            ])
+        }
+        let mut channels = vec![channel(0, 0, 0, 0); 14];
+        channels[0] = channel(0, 0, 0, 3); // position f32x3 @0
+        channels[1] = channel(0, 12, 1, 52); // normal, 3 of 4 halfs @12
+
+        // Two vertices, 20 bytes each, behind a 4-byte offset in the node.
+        let mut stream = vec![0xAAu8; 4];
+        for (position, normal) in [
+            ([1.0f32, 2.0, 3.0], [0.0f32, 0.0, 1.0]),
+            ([4.0, 5.0, 6.0], [0.0, 1.0, 0.0]),
+        ] {
+            for value in position {
+                stream.extend_from_slice(&value.to_le_bytes());
+            }
+            for value in normal {
+                stream.extend_from_slice(&f32_to_f16(value).to_le_bytes());
+            }
+            stream.extend_from_slice(&0u16.to_le_bytes()); // packed fourth slot
+        }
+
+        let tree = Value::Struct(vec![
+            ("m_Name".into(), Value::Str("streamed".into())),
+            (
+                "m_VertexData".into(),
+                Value::Struct(vec![
+                    ("m_VertexCount".into(), Value::U32(2)),
+                    ("m_Channels".into(), Value::Array(channels)),
+                    ("m_DataSize".into(), Value::Bytes(Vec::new())),
+                ]),
+            ),
+            ("m_IndexBuffer".into(), Value::Bytes(vec![0, 0, 1, 0, 1, 0])),
+            ("m_IndexFormat".into(), Value::I32(0)),
+            ("m_BoneNameHashes".into(), Value::Array(vec![])),
+            (
+                "m_StreamData".into(),
+                Value::Struct(vec![
+                    ("path".into(), Value::Str("archive:/CAB-x/CAB-x.resS".into())),
+                    ("offset".into(), Value::U32(4)),
+                    ("size".into(), Value::U32(40)),
+                ]),
+            ),
+        ]);
+        let nodes = vec![Node {
+            path: "CAB-x.resS".into(),
+            data: stream,
+            flags: 0,
+        }];
+        let mesh = from_value_with_nodes(&tree, &nodes).expect("streamed mesh");
+        assert_eq!(mesh.vertex_count, 2);
+        assert_eq!(mesh.channels[0].dimension, 3);
+        assert_eq!(mesh.channels[0].physical, 3);
+        assert_eq!(mesh.channels[1].dimension, 3);
+        assert_eq!(mesh.channels[1].physical, 4);
+        assert_eq!(
+            mesh.streams.attributes[0].as_deref(),
+            Some(&[1.0, 2.0, 3.0, 4.0, 5.0, 6.0][..])
+        );
+        assert_eq!(
+            mesh.streams.attributes[1].as_deref(),
+            Some(&[0.0, 0.0, 1.0, 0.0, 1.0, 0.0][..])
+        );
+        // Without the bundle nodes the vertex bytes are unreachable.
+        assert!(from_value(&tree).is_err());
+
+        // Writing the mesh back inlines it: the stale stream pointer must go,
+        // or the engine keeps reading the original `.resS` bytes.
+        let mut written = tree.clone();
+        to_value(&mut written, &mesh).expect("write");
+        let stream = written.get("m_StreamData").unwrap();
+        assert_eq!(stream.get("path").and_then(|v| v.as_str()), Some(""));
+        assert_eq!(stream.get("offset").and_then(|v| v.as_u64()), Some(0));
+        assert_eq!(stream.get("size").and_then(|v| v.as_u64()), Some(0));
+        let data = byte_blob(written.get("m_VertexData").unwrap().get("m_DataSize").unwrap())
+            .expect("m_DataSize");
+        assert_eq!(data.len(), 40);
+    }
+
+    #[test]
     fn strides_match_real_layout() {
         // position f32x3 @0, normal f32x3 @12, tangent f32x4 @24 -> 40
         // color f32x4 @0, uv0 f16x2 @16 -> 20
@@ -1168,42 +1405,49 @@ mod tests {
             offset: 0,
             format: 0,
             dimension: 3,
+            physical: 3,
         };
         ch[1] = Channel {
             stream: 0,
             offset: 12,
             format: 0,
             dimension: 3,
+            physical: 3,
         };
         ch[2] = Channel {
             stream: 0,
             offset: 24,
             format: 0,
             dimension: 4,
+            physical: 4,
         };
         ch[3] = Channel {
             stream: 1,
             offset: 0,
             format: 0,
             dimension: 4,
+            physical: 4,
         };
         ch[4] = Channel {
             stream: 1,
             offset: 16,
             format: 1,
             dimension: 2,
+            physical: 2,
         };
         ch[12] = Channel {
             stream: 2,
             offset: 0,
             format: 0,
             dimension: 4,
+            physical: 4,
         };
         ch[13] = Channel {
             stream: 2,
             offset: 16,
             format: 10,
             dimension: 4,
+            physical: 4,
         };
 
         let s = strides(&ch).unwrap();
@@ -1447,6 +1691,7 @@ mod tests {
         target[1] = Channel::UNUSED; // target has no normals
         target[4] = Channel {
             dimension: 3,
+            physical: 3,
             ..target[4]
         }; // uv0 gains a column
         let mut names = HashMap::new();
@@ -1490,18 +1735,21 @@ mod tests {
             offset: 0,
             format: 0,
             dimension: 3,
+            physical: 3,
         };
         ch[12] = Channel {
             stream: 1,
             offset: 0,
             format: 0,
             dimension: 4,
+            physical: 4,
         };
         ch[13] = Channel {
             stream: 1,
             offset: 16,
             format: 10,
             dimension: 4,
+            physical: 4,
         };
 
         let vertices = 3usize;
@@ -1550,6 +1798,7 @@ mod tests {
             offset: 0,
             format: 10,
             dimension: 4,
+            physical: 4,
         };
         let mut data = Vec::new();
         for v in 0u32..3 {
@@ -1573,6 +1822,7 @@ mod tests {
             offset: 0,
             format: 2,
             dimension: 4,
+            physical: 4,
         }; // UNorm8
         let data = [0u8, 128, 255, 64];
         let streams = decode_vertices(&data, 1, &ch).unwrap();
@@ -1590,6 +1840,7 @@ mod tests {
             offset: 0,
             format: 0,
             dimension: 3,
+            physical: 3,
         };
         let data = vec![0u8; 11]; // one vertex needs 12
         assert!(decode_vertices(&data, 1, &ch).is_err());

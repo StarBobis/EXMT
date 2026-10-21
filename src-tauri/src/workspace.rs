@@ -533,7 +533,8 @@ fn mesh_with_tree(bundle: &OpenedBundle, name: &str) -> Result<(i64, Mesh, Value
         let tree = typetree::read_value(&bundle.serialized, obj)
             .map_err(|e| format!("decode mesh {path_id}: {e}"))?;
         if tree.get("m_Name").and_then(|v| v.as_str()) == Some(name) {
-            let mesh = mesh::from_value(&tree).map_err(|e| format!("{name}: {e}"))?;
+            let mesh = mesh::from_value_with_nodes(&tree, &bundle.nodes)
+                .map_err(|e| format!("{name}: {e}"))?;
             return Ok((*path_id, mesh, tree));
         }
     }

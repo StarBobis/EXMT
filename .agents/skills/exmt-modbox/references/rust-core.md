@@ -61,10 +61,13 @@ Python core 与 Python 测试已删除。
 
 | 阶段 | 耗时 | 做什么 |
 | --- | --- | --- |
-| `scan` | 90 s | 每个包只解 node 0：网格/贴图/动作名 + 骨骼路径一次收齐 |
-| `skins` | 1.4 s | 名字推导皮肤 |
-| `packs` | 119 s | 249 个皮肤：原生解码/降采样 + 批量 PNG |
-| 合计 | **211 s** | 改前 1,507 s（names 393 + packs 551 + bones 288 + 未计 276） |
+| `scan` | 98 s | 每个包只解 node 0：网格/贴图/动作名 + 骨骼路径一次收齐 |
+| `skins` | 2 s | 名字推导皮肤 |
+| `packs` | 154 s | 249 个皮肤：原生解码/降采样 + 批量 PNG（含 2,603 个网格全部成功） |
+| 合计 | **254 s** | 改前 1,507 s（names 393 + packs 551 + bones 288 + 未计 276） |
+
+（packs 从 119 s 涨到 154 s 是**功能变多**：流式顶点接上后 174 个原本失败的网格全部解出来了，现在是
+2,603 个网格 0 错误。）
 
 四条性能判据，改 analyze 前先确认它们还在：
 
@@ -122,6 +125,14 @@ Python core 与 Python 测试已删除。
 - `m_IndexBuffer` 是 `vector<UInt8>`（数组），`m_DataSize` 是 `TypelessData`（bytes）。
 - ChannelInfo 字段是 `UInt8`，`m_VertexCount` 是 `unsigned int`。
 - Mesh 的 stream stride 不对齐，只有 stream **起点**对齐到 16 字节。
+- **流式网格的顶点在 `.resS`，且法线是打包格式**：`m_VertexData.m_DataSize` 为空，
+  真正的字节在**顶层** `m_StreamData`（path/offset/size，Unity 2019.4 就在这里，不在
+  `m_VertexData` 内）。必须用 `mesh::from_value_with_nodes(&tree, &bundle.nodes)`；
+  只传 type tree 会报 “truncated vertex stream … 0 available”。
+  这类网格的法线通道 `dimension` 是 **0x34**：高半字节 3 = 逻辑分量、低半字节 4 = 存储
+  分量（4 个 f16，第 4 个恒为 0）。`Channel.dimension` 保持 3（解码/交换格式用），
+  `Channel.physical` 记 4（stride/布局用）；把 0x34 当字面 dimension 会算小 stride。
+  写回时 `to_value`/`apply_patch` 会清空 `m_StreamData`，否则引擎还读旧 `.resS`。
 - 贴图行序是**自下而上**，解码器输出的是 **BGRA**：翻正 = 垂直翻转 + 红蓝交换，缺一不可。
 - 像素字段名是 `image data`（带空格）；写 `m_ImageData` 会多出一个键并在序列化时丢掉。
 - `.resS` 路径按**最后一段**匹配节点（`archive:/CAB-x/CAB-x.resS` vs `CAB-x.resS`）；

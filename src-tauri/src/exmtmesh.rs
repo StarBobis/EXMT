@@ -201,11 +201,18 @@ fn read_channels(info: &Value) -> Result<[Channel; 14], String> {
     let mut channels = [Channel::UNUSED; 14];
     for (i, ch) in list.iter().enumerate().take(14) {
         let field = |name: &str| ch.get(name).and_then(|v| v.as_u64()).unwrap_or(0) as u32;
+        let dimension = field("dimension");
         channels[i] = Channel {
             stream: field("stream"),
             offset: field("offset"),
             format: field("format"),
-            dimension: field("dimension"),
+            dimension,
+            // Older files do not record the stored width; the logical width is
+            // the right default (packed normals are a runtime-layout detail).
+            physical: {
+                let stored = field("physical");
+                if stored == 0 { dimension } else { stored }
+            },
         };
     }
     Ok(channels)

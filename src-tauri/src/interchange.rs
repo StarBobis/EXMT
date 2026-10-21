@@ -44,7 +44,8 @@ pub fn build(mesh: &Mesh, tree: &Value, bundle: &str, skeleton: &View) -> Vec<u8
         "vertex_count": mesh.vertex_count,
         "index_format": mesh.index_format,
         "channels": mesh.channels.iter().map(|c| serde_json::json!({
-            "stream": c.stream, "offset": c.offset, "format": c.format, "dimension": c.dimension,
+            "stream": c.stream, "offset": c.offset, "format": c.format,
+            "dimension": c.dimension, "physical": c.physical,
         })).collect::<Vec<_>>(),
         "aabb": aabb,
         "submeshes": submeshes,

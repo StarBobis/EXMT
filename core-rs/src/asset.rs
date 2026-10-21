@@ -142,7 +142,7 @@ impl OpenedBundle {
     pub fn mesh_object(&self, name: &str) -> Result<(i64, Mesh)> {
         if let Some((path_id, obj)) = self.find_named(CLASS_MESH, name) {
             let value = typetree::read_value(&self.serialized, obj)?;
-            return Ok((path_id, mesh::from_value(&value)?));
+            return Ok((path_id, mesh::from_value_with_nodes(&value, &self.nodes)?));
         }
         Err(Error::Invalid {
             what: "mesh",
@@ -175,7 +175,7 @@ impl OpenedBundle {
     pub fn meshes(&self) -> Result<Vec<Mesh>> {
         self.values_of(CLASS_MESH)?
             .iter()
-            .map(|(_, v)| mesh::from_value(v))
+            .map(|(_, v)| mesh::from_value_with_nodes(v, &self.nodes))
             .collect()
     }
 

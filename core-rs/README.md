@@ -17,7 +17,7 @@ and `texconv.exe`.
 | UnityFS container + NEP2 | done | `src/container.rs` |
 | SerializedFile v17–v22 | done | `src/serialized.rs` |
 | Type-tree read/write | done | `src/typetree.rs` |
-| Mesh vertex/index layer | done | `src/mesh.rs` |
+| Mesh vertex/index layer | done, including streamed vertices and packed normals | `src/mesh.rs` |
 | Texture2D semantics | done | `src/texture.rs` |
 | DDS adapter for texconv | done | `src/dds.rs` |
 | texconv process wrapper | done | `src/texconv.rs` |
@@ -34,7 +34,7 @@ and `texconv.exe`.
 | `workspace` export (meshes, textures, skeleton, clips) | done | `../src-tauri/src/workspace.rs`, `src/skeleton.rs`, `src/anim.rs` |
 | `analyze` (GameCache) | done (names, clips, skins, packs, bones) | `../src-tauri/src/analyze.rs` |
 
-`161 tests`, all green (120 unit + 41 integration); `../src-tauri` adds 28 unit and 8 real-data end-to-end tests. See "Verification" below for what they actually prove.
+`163 tests`, all green (122 unit + 41 integration); `../src-tauri` adds 28 unit and 8 real-data end-to-end tests. See "Verification" below for what they actually prove.
 
 Pixel work is split:
 
@@ -187,10 +187,12 @@ Every layer is checked three ways, and the third is the one that matters:
    - analyze, **full installed game** (9,613 bundles, 66 GB), measured after the
      2026-10-21 rewrite in a debug build (`[profile.dev] opt-level=1`, core 3,
      8 threads): 16,482 meshes, 47,008 textures, 39,974 clips, 464 skins,
-     **249/249 packs** and 621,845 bone paths in **211 s** — scan 90 s,
-     skins 1.4 s, packs 119 s. The same run took **1,507 s** before (names 393 s,
-     bones 288 s as a second full pass, packs 551 s plus 276 s of unmeasured
-     pairing work), so the rewrite is 7.1x faster.
+     **249/249 packs**, **2,603/2,603 skin meshes decoded (0 errors)** and
+     621,845 bone paths in **254 s** — scan 98 s, skins 2 s, packs 154 s. The
+     same run took **1,507 s** before (names 393 s, bones 288 s as a second full
+     pass, packs 551 s plus 276 s of unmeasured pairing work), so the rewrite is
+     5.9x faster while it also decodes the 174 meshes whose vertex data is
+     streamed into `.resS` (the old code reported 174 failures).
      Why: one pass collects names + clips + bones, only node 0 of each bundle is
      decompressed (the scan reads ~31 GB instead of 66 GB), objects are found by
      `m_Name` without decoding their payloads, the texture catalogue is built
@@ -256,6 +258,20 @@ Each of these cost a debugging round; all are now pinned by tests.
 - **`m_VertexData.m_DataSize` is `TypelessData`** (arrives as bytes) while
   `m_IndexBuffer` arrives as an array — accept both shapes and preserve which
   one the tree declares.
+- **Streamed meshes keep their vertices in `.resS`, behind a top-level
+  `m_StreamData`.** Unity 2019.4 puts the field on the Mesh itself, not inside
+  `m_VertexData`; `m_DataSize` is then empty and decoding without the bundle
+  nodes reports `truncated vertex stream at 0: wanted N bytes, 0 available`.
+  Use `mesh::from_value_with_nodes` (what `OpenedBundle::mesh`/`meshes` do) so
+  the node named by the path is resolved.
+- **Streamed meshes pack the normal into four half floats.** The channel's
+  `dimension` byte is `0x34`: high nibble 3 = logical components, low nibble 4 =
+  stored slots (the fourth is always 0 in GF2). `Channel.dimension` stays 3 for
+  decoding/interchange and `Channel.physical` carries 4 for stride and layout;
+  treating `0x34` as a literal dimension yields a 52-wide normal array and a
+  stride that is too small. Writing a patched mesh back must clear
+  `m_StreamData` (`to_value`/`apply_patch` do), otherwise the game keeps reading
+  the original stream.
 - **Texture pixels are stored bottom-up**, and the block decoders emit BGRA.
   Turning storage into an upright picture needs *both* a vertical flip and a
   red/blue swap; doing only one still produces a plausible-looking image on a
