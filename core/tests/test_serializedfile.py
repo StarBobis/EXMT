@@ -26,9 +26,8 @@ from exmt_core.serializedfile import (  # noqa: E402
     _Reader,
 )
 
-# A hot-update bundle from the game. Tests are skipped when it is absent so the
-# suite stays runnable on a clean checkout.
-SAMPLE = r"C:\DevCache\gf2\backup\872f1c4f93f07d6ba65b103ae5d1a337.bundle.orig"
+# A hot-update bundle from the game. Set EXMT_GF2_BUNDLE to override.
+from sample_bundle import SAMPLE  # noqa: E402
 
 
 class TestReader(unittest.TestCase):

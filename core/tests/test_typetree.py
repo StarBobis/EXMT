@@ -17,12 +17,12 @@ import sys
 import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from exmt_core import bundle  # noqa: E402
 from exmt_core.serializedfile import SerializedFile, TypeNode  # noqa: E402
 from exmt_core.typetree import Error, _ObjectReader, attach_children  # noqa: E402
-
-SAMPLE = r"C:\DevCache\gf2\backup\872f1c4f93f07d6ba65b103ae5d1a337.bundle.orig"
+from sample_bundle import SAMPLE  # noqa: E402
 
 META_ALIGN = 0x4000
 

@@ -138,6 +138,17 @@ Every layer is checked three ways, and the third is the one that matters:
      indexCount 9780 / firstVertex 0 / vertexCount 6520`, and the local AABB
      centre `(0.25, 0, 0)`. The core's vertex encoder was also checked against
      `mesh.encode_streams` on a second synthetic layout (192 bytes, exact).
+   - installed GF2 (`D:\Program Files\GF2Exilium`, 9,613 bundles): the Vepley
+     mesh bundle `872f…` (4 meshes, 238/58 type-tree nodes) and texture bundle
+     `287dc…` (11 textures). `skinpack` on that skin yields byte-identical
+     `meshes.json`, `geometry.json` and `groups.json`; the 160 px thumbnails and
+     512 px diffuse map differ only by the FANT-vs-Lanczos filter (max 35 / 27
+     levels). A texture-only `modpack` and a mesh `modpack` (body mesh shifted
+     +0.01 on X) both produce **zero payload differences** against Python
+     (14/14 and 5/5 objects); UnityPy reads the patched BC1 texture as solid red
+     while an untouched BC7 texture keeps its hash. A 152-bundle sample under
+     20 MB parsed with **0 errors** (42,335 objects), including five files that
+     concatenate several UnityFS archives.
 
 DirectXTex (`texconv.exe`) is vendored under `../src-tauri/bin/` with its MIT
 licence and bundled through `tauri.conf.json`. `EXMT_TEXCONV` overrides the
@@ -280,6 +291,16 @@ Each of these cost a debugging round; all are now pinned by tests.
   `m_BoneNameHashes` differ from the target tree, `modpack` raises
   `NeedsPython` before writing anything. Bone remapping and channel fitting are
   implemented there and are not worth duplicating badly.
+- **Some GF2 hot-update files concatenate several UnityFS archives.** Each
+  sub-archive has its own 4-byte cipher head, and the declared `size` covers
+  only the first one. Reads use the first archive and record the leftover bytes
+  as `BundleInfo::trailing`; writes refuse such files instead of truncating the
+  remaining archives. Python behaves the same way on read (it ignores the tail),
+  but would silently corrupt the file on write.
+- **`.exmtmesh` meta JSON can contain `Infinity`/`NaN`.** Unity leaves
+  uninitialised per-bone AABBs at ±infinity, and Python's `json.dumps` writes
+  those bare tokens. `serde_json` is strict JSON and rejects them, so the loader
+  maps them to `null`; the embedded tree's float values are never used.
 
 ## Next steps
 

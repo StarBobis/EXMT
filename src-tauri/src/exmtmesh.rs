@@ -73,6 +73,14 @@ pub fn load_bytes(data: &[u8]) -> Result<ExmtMesh, String> {
         .map_err(|e| format!("parse meta.npy: {e}"))?
         .as_string()
         .map_err(|e| format!("decode meta: {e}"))?;
+    // Python's `json.dumps` emits bare `Infinity`/`NaN` for non-finite floats,
+    // and Unity trees really contain them (uninitialised per-bone AABBs).
+    // serde_json follows strict JSON and rejects those tokens, so normalise them
+    // to `null`; this loader never reads the embedded tree's float values.
+    let meta_text = meta_text
+        .replace("-Infinity", "null")
+        .replace("Infinity", "null")
+        .replace("NaN", "null");
     let info: Value =
         serde_json::from_str(&meta_text).map_err(|e| format!("parse meta JSON: {e}"))?;
 

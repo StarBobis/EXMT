@@ -68,8 +68,13 @@ Step 'core syntax' {
 Step 'core smoke' {
   Push-Location (Join-Path $root 'core')
   try {
-    $bundle = 'C:\DevCache\gf2\backup\872f1c4f93f07d6ba65b103ae5d1a337.bundle.orig'
-    if (Test-Path $bundle) {
+    $candidates = @(
+      $env:EXMT_GF2_BUNDLE,
+      'D:\Program Files\GF2Exilium\GF2 Game\GF2_Exilium_Data\LocalCache\Data\AssetBundles_Windows\872f1c4f93f07d6ba65b103ae5d1a337.bundle',
+      'C:\DevCache\gf2\backup\872f1c4f93f07d6ba65b103ae5d1a337.bundle.orig'
+    )
+    $bundle = $candidates | Where-Object { $_ -and (Test-Path $_) } | Select-Object -First 1
+    if ($bundle) {
       $out = & $py -m exmt_core meshes $bundle
       if ($LASTEXITCODE -ne 0) { throw "meshes failed" }
       if (-not ($out -match 'c_Vepley')) { throw "unexpected meshes output" }

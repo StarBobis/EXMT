@@ -5,18 +5,12 @@
 //! values an independent implementation produced for the same file, which is
 //! what makes this a cross-check rather than a self-consistency check.
 
-use std::path::Path;
-
 use exmt_core::container;
 
-const SAMPLE: &str = r"C:\DevCache\gf2\backup\872f1c4f93f07d6ba65b103ae5d1a337.bundle.orig";
+mod support;
 
 fn sample() -> Option<Vec<u8>> {
-    let path = Path::new(SAMPLE);
-    if !path.exists() {
-        eprintln!("skip: sample bundle not present at {SAMPLE}");
-        return None;
-    }
+    let path = support::gf2_bundle()?;
     Some(std::fs::read(path).expect("read sample bundle"))
 }
 
@@ -135,3 +129,4 @@ fn stored_mode_rebuild_also_round_trips() {
     let rebuilt_nodes = container::node_payloads(&rebuilt, &rebuilt_info).expect("nodes stored");
     assert_eq!(rebuilt_nodes[0].data, nodes[0].data);
 }
+

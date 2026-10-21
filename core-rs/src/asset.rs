@@ -147,6 +147,11 @@ impl OpenedBundle {
         replacements: &BTreeMap<i64, Vec<u8>>,
         compress: bool,
     ) -> Result<Vec<u8>> {
+        if self.info.trailing > 0 {
+            return Err(Error::Unsupported {
+                what: "writing a bundle that concatenates several UnityFS archives",
+            });
+        }
         let mut nodes = self.nodes.clone();
         let first = nodes.first_mut().ok_or(Error::Invalid {
             what: "bundle",

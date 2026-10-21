@@ -72,6 +72,9 @@ pub struct BundleInfo {
     pub data_offset: usize,
     pub blocks: Vec<Block>,
     pub nodes: Vec<NodeEntry>,
+    /// Bytes after the declared bundle. Some GF2 hot-update files concatenate
+    /// several UnityFS archives; reads use the first one, writes must refuse.
+    pub trailing: usize,
 }
 
 /// One payload inside the bundle stream.
@@ -278,6 +281,7 @@ pub fn parse(plain: &[u8]) -> Result<BundleInfo> {
         data_offset: bi_end,
         blocks,
         nodes,
+        trailing: plain.len().saturating_sub(size.max(0) as usize),
     };
     info.validate(plain.len())?;
     Ok(info)
@@ -285,7 +289,7 @@ pub fn parse(plain: &[u8]) -> Result<BundleInfo> {
 
 impl BundleInfo {
     fn validate(&self, file_len: usize) -> Result<()> {
-        if self.size < 0 || self.size as usize != file_len {
+        if self.size < 0 || self.size as usize > file_len {
             return Err(Error::SizeMismatch {
                 what: "bundle",
                 got: file_len,
@@ -562,6 +566,42 @@ mod tests {
         // "UnityFS\0".
         let as_game_would_see_it = decrypt(&broken).unwrap();
         assert_ne!(&as_game_would_see_it[..8], b"UnityFS\0");
+    }
+
+    #[test]
+    fn concatenated_bundle_prefix_is_readable_but_flagged() {
+        let template = BundleInfo {
+            version: 7,
+            engine: "5.x.x".into(),
+            revision: "2019.4.29f1".into(),
+            size: 0,
+            flags: 0,
+            compressed_blocks_info_size: 0,
+            uncompressed_blocks_info_size: 0,
+            blocks_info_offset: 0,
+            data_offset: 0,
+            blocks: Vec::new(),
+            nodes: Vec::new(),
+            trailing: 0,
+        };
+        let nodes = vec![Node {
+            path: "CAB-test".into(),
+            data: vec![7u8; 64],
+            flags: 4,
+        }];
+        let plain = build(&nodes, &template, false).expect("build");
+        let info = parse(&plain).expect("parse");
+        assert_eq!(info.trailing, 0);
+
+        // A second UnityFS archive concatenated after the first: the reader
+        // uses the prefix and reports the leftover bytes.
+        let mut joined = plain.clone();
+        joined.extend_from_slice(b"yFS\0second");
+        let info = parse(&joined).expect("parse joined");
+        assert_eq!(info.trailing, 10);
+        assert_eq!(info.size as usize, plain.len());
+        let recovered = node_payloads(&joined, &info).expect("nodes");
+        assert_eq!(recovered[0].data, vec![7u8; 64]);
     }
 
     #[test]

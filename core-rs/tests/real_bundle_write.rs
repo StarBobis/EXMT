@@ -16,14 +16,16 @@ use std::path::Path;
 use exmt_core::asset;
 use exmt_core::{texture, typetree};
 
+mod support;
+
 fn sample() -> Option<String> {
-    match std::env::var("EXMT_WRITE_BUNDLE") {
-        Ok(path) if Path::new(&path).is_file() => Some(path),
-        _ => {
-            eprintln!("skip: set EXMT_WRITE_BUNDLE to a UnityFS bundle");
-            None
+    if let Ok(path) = std::env::var("EXMT_WRITE_BUNDLE") {
+        if Path::new(&path).is_file() {
+            return Some(path);
         }
+        eprintln!("EXMT_WRITE_BUNDLE is not a file: {path}; falling back to the GF2 sample");
     }
+    support::gf2_bundle().map(|path| path.display().to_string())
 }
 
 #[test]

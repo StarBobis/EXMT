@@ -33,10 +33,16 @@
 | 预览 `thumbs` / `skinfo` | `src-tauri/src/preview.rs` | 完成，贴图网格走 texconv |
 | analyze（GameCache） | — | 未开始（仍 Python） |
 
-142 个测试。`cargo test` 在 `core-rs/` 下跑；`src-tauri` 另有 10 个单测和 5 个可选
+143 个测试。`cargo test` 在 `core-rs/` 下跑；`src-tauri` 另有 10 个单测和 5 个可选
 端到端测试（skinpack、modpack、exmtmesh、preview×2）。`texconv.exe`（966 KB，MIT，许可证同目录）随仓库放在
 `src-tauri/bin/`，并由 `tauri.conf.json` 的 `bundle.resources` 打进安装包；`EXMT_TEXCONV`
 可覆盖路径，找不到时 `skinpack` 回退 Python。
+
+真实数据默认路径：GF2 安装在 `D:\Program Files\GF2Exilium\GF2 Game\GF2_Exilium_Data\LocalCache\Data\AssetBundles_Windows`，
+Vepley 网格包 `872f1c4f93f07d6ba65b103ae5d1a337.bundle`、贴图包
+`287dc73c9302244853e6d72689dd51bb.bundle`。`tests/support/mod.rs` 与
+`core/tests/sample_bundle.py` 都按 `EXMT_GF2_BUNDLE` → 安装目录 → 旧缓存 的顺序解析，
+所以本机 `cargo test` 与 Python unittest 会真跑而不是 skip。
 
 贴图验收用的 oracle 分两条：
 - **原生解码**（`bc.rs`，工具/差分用）对 `texture2ddecoder` 1.0.6：7,508 个任意 BC 块
@@ -105,6 +111,11 @@
   索引缓冲推导，零长度子网格会被丢掉；Unity 用每个子网格自己的 localAABB 做剔除。
 - 通道或骨骼表不一致就是不同 cook，必须 `NeedsPython` 回退；骨骼重映射和通道裁剪在
   Python 侧，不要半吊子重写。
+- GF2 有些热更新文件把**多个 UnityFS 顺序拼接**（每个子包头用自己的 4 字节派生密钥，
+  header 的 size 只覆盖第一个）。读时用第一个并记录 `BundleInfo::trailing`；写回必须拒绝，
+  否则会把后面的子包截掉。
+- `.exmtmesh` 的 meta JSON 可能含 `Infinity`/`NaN`（Unity 未初始化的 per-bone AABB），
+  Python `json.dumps` 会裸写，serde_json 严格模式会拒；读入时归一化成 `null`。
 
 以上每条都在 `core-rs/README.md` 有更长的解释和对应测试名。
 
@@ -142,4 +153,13 @@ NPZ 层不依赖本机游戏数据：`tests/npz.rs` 内嵌一个由 `numpy.savez
 
 ## 换机器后恢复真实数据
 
-样例是一个 GF2 热更新缓存 bundle（1,740,445 字节，NEP2 加密，含 4 个角色网格 + 1 个 AssetBundle）。从旧机器复制，或让游戏重新下载 Vepley SSR 皮肤后从更新缓存取。**不要提交进仓库。**
+GF2 装好后真实包在
+`D:\Program Files\GF2Exilium\GF2 Game\GF2_Exilium_Data\LocalCache\Data\AssetBundles_Windows\`；
+Vepley 样例是 `872f1c4f93f07d6ba65b103ae5d1a337.bundle`（1,740,445 字节，NEP2 加密，
+含 4 个角色网格 + 1 个 AssetBundle）。没有安装游戏时可用 `EXMT_GF2_BUNDLE` 指向一份副本；
+**不要提交进仓库。**
+
+2026-10-21 在本机安装版上的实测：`cargo test` 143 全过、Python 44 全过（无 skip）；
+Vepley skinpack 的 `meshes/geometry/groups` 与 Python 逐字节相同，缩略图/漫反射只差
+FANT-vs-Lanczos（最大 35 / 27 灰阶）；真机贴图与网格 modpack 的 Python/Rust 输出
+**逐对象零差异**（14/14、5/5）；152 个随机小包抽样解析 0 错误。

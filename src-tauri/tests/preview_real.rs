@@ -21,7 +21,8 @@ fn thumbs_returns_png_rows() {
         return;
     };
     let bundle = asset::open(Path::new(&path)).expect("open bundle");
-    let name = "CharacterOverlayTex".to_string();
+    let name = std::env::var("EXMT_PREVIEW_TEXTURE")
+        .unwrap_or_else(|_| "CharacterOverlayTex".to_string());
     let text = preview::thumbs(&bundle, 160, &[name.clone()], &tool).expect("thumbs");
     let json: serde_json::Value = serde_json::from_str(&text).expect("json");
     let row = &json["textures"][0];

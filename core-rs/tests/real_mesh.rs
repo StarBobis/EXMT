@@ -1,13 +1,11 @@
 //! Contract tests for the Mesh semantic layer against real character meshes.
 
-use std::path::Path;
-
 use exmt_core::container;
 use exmt_core::mesh;
 use exmt_core::serialized::SerializedFile;
 use exmt_core::typetree::{read_value, write_value};
 
-const SAMPLE: &str = r"C:\DevCache\gf2\backup\872f1c4f93f07d6ba65b103ae5d1a337.bundle.orig";
+mod support;
 
 /// (path_id, name, vertex count, index count, submesh index counts)
 const MESHES: [(i64, &str, usize, usize, &[u32]); 4] = [
@@ -18,11 +16,7 @@ const MESHES: [(i64, &str, usize, usize, &[u32]); 4] = [
 ];
 
 fn load() -> Option<SerializedFile> {
-    let path = Path::new(SAMPLE);
-    if !path.exists() {
-        eprintln!("skip: sample bundle not present");
-        return None;
-    }
+    let path = support::gf2_bundle()?;
     let raw = std::fs::read(path).expect("read sample");
     let plain = container::decrypt(&raw).expect("decrypt");
     let info = container::parse(&plain).expect("parse container");
@@ -241,3 +235,4 @@ fn modifying_a_vertex_changes_only_that_vertex() {
     // Bytes after the first float belong to other vertices and must be untouched.
     assert_eq!(m2.streams.raw[4..], before[4..], "later vertices should not move");
 }
+

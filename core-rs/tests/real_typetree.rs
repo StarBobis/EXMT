@@ -5,20 +5,14 @@
 //! re-serializes (payload size changes with string length, mutating a float
 //! survives) rather than copying bytes around.
 
-use std::path::Path;
-
 use exmt_core::container;
 use exmt_core::serialized::SerializedFile;
 use exmt_core::typetree::{self, read_value, write_value, Value};
 
-const SAMPLE: &str = r"C:\DevCache\gf2\backup\872f1c4f93f07d6ba65b103ae5d1a337.bundle.orig";
+mod support;
 
 fn load() -> Option<SerializedFile> {
-    let path = Path::new(SAMPLE);
-    if !path.exists() {
-        eprintln!("skip: sample bundle not present");
-        return None;
-    }
+    let path = support::gf2_bundle()?;
     let raw = std::fs::read(path).expect("read sample");
     let plain = container::decrypt(&raw).expect("decrypt");
     let info = container::parse(&plain).expect("parse container");
@@ -165,3 +159,4 @@ fn missing_field_is_rejected_by_writer() {
     }
     assert!(write_value(&sf, &obj, &broken).is_err());
 }
+

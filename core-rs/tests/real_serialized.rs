@@ -4,19 +4,13 @@
 //! the same file. The suite returns early when the sample is absent so it stays
 //! runnable on a clean checkout.
 
-use std::path::Path;
-
 use exmt_core::container;
 use exmt_core::serialized::{Endian, SerializedFile};
 
-const SAMPLE: &str = r"C:\DevCache\gf2\backup\872f1c4f93f07d6ba65b103ae5d1a337.bundle.orig";
+mod support;
 
 fn load() -> Option<SerializedFile> {
-    let path = Path::new(SAMPLE);
-    if !path.exists() {
-        eprintln!("skip: sample bundle not present");
-        return None;
-    }
+    let path = support::gf2_bundle()?;
     let raw = std::fs::read(path).expect("read sample");
     let plain = container::decrypt(&raw).expect("decrypt");
     let info = container::parse(&plain).expect("parse container");
@@ -169,3 +163,4 @@ fn missing_object_is_none() {
     let Some(sf) = load() else { return };
     assert!(sf.object(424242).is_none());
 }
+
