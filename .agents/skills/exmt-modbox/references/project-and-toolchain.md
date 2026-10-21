@@ -5,9 +5,9 @@
 | 位置 | 是什么 | 怎么跑 |
 | --- | --- | --- |
 | `src/` | 前端（Vue 3 + TS + Vite）；视图 `src/views/`，样式 `src/styles/` | `bun run dev` |
-| `src-tauri/` | Rust 外壳（Tauri 2），命令 `run_core` / `show_main_window` | `bun run tauri dev` |
-| `core-rs/` + `src-tauri/src/` | Rust 资产核心：容器/序列化/网格/贴图/动画/GameCache；运行时代码 | `cargo test --manifest-path core-rs/Cargo.toml`；命令经前端 `runCore` |
-| `C:\Dev\EXMTBlender\` | Blender 插件：导入/导出 `.exmtmesh`、传权重、蓝图、生成 Mod | Blender → 偏好设置 → 安装 `__init__.py` |
+| `src-tauri/` | Rust 外壳（Tauri 2），命令 `run_core` / `pack_blender` / `show_main_window` | `bun run tauri dev` |
+| `core-rs/` + `src-tauri/src/` | Rust 资产核心：容器/序列化/网格/贴图/动画/GameCache；运行时代码 | `cargo test --manifest-path core-rs/Cargo.toml`；命令经前端 `runCore` / `packBlender` |
+| `C:\Dev\EXMTBlender\` | Blender 插件：导入/导出 `.exmtmesh`、传权重、蓝图、把改动导出成 `GeneratedMod/job.json`（编码与打包在 EXMT） | Blender → 偏好设置 → 安装 `__init__.py` |
 | `C:\Dev\EXMTDoc\` | VitePress 2 文档站（独立 git 仓库，无 remote） | `bun run build` / `bun run preview` |
 | `.agents/skills/` | 能力：换目标也能用的判据 / 手法 | — |
 | `C:\DevCache\<任务名>\` | 一次性脚本、临时产物、截图 | — |

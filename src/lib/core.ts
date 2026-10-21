@@ -17,6 +17,16 @@ export async function runCore(args: string[]): Promise<CoreOutput> {
   return invoke<CoreOutput>("run_core", { args });
 }
 
+/**
+ * Pack the job the Blender add-on staged in `<workspace>/GeneratedMod`.
+ *
+ * No job / already packed is a success with `{"skipped":true}`; callers can
+ * always run this before reading `mod.json`.
+ */
+export async function packBlender(workspace: string): Promise<CoreOutput> {
+  return invoke<CoreOutput>("pack_blender", { workspace });
+}
+
 export function bundlePath(hash: string): string {
   return `${gameBundles()}\\${hash}.bundle`;
 }

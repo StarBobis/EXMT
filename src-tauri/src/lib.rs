@@ -5,6 +5,7 @@
 //! Every command the UI sends must be implemented by `run_core_inner`.
 
 pub mod analyze;
+pub mod blender;
 pub mod exmtmesh;
 pub mod interchange;
 pub mod modpack;
@@ -175,6 +176,32 @@ async fn run_core(app: tauri::AppHandle, args: Vec<String>) -> Result<CoreOutput
     }))
 }
 
+/// Pack the job the Blender add-on staged in `<workspace>/GeneratedMod`.
+///
+/// The add-on only exports `.exmtmesh`, PNGs and `job.json`; opening the game
+/// bundles and encoding the textures stays in the Rust core.  A missing or
+/// already-packed job returns code 0 with a `skipped` marker so the caller can
+/// treat it as a no-op.
+#[tauri::command]
+async fn pack_blender(app: tauri::AppHandle, workspace: String) -> Result<CoreOutput, String> {
+    let app = app.clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        let Some(tool) = texconv_for(&app) else {
+            return CoreOutput {
+                code: 1,
+                stdout: String::new(),
+                stderr: "texconv.exe not found; cannot encode replacement textures".into(),
+            };
+        };
+        match blender::pack(Path::new(&workspace), &tool) {
+            Ok(stdout) => CoreOutput { code: 0, stdout, stderr: String::new() },
+            Err(e) => CoreOutput { code: 1, stdout: String::new(), stderr: e },
+        }
+    })
+    .await
+    .map_err(|e| format!("pack task failed: {e}"))
+}
+
 /// Ask the running `analyze` to stop after the current bundle/skin.
 #[tauri::command]
 fn cancel_analyze() {
@@ -268,7 +295,12 @@ pub fn run() {
             }
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![show_main_window, run_core, cancel_analyze])
+        .invoke_handler(tauri::generate_handler![
+            show_main_window,
+            run_core,
+            pack_blender,
+            cancel_analyze
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

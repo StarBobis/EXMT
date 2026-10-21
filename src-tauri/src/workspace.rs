@@ -160,6 +160,18 @@ pub fn run(outdir: &Path, spec_path: &Path, texconv: &Texconv) -> Result<String,
         let path = mesh_dir.join(&fname);
         std::fs::write(&path, &bytes).map_err(|e| format!("write {}: {e}", path.display()))?;
         mesh_bytes += bytes.len() as u64;
+        // The Blender add-on needs the target's own bone table when it exports a
+        // *foreign* mesh into this slot: `mesh_io` matches vertex-group names
+        // against these names and writes the hashes the game expects. Native
+        // meshes carry `exmt_bones` in the `.exmtmesh`, so the table is only a
+        // fallback there. `materials` is the renderer's submesh count: a foreign
+        // model with more slots than the target has parts that Unity never draws.
+        let bone_table: Vec<serde_json::Value> = view
+            .local
+            .iter()
+            .filter_map(|&i| view.bones.get(i as usize))
+            .map(|bone| serde_json::json!({"hash": bone.hash, "name": bone.name}))
+            .collect();
         written_meshes.push(serde_json::json!({
             "index": index,
             "alias": alias(&mesh.name),
@@ -168,6 +180,8 @@ pub fn run(outdir: &Path, spec_path: &Path, texconv: &Texconv) -> Result<String,
             "bundle": hash,
             "verts": mesh.vertex_count,
             "bones": view.local.len(),
+            "materials": mesh.submesh_index_counts.len(),
+            "bone_table": bone_table,
         }));
     }
 
@@ -207,6 +221,14 @@ pub fn run(outdir: &Path, spec_path: &Path, texconv: &Texconv) -> Result<String,
                 "bundle": item.bundle,
                 "width": width,
                 "height": height,
+                // The add-on no longer asks a Python core for these; keeping
+                // them in workspace.json also lets the node draw its format
+                // label on a workspace imported after the core moved to Rust.
+                "format": texture.format,
+                "format_name": exmt_core::texture::format(texture.format)
+                    .map(|f| f.name)
+                    .unwrap_or(""),
+                "mips": texture.mip_count,
             }))
         })();
         match result {

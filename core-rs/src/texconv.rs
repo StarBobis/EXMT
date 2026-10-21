@@ -297,6 +297,14 @@ impl Texconv {
             dxgi.to_string(),
             "-m".to_string(),
             mips.to_string(),
+            // `-srgbi -srgbo` is an identity transform on the pixel values.
+            // Without it texconv treats a Blender-written PNG as sRGB and
+            // writes linear blocks (measured 31 -> 4, 219 -> 181, i.e.
+            // everything much darker; the fixture test measures 128 -> 58).
+            // The numbers in the PNG are exactly the numbers that must end up
+            // in the asset.
+            "-srgbi".to_string(),
+            "-srgbo".to_string(),
             "-o".to_string(),
             dir.out_arg(),
         ];
@@ -413,6 +421,8 @@ mod tests {
     // 4x4 solid red and 8x8 smooth gradient, both written by Pillow.
     const RED_PNG: &str = "89504e470d0a1a0a0000000d4948445200000004000000040806000000a9f19e7e0000001549444154789c63fccfc0f09f01093021738813000083d1020604bc24470000000049454e44ae426082";
     const GRADIENT_PNG: &str = "89504e470d0a1a0a0000000d4948445200000008000000080806000000c40fbe8b0000001a49444154789c63646070f8afc0c0c0800bb380493c60782800009eba031d560b39030000000049454e44ae426082";
+    /// 4x4 solid 128 grey with the `sRGB` + `gAMA` chunks Blender writes.
+    const GRAY_SRGB_PNG: &str = "89504e470d0a1a0a0000000d4948445200000004000000040806000000a9f19e7e000000017352474200aece1ce90000000467414d410000b18f0bfc6105000000124944415478da63686868f88f8c1948170000428727f160b6f02e0000000049454e44ae426082";
 
     fn texconv() -> Option<Texconv> {
         let tool = Texconv::locate();
@@ -470,6 +480,21 @@ mod tests {
         let rgba = tool.decode_rgba(10, 4, 4, &payload).unwrap();
         for px in rgba.chunks_exact(4) {
             assert_eq!(px, &[255, 0, 0, 255]);
+        }
+    }
+
+    #[test]
+    fn encode_keeps_png_values_unconverted() {
+        let Some(tool) = texconv() else { return };
+        // Blender writes PNGs with `sRGB` + `gAMA`; texconv honours them unless
+        // told the numbers are already the target values.  Without
+        // `-srgbi -srgbo` this grey lands near 13 (measured on a real
+        // replacement PNG: 64 -> 13), so the test pins the identity transform.
+        let png = unhex(GRAY_SRGB_PNG);
+        let payload = tool.encode(&png, 10, Some((4, 4)), 1).unwrap();
+        let rgba = tool.decode_rgba(10, 4, 4, &payload).unwrap();
+        for px in rgba.chunks_exact(4) {
+            assert!(px[0].abs_diff(128) <= 4, "grey became {px:?}");
         }
     }
 

@@ -18,7 +18,7 @@
 | 贴图 | `texpatch.py` + `ddsinfo.py` | 只搬字节，不碰图像编码 |
 | 动画 | `anim.py` + `animidx.py` | 通用 Transform 曲线解码、全库索引 |
 | 打包 + 交换 | `modpack.py` / `interchange.py` | 补丁集合，一包只写一次；`.exmtmesh` = npz（数组 + typetree） |
-| Blender / 应用 | `C:\Dev\EXMTBlender\{__init__,mesh_io,blueprint}.py` / `ModelsView.vue` + Rust `run_core` | 导入导出、蓝图、生成 Mod；工作空间与安装 |
+| Blender / 应用 | `C:\Dev\EXMTBlender\{__init__,mesh_io,blueprint}.py` / `ModelsView.vue` + Rust `run_core` / `pack_blender` | 导入导出、蓝图、导出 job；贴图编码、打包与安装 |
 
 ## 2. 容器层：UnityFS
 
@@ -162,7 +162,7 @@ basis = (父pose · 父matrix_local⁻¹ · 本matrix_local)⁻¹ · pose
 | --- | --- |
 | `modpack <spec.json>` | 按 bundle 分组，**一个包只写一次**；输出 `<outdir>/<bundle hash>.bundle` + `mod.json` |
 | `mod.json` | `format: exmt-mod-1`，含每包哈希/字节数/网格名/来源路径 + `patches[]`（mesh / file / bundles） |
-| Mod 形态 | **补丁集合**，不是打好的包：`GeneratedMod/patches/*.exmtmesh` |
+| Mod 形态 | **补丁集合**，不是打好的包：Blender 侧 `GeneratedMod/{patches/*.exmtmesh,textures/*.png,job.json}`；EXMT 打包后才有 `<hash>.bundle` + `mod.json` |
 | 运行时状态 | 原始包 + **所有启用 Mod 的补丁**重算一遍（`applyMods`），状态写 `<cache>/applied.json` |
 | 打包起点 | 必须是**原始字节**：`<cache>/game/bundles` → 旧备份 → 游戏目录；否则连点两次「生成 Mod」把上次改动烤进本次 |
 | 目标集合 | `targets` = `byBundle ∪ texByBundle`，只被贴图碰过的包也要算，否则整包被漏 |
@@ -219,8 +219,11 @@ basis = (父pose · 父matrix_local⁻¹ · 本matrix_local)⁻¹ · pose
 | 显示自定义 NodeTree（5.2） | `space.tree_type = <bl_idname>` 然后 `space.node_tree = <tree>`；4.x 才用 `ui_type`/`edit_tree`。判据：读 `space.bl_rna.properties[...].is_readonly` |
 | 法线/切线保真 | 导入把游戏法线设成 **custom split normals**，切线存网格属性 `exmt_tangent` + `exmt_tangent_w`，导出优先读回（顶点数变了才回退重算）→ p90 法线 0.01°、切线 0.00° |
 | 位置残差 | 1–2e-7（`matrix_world @ v.co` 的 float32 末位）；权重/骨骼索引/UV/颜色/索引表逐位相等 |
-| 生成 Mod | modal 分步 `Generation.start()/step()`，每 tick 收一个编码结果；`execute()` 保留同步路径给 headless；Esc 取消，进度写状态栏并画在节点 label 上 |
-| 编码缓存 + 并行 | 键 = 源图路径 + mtime + size + 目标格式（`image.is_dirty` **不算命中**）；texconv 线程池 ≤6，一张 2048² BC7 = 5 s / BC1 0.2 s，12 张冷启动 34.9 s、热缓存 9.1 s |
+| 生成 Mod（导出） | Blender 只写 `<workspace>/GeneratedMod/`：`patches/*.exmtmesh` + `textures/*.png` + `job.json`。`Generation.start()` 同步导出，没有 modal、没有子进程、不再读 `core_dir`（旧的 `python -m exmt_core` + `cwd` 缺失目录正是 `[WinError 267] 目录名称无效` 的来源） |
+| 打包（EXMT 侧） | App 的 `pack_blender` 读 `job.json`：按目标 bundle 分组 → texconv 编码 PNG（必须 `-srgbi -srgbo`，否则 64→13 变暗）→ 复用 `modpack::run` 写 `<hash>.bundle` + `mod.json`。点「加载到游戏」时自动打包；`job.json` 不比 `mod.json` 新就跳过 |
+| 编码缓存 | `<GeneratedMod>/.encode/<name>.<bundle>.bin` + 同名 `.json`，键 = PNG mtime+size + 目标 format/width/height/mips + texconv mtime；实测 14 包 + 1 张贴图冷 23.7 s、热 19.2 s |
+| `exmtmesh` 版本 | 插件导出 `exmt-mesh-2`（Rust `exmtmesh.rs` 只接受 2；`physical` 缺失时按 logical `dimension` 兜底） |
+| 工作空间元数据 | 新导出的 `workspace.json`：mesh 行带 `materials`（目标子网格数）与 `bone_table`（目标骨骼 hash/name，外部模型按名匹配权重用），贴图行带 `format/format_name/mips`；旧工作空间重导一次即可 |
 | 重新导入 | **同名蓝图必须复用、不许 remove**（内含用户连线与选图）；`<label>_original` Frame 内物体节点按 `submesh` 重指向新网格，Frame 外节点不动 |
 | 清理旧导入 | 导入**前**删上一批网格**连 mesh 数据块一起删**（否则名字被占只能叫 `.001`），回收无孩子的旧骨架；骨架按「骨骼名集合相同」复用（姿势也保住） |
 | 视口说真话 | `reuse_rig()`：场景已有含这些骨骼的骨架就复用，否则按骨骼表新建；导出不读修改器，改它只为视口正确 |
