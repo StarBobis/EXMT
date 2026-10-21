@@ -19,6 +19,7 @@ pub mod commonstrings;
 pub mod container;
 pub mod error;
 pub mod lz4;
+pub mod mesh;
 pub mod serialized;
 pub mod typetree;
 

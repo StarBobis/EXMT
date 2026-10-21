@@ -63,10 +63,36 @@ impl Value {
         }
     }
 
+    /// Read any integer-shaped value as i32.
+    ///
+    /// Type trees pick widths per field, and ChannelInfo for instance declares
+    /// its four members as UInt8. Accepting only I32/U32 here silently turns
+    /// every such field into 0.
     pub fn as_i32(&self) -> Option<i32> {
         match self {
+            Value::I8(v) => Some(*v as i32),
+            Value::U8(v) => Some(*v as i32),
+            Value::I16(v) => Some(*v as i32),
+            Value::U16(v) => Some(*v as i32),
             Value::I32(v) => Some(*v),
             Value::U32(v) => Some(*v as i32),
+            Value::I64(v) => i32::try_from(*v).ok(),
+            Value::U64(v) => i32::try_from(*v).ok(),
+            _ => None,
+        }
+    }
+
+    /// Read any integer-shaped value as u32.
+    pub fn as_u32(&self) -> Option<u32> {
+        match self {
+            Value::I8(v) => u32::try_from(*v).ok(),
+            Value::U8(v) => Some(*v as u32),
+            Value::I16(v) => u32::try_from(*v).ok(),
+            Value::U16(v) => Some(*v as u32),
+            Value::I32(v) => u32::try_from(*v).ok(),
+            Value::U32(v) => Some(*v),
+            Value::I64(v) => u32::try_from(*v).ok(),
+            Value::U64(v) => u32::try_from(*v).ok(),
             _ => None,
         }
     }
