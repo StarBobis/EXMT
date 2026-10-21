@@ -26,10 +26,10 @@ ship without upstream churn.
 | NPZ reader (ZIP + DEFLATE + `.npy`) | done | `src/inflate.rs`, `src/zip.rs`, `src/npy.rs` |
 | `skinpack` command in Rust | done | `../src-tauri/src/skinpack.rs` |
 | `modpack` texture path | done | `../src-tauri/src/modpack.rs` |
-| `modpack` mesh patches (`.exmtmesh`) | **not started** (Python fallback) | — |
+| `.exmtmesh` mesh patches | done (same cook; other cooks fall back) | `../src-tauri/src/exmtmesh.rs`, `src/mesh.rs` |
 | `analyze` (GameCache) | **not started** (still Python) | — |
 
-`139 tests`, all green. See "Verification" below for what they actually prove.
+`142 tests`, all green. See "Verification" below for what they actually prove.
 
 Pixel work is **not** implemented here: decoding, resizing, PNG output and BC
 encoding all go through the bundled DirectXTex `texconv.exe`
@@ -40,7 +40,7 @@ DDS header, the process call and the asset logic around them.
 
 ```powershell
 cd core-rs
-cargo test            # 139 tests; skips sample-dependent ones if the file is absent
+cargo test            # 142 tests; skips sample-dependent ones if the file is absent
 cargo test --lib      # unit tests only, no sample file needed
 ```
 
@@ -128,6 +128,15 @@ Every layer is checked three ways, and the third is the one that matters:
      871-byte `np.savez_compressed` fixture (four entries) is read through the
      ZIP central directory, inflated, parsed as `.npy`, and yields the exact
      float32/uint32 arrays and UTF-32 meta string NumPy wrote.
+   - mesh patch: a 73 MB bundle built from ZZZ's `globalgamemanagers.assets`
+     (43,685 objects) carries `RainDropMesh` (6,520 vertices, 9,780 indices,
+     streamed vertices inlined first). An `.exmtmesh` written by Python's
+     `interchange.save` after shifting every position by +0.25 on X is packed by
+     both implementations: **all 43,685 object payloads are byte-identical**,
+     UnityPy reads both outputs with the shifted positions, `firstByte 0 /
+     indexCount 9780 / firstVertex 0 / vertexCount 6520`, and the local AABB
+     centre `(0.25, 0, 0)`. The core's vertex encoder was also checked against
+     `mesh.encode_streams` on a second synthetic layout (192 bytes, exact).
 
 DirectXTex (`texconv.exe`) is vendored under `../src-tauri/bin/` with its MIT
 licence and bundled through `tauri.conf.json`. `EXMT_TEXCONV` overrides the
@@ -257,21 +266,29 @@ Each of these cost a debugging round; all are now pinned by tests.
   fixed Huffman, and dynamic Huffman (code-length tree, repeat codes 16/17/18).
   A decoder that only handles fixed blocks gets lucky on text and fails on mesh
   buffers.
+- **`.exmtmesh` always stores indices as uint32**, even when the mesh's
+  `index_format` is 0 (16-bit). Narrow after reading and reject values above
+  65535; checking the dtype instead rejects every 16-bit mesh file.
+- **Bone arrays arrive as uint32** in `.exmtmesh` while the vertex encoder takes
+  floats. Convert after reading; values are small enough to be exact.
+- **A mesh's submeshes are rebuilt, not just counted**: `firstByte`,
+  `indexCount`, `firstVertex`, `vertexCount` and a per-submesh `localAABB` are
+  derived from the new index buffer, and zero-count entries disappear. Unity
+  culls with the per-submesh box, so it must cover only the referenced vertices.
+- **Different cooks stay in Python**: if the file's `m_Channels` or
+  `m_BoneNameHashes` differ from the target tree, `modpack` raises
+  `NeedsPython` before writing anything. Bone remapping and channel fitting are
+  implemented there and are not worth duplicating badly.
 
 ## Next steps
 
-1. **`.exmtmesh` mesh patch**: read the arrays through `interchange.load`
-   semantics (channels from the target tree, `submesh_first/count`, raw collision
-   blobs), then write vertex streams, index buffer, submeshes and AABB back into
-   the target typetree. The archive layer is done; this is the semantic half.
-   Incompatible cooks (different channels or bone tables) must keep falling back
-   to Python rather than silently remapping bones.
-2. **`analyze` (GameCache) in Rust**: the multi-process library scan that
+1. **`analyze` (GameCache) in Rust**: the multi-process library scan that
    produces `manifest.json`, `names.json`, `skins.json` and the skin packs. This
    is the last large Python-owned command.
-3. **Retire the Python core** once `analyze` is ported; until then `run_core`
-   falls back to it for every command except `skinpack` and texture-only
-   `modpack`.
+2. **Retire the Python core** once `analyze` is ported; until then `run_core`
+   falls back to it for `analyze` and for mesh patches whose cook differs.
+3. Keep `modpack`'s Python fallback as a safety net for exotic meshes
+   (compressed meshes, bone remapping) even after `analyze` moves.
 
 ## Conventions
 

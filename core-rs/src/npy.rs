@@ -147,6 +147,22 @@ impl Npy {
             .collect())
     }
 
+    pub fn as_u16(&self) -> Result<Vec<u16>> {
+        self.require(&["u2"])?;
+        let need = self.expected_bytes()?;
+        if self.data.len() < need {
+            return Err(Error::SizeMismatch {
+                what: "npy u16",
+                got: self.data.len(),
+                want: need,
+            });
+        }
+        Ok(self.data[..need]
+            .chunks_exact(2)
+            .map(|c| u16::from_le_bytes([c[0], c[1]]))
+            .collect())
+    }
+
     pub fn as_u8(&self) -> Result<Vec<u8>> {
         self.require(&["u1", "i1"])?;
         let need = self.expected_bytes()?;

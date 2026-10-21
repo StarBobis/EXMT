@@ -29,11 +29,11 @@
 | skinpack 命令 | `src-tauri/src/skinpack.rs` | 完成，Tauri 已直接调用 |
 | modpack 贴图路径 | `src-tauri/src/modpack.rs` | 完成，Tauri 已直接调用 |
 | NPZ 读取（ZIP + DEFLATE + `.npy`） | `inflate.rs` / `zip.rs` / `npy.rs` | 完成 |
-| modpack 网格补丁（`.exmtmesh`） | — | 未开始（回退 Python） |
+| modpack 网格补丁（`.exmtmesh`） | `mesh.rs` + `src-tauri/src/exmtmesh.rs` | 完成（同 cook）；异 cook 回退 Python |
 | analyze（GameCache） | — | 未开始（仍 Python） |
 
-139 个测试。`cargo test` 在 `core-rs/` 下跑；`src-tauri` 另有 9 个单测和 2 个可选
-端到端测试。`texconv.exe`（966 KB，MIT，许可证同目录）随仓库放在
+142 个测试。`cargo test` 在 `core-rs/` 下跑；`src-tauri` 另有 9 个单测和 3 个可选
+端到端测试（skinpack、modpack、exmtmesh）。`texconv.exe`（966 KB，MIT，许可证同目录）随仓库放在
 `src-tauri/bin/`，并由 `tauri.conf.json` 的 `bundle.resources` 打进安装包；`EXMT_TEXCONV`
 可覆盖路径，找不到时 `skinpack` 回退 Python。
 
@@ -97,6 +97,13 @@
   字面量并填充到 64 字节边界。
 - DEFLATE 三种块都会在真实归档里出现（stored / fixed / dynamic），只实现 fixed 的
   解码器会在网格缓冲区上失败。
+- `.exmtmesh` 的 indices **永远是 uint32**（即便 `index_format == 0` 是 16 位索引），
+  读入后再窄化并拒绝 >65535；按 dtype 检查会拒掉所有 16 位网格。
+- `.exmtmesh` 的 bones 是 uint32，但顶点编码器吃 f32；读入后转换即可。
+- 子网格是**重建**的：firstByte/indexCount/firstVertex/vertexCount/localAABB 全部由新
+  索引缓冲推导，零长度子网格会被丢掉；Unity 用每个子网格自己的 localAABB 做剔除。
+- 通道或骨骼表不一致就是不同 cook，必须 `NeedsPython` 回退；骨骼重映射和通道裁剪在
+  Python 侧，不要半吊子重写。
 
 以上每条都在 `core-rs/README.md` 有更长的解释和对应测试名。
 
@@ -125,6 +132,12 @@ skinpack 的端到端验法（无 GF2 数据也能做）：
 
 NPZ 层不依赖本机游戏数据：`tests/npz.rs` 内嵌一个由 `numpy.savez_compressed` 生成的
 871 字节 fixture，DEFLATE 向量来自 Python `zlib` 的 `-15` 原始流；改这两个模块前先跑它。
+
+网格路径（2026-10-21 实测）：ZZZ 的 `globalgamemanagers.assets` 里 `RainDropMesh` 顶点流
+在 `.resS`（offset 11,400,020 / 182,560 字节），先内联再包成 UnityFS 夹具；用 Python
+`interchange.save` 把所有位置 +0.25 生成 `.exmtmesh`，同一 spec 分别跑 Rust/Python
+`modpack`，**43,685 个对象 payload 逐字节相同**，UnityPy 读两边顶点、子网格和 AABB 一致。
+注意 UnityPy 不能直接读 NEP2 加密包，要用 `exmt_core.sf.open_bundle`。
 
 ## 换机器后恢复真实数据
 

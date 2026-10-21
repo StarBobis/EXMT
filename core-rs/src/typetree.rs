@@ -82,6 +82,14 @@ impl Value {
         }
     }
 
+    /// Read any float-shaped value as f32.
+    pub fn as_f32(&self) -> Option<f32> {
+        match self {
+            Value::F32(v) => Some(*v),
+            _ => None,
+        }
+    }
+
     /// Read any integer-shaped value as u32.
     pub fn as_u32(&self) -> Option<u32> {
         match self {

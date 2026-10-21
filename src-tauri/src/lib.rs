@@ -5,6 +5,7 @@
 //! (`skinpack` today), and everything else still goes through the Python core
 //! (`core/exmt_core`) until it is ported.
 
+pub mod exmtmesh;
 pub mod modpack;
 pub mod skinpack;
 
@@ -93,32 +94,27 @@ fn texconv_for(app: &tauri::AppHandle) -> Option<Texconv> {
 /// working on a checkout where `texconv.exe` is missing.
 fn run_rust_core(app: &tauri::AppHandle, args: &[String]) -> Option<CoreOutput> {
     let spec = args.get(1)?.clone();
-    let result = match args.first().map(String::as_str) {
+    match args.first().map(String::as_str) {
         Some("skinpack") => {
             let tool = texconv_for(app)?;
-            skinpack::run(Path::new(&spec), &tool)
+            Some(match skinpack::run(Path::new(&spec), &tool) {
+                Ok(stdout) => CoreOutput { code: 0, stdout, stderr: String::new() },
+                Err(e) => CoreOutput { code: 1, stdout: String::new(), stderr: e },
+            })
         }
-        Some("modpack") => {
-            // Mesh patches need the `.exmtmesh` reader, which the Python core
-            // still owns; let it handle those specs instead of dropping meshes.
-            let text = std::fs::read_to_string(&spec).ok()?;
-            let value: serde_json::Value = serde_json::from_str(&text).ok()?;
-            let has_meshes = value
-                .get("meshes")
-                .and_then(|m| m.as_array())
-                .map(|m| !m.is_empty())
-                .unwrap_or(false);
-            if has_meshes {
-                return None;
+        Some("modpack") => match modpack::run(Path::new(&spec), true) {
+            Ok(stdout) => {
+                Some(CoreOutput { code: 0, stdout, stderr: String::new() })
             }
-            modpack::run(Path::new(&spec), true)
-        }
-        _ => return None,
-    };
-    Some(match result {
-        Ok(stdout) => CoreOutput { code: 0, stdout, stderr: String::new() },
-        Err(e) => CoreOutput { code: 1, stdout: String::new(), stderr: e },
-    })
+            // Bone remapping and channel fitting still live in Python; let the
+            // fallback pack this spec instead of writing a partial Mod.
+            Err(modpack::RunError::NeedsPython(_)) => None,
+            Err(modpack::RunError::Failed(e)) => {
+                Some(CoreOutput { code: 1, stdout: String::new(), stderr: e })
+            }
+        },
+        _ => None,
+    }
 }
 
 /// Async wrapper so a long run never blocks the window's event loop.
