@@ -24,6 +24,7 @@ ship without upstream churn.
 | SerializedFile rebuild (v17–v21) | done | `src/serialized.rs` |
 | Bundle patch + rebuild | done | `src/asset.rs` |
 | NPZ reader (ZIP + DEFLATE + `.npy`) | done | `src/inflate.rs`, `src/zip.rs`, `src/npy.rs` |
+| NPZ writer (stored ZIP + `.npy`) | done | `src/npz.rs` |
 | `skinpack` command in Rust | done | `../src-tauri/src/skinpack.rs` |
 | `modpack` texture path | done | `../src-tauri/src/modpack.rs` |
 | `.exmtmesh` mesh patches | done (same cook; other cooks fall back) | `../src-tauri/src/exmtmesh.rs`, `src/mesh.rs` |
@@ -31,7 +32,7 @@ ship without upstream churn.
 | `backup` / `restore` / `backup-size` | done | `../src-tauri/src/store.rs` |
 | `analyze` (GameCache) | **not started** (still Python) | — |
 
-`145 tests`, all green. See "Verification" below for what they actually prove.
+`148 tests`, all green. See "Verification" below for what they actually prove.
 
 Pixel work is **not** implemented here: decoding, resizing, PNG output and BC
 encoding all go through the bundled DirectXTex `texconv.exe`
@@ -42,7 +43,7 @@ DDS header, the process call and the asset logic around them.
 
 ```powershell
 cd core-rs
-cargo test            # 145 tests; skips sample-dependent ones if the file is absent
+cargo test            # 148 tests; skips sample-dependent ones if the file is absent
 cargo test --lib      # unit tests only, no sample file needed
 ```
 
@@ -324,3 +325,4 @@ Each of these cost a debugging round; all are now pinned by tests.
 - Tests must state values from an independent source, never values this code
   produced. A test that only proves self-consistency has caught a real bug
   exactly once here — and that bug was in the other direction.
+

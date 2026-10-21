@@ -26,6 +26,7 @@ pub mod inflate;
 pub mod lz4;
 pub mod mesh;
 pub mod npy;
+pub mod npz;
 pub mod serialized;
 pub mod skin;
 pub mod texconv;

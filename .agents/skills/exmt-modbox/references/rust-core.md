@@ -29,13 +29,14 @@
 | skinpack 命令 | `src-tauri/src/skinpack.rs` | 完成，Tauri 已直接调用 |
 | modpack 贴图路径 | `src-tauri/src/modpack.rs` | 完成，Tauri 已直接调用 |
 | NPZ 读取（ZIP + DEFLATE + `.npy`） | `inflate.rs` / `zip.rs` / `npy.rs` | 完成 |
+| NPZ 写入（存储式 ZIP + `.npy`） | `npz.rs` | 完成，NumPy `np.load` 验证 |
 | modpack 网格补丁（`.exmtmesh`） | `mesh.rs` + `src-tauri/src/exmtmesh.rs` | 完成；异 cook 自动裁剪/补齐与骨骼重映射 |
 | 预览 `thumbs` / `skinfo` | `src-tauri/src/preview.rs` | 完成，贴图网格走 texconv |
 | `backup` / `restore` / `backup-size` | `src-tauri/src/store.rs` | 完成，Tauri 已直接调用 |
 | `workspace`（Blender 导出） | — | 未开始（仍 Python） |
 | analyze（GameCache） | — | 未开始（仍 Python） |
 
-145 个测试。`cargo test` 在 `core-rs/` 下跑；`src-tauri` 另有 14 个单测和 5 个可选
+148 个测试。`cargo test` 在 `core-rs/` 下跑；`src-tauri` 另有 14 个单测和 5 个可选
 端到端测试（skinpack、modpack、exmtmesh、preview×2）。`texconv.exe`（966 KB，MIT，许可证同目录）随仓库放在
 `src-tauri/bin/`，并由 `tauri.conf.json` 的 `bundle.resources` 打进安装包；`EXMT_TEXCONV`
 可覆盖路径，找不到时 `skinpack` 回退 Python。
@@ -167,3 +168,4 @@ Vepley 样例是 `872f1c4f93f07d6ba65b103ae5d1a337.bundle`（1,740,445 字节，
 Vepley skinpack 的 `meshes/geometry/groups` 与 Python 逐字节相同，缩略图/漫反射只差
 FANT-vs-Lanczos（最大 35 / 27 灰阶）；真机贴图与网格 modpack 的 Python/Rust 输出
 **逐对象零差异**（14/14、5/5）；152 个随机小包抽样解析 0 错误。
+
