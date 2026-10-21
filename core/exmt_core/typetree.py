@@ -30,7 +30,7 @@ import struct
 
 from .serializedfile import SerializedFile, SerializedType, TypeNode, _Reader
 
-__all__ = ["Error", "attach_children", "read_object"]
+__all__ = ["Error", "attach_children", "read_object", "read_payload", "write_payload"]
 
 _META_FLAG_ALIGN = 0x4000
 
@@ -173,3 +173,85 @@ def read_payload(sf: SerializedFile, obj) -> object:
         raise Error("type %d has no type tree" % obj.type_id)
     root = attach_children(stype.nodes)
     return _ObjectReader(root, sf.object_bytes(obj), sf.endian).read()
+
+
+class _ObjectWriter:
+    """Serializes values back through a type tree, mirroring _ObjectReader.
+
+    The contract this exists to satisfy: writing a value that was just read must
+    reproduce the original bytes exactly. That only holds if every alignment
+    decision here mirrors the reader, so both sides key off the same
+    `meta_flag & 0x4000` test and the same Array-child rule.
+    """
+
+    def __init__(self, root: TypeNode, endian: str):
+        self.root = root
+        self.endian = endian
+        self.buf = bytearray()
+
+    def align(self, n: int = 4) -> None:
+        pad = (-len(self.buf)) % n
+        if pad:
+            self.buf += b"\x00" * pad
+
+    def write(self, value) -> bytes:
+        self._value(self.root, value)
+        return bytes(self.buf)
+
+    def _value(self, node: TypeNode, value) -> None:
+        align = bool(node.meta_flag & _META_FLAG_ALIGN)
+
+        prim = _PRIMITIVES.get(node.type_name)
+        if prim is not None:
+            code, _width = prim
+            if node.type_name == "bool":
+                self.buf += struct.pack(self.endian + "?", bool(value))
+            else:
+                self.buf += struct.pack(self.endian + code, value)
+        elif node.type_name == "string":
+            raw = value.encode("utf-8", "surrogateescape")
+            self.buf += struct.pack(self.endian + "i", len(raw))
+            self.buf += raw
+            self.align(4)
+        elif node.type_name == "TypelessData":
+            raw = bytes(value)
+            self.buf += struct.pack(self.endian + "i", len(raw))
+            self.buf += raw
+        elif node.type_name == "pair":
+            if len(node.children) < 2:
+                raise Error("pair node %r has %d children" % (node.name, len(node.children)))
+            first, second = value
+            self._value(node.children[0], first)
+            self._value(node.children[1], second)
+        elif node.children and node.children[0].type_name == "Array":
+            arr = node.children[0]
+            if arr.meta_flag & _META_FLAG_ALIGN:
+                align = True
+            if len(arr.children) < 2:
+                raise Error("array node %r has %d children" % (node.name, len(arr.children)))
+            items = list(value)
+            self.buf += struct.pack(self.endian + "i", len(items))
+            subtype = arr.children[1]
+            for item in items:
+                self._value(subtype, item)
+        else:
+            if not isinstance(value, dict):
+                raise Error(
+                    "node %r expects a struct, got %s" % (node.name, type(value).__name__)
+                )
+            for child in node.children:
+                if child.name not in value:
+                    raise Error("missing field %r for node %r" % (child.name, node.name))
+                self._value(child, value[child.name])
+
+        if align:
+            self.align(4)
+
+
+def write_payload(sf: SerializedFile, obj, value) -> bytes:
+    """Serialize `value` using the object's type tree."""
+    stype: SerializedType = sf.type_of(obj)
+    if not stype.nodes:
+        raise Error("type %d has no type tree" % obj.type_id)
+    root = attach_children(stype.nodes)
+    return _ObjectWriter(root, sf.endian).write(value)
