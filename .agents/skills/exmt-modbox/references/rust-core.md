@@ -28,10 +28,11 @@
 | bundle 补丁重打包 | `asset.rs` | 完成 |
 | skinpack 命令 | `src-tauri/src/skinpack.rs` | 完成，Tauri 已直接调用 |
 | modpack 贴图路径 | `src-tauri/src/modpack.rs` | 完成，Tauri 已直接调用 |
+| NPZ 读取（ZIP + DEFLATE + `.npy`） | `inflate.rs` / `zip.rs` / `npy.rs` | 完成 |
 | modpack 网格补丁（`.exmtmesh`） | — | 未开始（回退 Python） |
 | analyze（GameCache） | — | 未开始（仍 Python） |
 
-128 个测试。`cargo test` 在 `core-rs/` 下跑；`src-tauri` 另有 9 个单测和 2 个可选
+139 个测试。`cargo test` 在 `core-rs/` 下跑；`src-tauri` 另有 9 个单测和 2 个可选
 端到端测试。`texconv.exe`（966 KB，MIT，许可证同目录）随仓库放在
 `src-tauri/bin/`，并由 `tauri.conf.json` 的 `bundle.resources` 打进安装包；`EXMT_TEXCONV`
 可覆盖路径，找不到时 `skinpack` 回退 Python。
@@ -90,6 +91,12 @@
 - 类型表**不要重新编码**：字符串引用混用 type 内偏移和 Unity 内置名表索引，直接原样拷贝
   解析到的字节区间才是安全的；外部表、引用类型表同理。
 - v22 头布局与 v17–v21 不同，手头没有 v22 样例，`rebuild` 直接拒绝 v22 并回退 Python。
+- `np.savez_compressed` 写的是 data descriptor：本地头里的 size 是 `0xffffffff`，
+  必须从**中央目录**读真实大小与偏移。
+- `.npy` 字符串是 **UTF-32LE**（`<U54` = 54 个码点），不是 UTF-8；头是 Python dict
+  字面量并填充到 64 字节边界。
+- DEFLATE 三种块都会在真实归档里出现（stored / fixed / dynamic），只实现 fixed 的
+  解码器会在网格缓冲区上失败。
 
 以上每条都在 `core-rs/README.md` 有更长的解释和对应测试名。
 
@@ -115,6 +122,9 @@ skinpack 的端到端验法（无 GF2 数据也能做）：
 「无修改重建后每个对象 payload 逐字节相同」和「只改一张贴图、其他对象不动、再解码像素不变」。
 2026-10-21 用一个 43,685 对象的合成包实测：Rust 与 Python 各自 modpack 出的包，**43,685 个
 对象 payload 全部逐字节相同**；`resources.assets` 与 `sharedassets0.assets` 未修改重建也逐字节相同。
+
+NPZ 层不依赖本机游戏数据：`tests/npz.rs` 内嵌一个由 `numpy.savez_compressed` 生成的
+871 字节 fixture，DEFLATE 向量来自 Python `zlib` 的 `-15` 原始流；改这两个模块前先跑它。
 
 ## 换机器后恢复真实数据
 

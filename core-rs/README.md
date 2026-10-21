@@ -23,12 +23,13 @@ ship without upstream churn.
 | Geometry payload (three.js) | done | `src/skin.rs` |
 | SerializedFile rebuild (v17–v21) | done | `src/serialized.rs` |
 | Bundle patch + rebuild | done | `src/asset.rs` |
+| NPZ reader (ZIP + DEFLATE + `.npy`) | done | `src/inflate.rs`, `src/zip.rs`, `src/npy.rs` |
 | `skinpack` command in Rust | done | `../src-tauri/src/skinpack.rs` |
 | `modpack` texture path | done | `../src-tauri/src/modpack.rs` |
 | `modpack` mesh patches (`.exmtmesh`) | **not started** (Python fallback) | — |
 | `analyze` (GameCache) | **not started** (still Python) | — |
 
-`128 tests`, all green. See "Verification" below for what they actually prove.
+`139 tests`, all green. See "Verification" below for what they actually prove.
 
 Pixel work is **not** implemented here: decoding, resizing, PNG output and BC
 encoding all go through the bundled DirectXTex `texconv.exe`
@@ -39,7 +40,7 @@ DDS header, the process call and the asset logic around them.
 
 ```powershell
 cd core-rs
-cargo test            # 128 tests; skips sample-dependent ones if the file is absent
+cargo test            # 139 tests; skips sample-dependent ones if the file is absent
 cargo test --lib      # unit tests only, no sample file needed
 ```
 
@@ -122,6 +123,11 @@ Every layer is checked three ways, and the third is the one that matters:
      `modpack` built by Rust and by Python yields **identical object payloads for
      all 43,685 objects**, the patched texture decodes red in both, and an
      untouched BC7 texture hashes the same across source/Python/Rust.
+   - archive layer: five raw-DEFLATE streams produced by Python's zlib (stored,
+     fixed and dynamic Huffman blocks) inflate to the original bytes; an
+     871-byte `np.savez_compressed` fixture (four entries) is read through the
+     ZIP central directory, inflated, parsed as `.npy`, and yields the exact
+     float32/uint32 arrays and UTF-32 meta string NumPy wrote.
 
 DirectXTex (`texconv.exe`) is vendored under `../src-tauri/bin/` with its MIT
 licence and bundled through `tauri.conf.json`. `EXMT_TEXCONV` overrides the
@@ -240,12 +246,26 @@ Each of these cost a debugging round; all are now pinned by tests.
 - **v22 header layout differs** (the modern header repeats sizes after the
   reserved bytes), and no v22 sample exists here, so `rebuild` refuses v22 and
   the shell falls back to Python for those files.
+- **`np.savez_compressed` writes a data descriptor**: the local file header
+  carries `0xffffffff` sizes, so entry sizes and offsets must come from the
+  central directory. Reading local headers works only for archives written
+  without streaming.
+- **`.npy` strings are UTF-32LE** (`<U54` = 54 code points, 216 bytes), not
+  UTF-8, and the header is a Python dict literal padded to a 64-byte boundary.
+  Reading it as text from the first `{` to the newline is the reliable part.
+- **DEFLATE has three block shapes** and all appear in real archives: stored,
+  fixed Huffman, and dynamic Huffman (code-length tree, repeat codes 16/17/18).
+  A decoder that only handles fixed blocks gets lucky on text and fails on mesh
+  buffers.
 
 ## Next steps
 
-1. **`.exmtmesh` reader** (NPZ archive + full typetree JSON) to finish `modpack`:
-   the texture half already runs in Rust and is byte-identical to Python; mesh
-   patches are the only reason a spec still falls back.
+1. **`.exmtmesh` mesh patch**: read the arrays through `interchange.load`
+   semantics (channels from the target tree, `submesh_first/count`, raw collision
+   blobs), then write vertex streams, index buffer, submeshes and AABB back into
+   the target typetree. The archive layer is done; this is the semantic half.
+   Incompatible cooks (different channels or bone tables) must keep falling back
+   to Python rather than silently remapping bones.
 2. **`analyze` (GameCache) in Rust**: the multi-process library scan that
    produces `manifest.json`, `names.json`, `skins.json` and the skin packs. This
    is the last large Python-owned command.

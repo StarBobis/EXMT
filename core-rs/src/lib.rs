@@ -22,12 +22,15 @@ pub mod commonstrings;
 pub mod container;
 pub mod dds;
 pub mod error;
+pub mod inflate;
 pub mod lz4;
 pub mod mesh;
+pub mod npy;
 pub mod serialized;
 pub mod skin;
 pub mod texconv;
 pub mod texture;
 pub mod typetree;
+pub mod zip;
 
 pub use error::{Error, Result};
