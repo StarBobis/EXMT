@@ -15,13 +15,18 @@
 //! the same fixtures are asserted on both sides while the Rust path is built out,
 //! and it is removed once Rust covers them.
 
+pub mod asset;
+pub mod base64;
 pub mod bc;
 pub mod commonstrings;
 pub mod container;
+pub mod dds;
 pub mod error;
 pub mod lz4;
 pub mod mesh;
 pub mod serialized;
+pub mod skin;
+pub mod texconv;
 pub mod texture;
 pub mod typetree;
 

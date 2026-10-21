@@ -1,11 +1,16 @@
 //! EXMT Modbox — Tauri backend.
 //!
-//! The shell is thin: window chrome is drawn by the frontend, and the asset
-//! pipeline lives in the Python core (`core/exmt_core`). This module only
-//! exposes a guarded process bridge so the UI can drive that core.
+//! The shell is thin: window chrome is drawn by the frontend. Asset work runs
+//! in-process through `exmt-core` where the Rust pipeline is complete
+//! (`skinpack` today), and everything else still goes through the Python core
+//! (`core/exmt_core`) until it is ported.
 
+pub mod skinpack;
+
+use std::path::{Path, PathBuf};
 use std::process::Command;
 
+use exmt_core::texconv::Texconv;
 use serde::Serialize;
 use tauri::{LogicalSize, Manager, PhysicalPosition, PhysicalSize};
 
@@ -57,13 +62,74 @@ fn run_core_blocking(
     })
 }
 
-/// Async wrapper so a long Python run never blocks the window's event loop.
+/// Locate `texconv.exe`: env override, bundled resource, then the dev tree.
+///
+/// The resource directory exists only in a packaged app; `tauri dev` runs the
+/// binary from `target/debug`, so the in-repo copy is the dev fallback.
+fn texconv_for(app: &tauri::AppHandle) -> Option<Texconv> {
+    if let Ok(path) = std::env::var("EXMT_TEXCONV") {
+        if Path::new(&path).is_file() {
+            return Some(Texconv::new(path));
+        }
+    }
+    if let Ok(dir) = app.path().resource_dir() {
+        let bundled = dir.join("bin").join("texconv.exe");
+        if bundled.is_file() {
+            return Some(Texconv::new(bundled));
+        }
+    }
+    let dev: PathBuf = Path::new(env!("CARGO_MANIFEST_DIR")).join("bin").join("texconv.exe");
+    if dev.is_file() {
+        Some(Texconv::new(dev))
+    } else {
+        None
+    }
+}
+
+/// Commands the Rust core implements end to end.
+///
+/// Returning `None` falls back to the Python process, which keeps the app
+/// working on a checkout where `texconv.exe` is missing.
+fn run_rust_core(app: &tauri::AppHandle, args: &[String]) -> Option<CoreOutput> {
+    match args.first().map(String::as_str) {
+        Some("skinpack") => {
+            let spec = args.get(1)?.clone();
+            let tool = texconv_for(app)?;
+            Some(
+                match skinpack::run(Path::new(&spec), &tool) {
+                    Ok(stdout) => CoreOutput { code: 0, stdout, stderr: String::new() },
+                    Err(e) => CoreOutput { code: 1, stdout: String::new(), stderr: e },
+                },
+            )
+        }
+        _ => None,
+    }
+}
+
+/// Async wrapper so a long run never blocks the window's event loop.
 ///
 /// A synchronous `#[tauri::command]` runs on the main thread, and the whole app
-/// looks frozen while the core parses bundles; `spawn_blocking` moves the child
-/// process to a worker thread instead.
+/// looks frozen while the core parses bundles; `spawn_blocking` moves the work
+/// to a worker thread instead.
 #[tauri::command]
-async fn run_core(python: String, core_dir: String, args: Vec<String>) -> Result<CoreOutput, String> {
+async fn run_core(
+    app: tauri::AppHandle,
+    python: String,
+    core_dir: String,
+    args: Vec<String>,
+) -> Result<CoreOutput, String> {
+    if args.first().map(String::as_str) == Some("skinpack") {
+        let rust = {
+            let app = app.clone();
+            let args = args.clone();
+            tauri::async_runtime::spawn_blocking(move || run_rust_core(&app, &args))
+                .await
+                .map_err(|e| format!("core task failed: {e}"))?
+        };
+        if let Some(out) = rust {
+            return Ok(out);
+        }
+    }
     tauri::async_runtime::spawn_blocking(move || run_core_blocking(python, core_dir, args))
         .await
         .map_err(|e| format!("core task failed: {e}"))?

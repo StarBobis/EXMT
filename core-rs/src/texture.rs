@@ -21,6 +21,7 @@ use std::borrow::Cow;
 use crate::bc::{self, Bc};
 use crate::container::Node;
 use crate::error::{Error, Result};
+use crate::texconv::Texconv;
 use crate::typetree::Value;
 
 /// Where the pixels sit and how many bytes one unit occupies.
@@ -87,6 +88,42 @@ pub fn expected_bytes(code: i32, width: usize, height: usize, mips: usize) -> Re
         };
     }
     Ok(total)
+}
+
+/// Size a `thumbnail((limit, limit))` call would produce, or `None` when the
+/// image already fits.
+///
+/// This is Pillow's algorithm (`Image.thumbnail`), including its habit of
+/// picking floor or ceiling by whichever ratio lands closer to the original
+/// aspect. Matching it matters because the cache written by the Python core and
+/// the one written by the Rust path must agree on thumbnail dimensions.
+pub fn thumbnail_size(width: usize, height: usize, limit: usize) -> Option<(usize, usize)> {
+    if limit >= width && limit >= height {
+        return None;
+    }
+    let aspect = width as f64 / height as f64;
+    let (x, y) = (limit as f64, limit as f64);
+    if x / y >= aspect {
+        let target = y * aspect;
+        Some((round_aspect(target, |n| (aspect - n as f64 / y).abs()), limit.max(1)))
+    } else {
+        let target = x / aspect;
+        Some((limit.max(1), round_aspect(target, |n| {
+            if n == 0 {
+                0.0
+            } else {
+                (aspect - x / n as f64).abs()
+            }
+        })))
+    }
+}
+
+fn round_aspect(number: f64, key: impl Fn(usize) -> f64) -> usize {
+    let lo = number.floor() as usize;
+    let hi = number.ceil() as usize;
+    // Python's min() keeps the first argument on ties.
+    let pick = if key(lo) <= key(hi) { lo } else { hi };
+    pick.max(1)
 }
 
 /// The out-of-line pixel stream a Texture2D points into.
@@ -297,6 +334,46 @@ impl Texture {
         };
         upright(&mut raw, self.width, self.height);
         Ok(raw)
+    }
+
+    /// Decode mip 0 to an upright PNG through texconv, optionally downscaled.
+    ///
+    /// Returns `(width, height, png bytes)` of the produced image. When the
+    /// source already fits inside `limit`, no resample happens.
+    pub fn decode_png(
+        &self,
+        nodes: &[Node],
+        texconv: &Texconv,
+        limit: Option<usize>,
+    ) -> Result<(u32, u32, Vec<u8>)> {
+        if self.width == 0 || self.height == 0 {
+            return Err(Error::Invalid {
+                what: "texture size",
+                detail: format!("{}x{} has no pixels", self.width, self.height),
+            });
+        }
+        let payload = self.payload(nodes)?;
+        let mip0 = expected_bytes(self.format, self.width, self.height, 1)?;
+        if payload.len() < mip0 {
+            return Err(Error::Truncated {
+                what: "texture mip 0",
+                offset: 0,
+                wanted: mip0,
+                available: payload.len(),
+            });
+        }
+        let target = limit
+            .and_then(|l| thumbnail_size(self.width, self.height, l))
+            .map(|(w, h)| (w as u32, h as u32));
+        let png = texconv.decode_png(
+            self.format,
+            self.width as u32,
+            self.height as u32,
+            &payload[..mip0],
+            target,
+        )?;
+        let (w, h) = target.unwrap_or((self.width as u32, self.height as u32));
+        Ok((w, h, png))
     }
 }
 
@@ -512,6 +589,21 @@ mod tests {
             data,
             flags: 0,
         }
+    }
+
+    #[test]
+    fn thumbnail_size_matches_pillow() {
+        // Expected values produced by Pillow 12.3 `Image.thumbnail`.
+        assert_eq!(thumbnail_size(2048, 2048, 160), Some((160, 160)));
+        assert_eq!(thumbnail_size(2048, 1024, 160), Some((160, 80)));
+        assert_eq!(thumbnail_size(26, 26, 160), None);
+        assert_eq!(thumbnail_size(1024, 768, 160), Some((160, 120)));
+        assert_eq!(thumbnail_size(100, 1000, 1024), None);
+        assert_eq!(thumbnail_size(2048, 2048, 1024), Some((1024, 1024)));
+        // The odd cases are where floor/ceil by closest aspect decides.
+        assert_eq!(thumbnail_size(160, 161, 160), Some((159, 160)));
+        assert_eq!(thumbnail_size(161, 160, 160), Some((160, 159)));
+        assert_eq!(thumbnail_size(3, 7, 2), Some((1, 2)));
     }
 
     #[test]

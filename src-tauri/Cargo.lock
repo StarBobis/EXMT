@@ -942,9 +942,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "exmt-core"
+version = "0.1.0"
+
+[[package]]
 name = "exmt-modbox"
 version = "0.1.0"
 dependencies = [
+ "exmt-core",
  "serde",
  "serde_json",
  "tauri",

@@ -54,3 +54,9 @@ impl From<std::string::FromUtf8Error> for Error {
         Error::Invalid { what: "utf-8 string", detail: e.to_string() }
     }
 }
+
+impl From<std::io::Error> for Error {
+    fn from(e: std::io::Error) -> Self {
+        Error::Invalid { what: "io", detail: e.to_string() }
+    }
+}

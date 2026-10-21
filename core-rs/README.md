@@ -18,16 +18,25 @@ ship without upstream churn.
 | Type-tree read/write | done | `src/typetree.rs` |
 | Mesh vertex/index layer | done | `src/mesh.rs` |
 | Texture2D semantics | done | `src/texture.rs` |
-| BC1/BC3/BC4/BC5/BC7 decode | done | `src/bc.rs` |
-| Tauri calls Rust instead of Python | **not started** | — |
+| DDS adapter for texconv | done | `src/dds.rs` |
+| texconv process wrapper | done | `src/texconv.rs` |
+| Geometry payload (three.js) | done | `src/skin.rs` |
+| `skinpack` command in Rust | done | `../src-tauri/src/skinpack.rs` |
+| `modpack` write path | **not started** | — |
+| `analyze` (GameCache) | **not started** (still Python) | — |
 
-`103 tests`, all green. See "Verification" below for what they actually prove.
+`123 tests`, all green. See "Verification" below for what they actually prove.
+
+Pixel work is **not** implemented here: decoding, resizing, PNG output and BC
+encoding all go through the bundled DirectXTex `texconv.exe`
+(`../src-tauri/bin/texconv.exe`, MIT, licence next to it). This crate owns the
+DDS header, the process call and the asset logic around them.
 
 ## Build and test
 
 ```powershell
 cd core-rs
-cargo test            # 103 tests; skips sample-dependent ones if the file is absent
+cargo test            # 123 tests; skips sample-dependent ones if the file is absent
 cargo test --lib      # unit tests only, no sample file needed
 ```
 
@@ -89,8 +98,25 @@ Every layer is checked three ways, and the third is the one that matters:
      `texture2ddecoder` 1.0.6, the library the Python core calls
    - real textures: on a shipped Unity 2019.4 `.assets` with 283 decodable
      Texture2D objects (42 BC7, 154 DXT5, 3 DXT1, 84 RGBA32, streamed through
-     `.resS`), the upright RGBA image hash matches UnityPy + `texture2ddecoder`
-     for every one, and all 283 survive store → serialize → decode unchanged
+     `.resS`), the native decoder's upright RGBA hash matches UnityPy +
+     `texture2ddecoder` for every one, and all 283 survive store → serialize →
+     decode unchanged
+   - texconv path: decoding the same 283 through DirectXTex is pixel-identical
+     for all 42 BC7 textures and within ±1 for BC1/BC3 (different rounding in
+     the reference decoders); every thumbnail dimension matches Pillow's
+     `Image.thumbnail`. RGBA32 is the one deliberate divergence: the Python
+     core swaps red and blue for it, which this path does not reproduce.
+   - skinpack end to end: one spec run through both implementations on a
+     synthetic UnityFS bundle built from that asset (BC1 + BC3 + BC7 + RGBA32 +
+     one 2048² BC7). `meshes.json`, `geometry.json`, `groups.json` and `meta.json`
+     are identical; 5/5 thumbnail dimensions match; BC thumbnails differ by at
+     most 3 levels (one 2048² BC7 edge reaches 33 from FANT vs Lanczos); diffuse
+     maps are exact, ±1, and mean 0.05 respectively. Wall clock: Rust 0.99 s,
+     Python 3.21 s.
+
+DirectXTex (`texconv.exe`) is vendored under `../src-tauri/bin/` with its MIT
+licence and bundled through `tauri.conf.json`. `EXMT_TEXCONV` overrides the
+path; without the binary the `skinpack` command falls back to Python.
 
 Tools for this live in `examples/`: `rebuild_bundle`, `dump_typetree`,
 `dump_values`, `dump_textures`. They are the intended way to re-run the
@@ -169,18 +195,36 @@ Each of these cost a debugging round; all are now pinned by tests.
 - **v20+ reference types are a real table**, each entry a full type plus class
   name, namespace and assembly strings — not a fixed class-id+hash pair. Files
   with zero ref types never notice the difference; others parse garbage.
+- **texconv writes a full mip chain for DDS output unless told otherwise.**
+  Decoding a single level must pass `-m 1`, or the payload carries every mip and
+  a "mip 0 length" check reads the tail as pixels.
+- **Unity texture rows are bottom-up; DDS is top-down.** Decode with `-vflip`
+  or the whole image is upside down (symmetric test textures hide this).
+- **`-w` and `-h` are independent and stretch.** Resizing with one dimension
+  keeps the other at its original value, so a thumbnail needs both computed
+  first (`texture::thumbnail_size`, a port of Pillow's algorithm including its
+  floor/ceil-by-closest-aspect step).
+- **RGBA32 is really RGBA.** The Python core treats every decoded format as
+  BGRA and swaps red/blue for RGBA32 too; DirectXTex reads the DDS masks, so the
+  Rust path is correct and intentionally differs there.
+- **`-o` does not create its directory**, and the output keeps the input base
+  name with a new extension (`in.dds` -> `in.png`). Run each conversion in a
+  fresh temp directory and check the file exists.
+- **DirectXTex has no Lanczos filter.** `-if FANT` is the closest windowed-sinc
+  choice; pixels sit within a few levels of Pillow's LANCZOS, and the 160px
+  thumbnails are visually indistinguishable.
 
 ## Next steps
 
-1. **Wire into Tauri**: `src-tauri` depends on this crate by path; replace the
-   `run_core` Python subprocess in `src/lib.rs` with direct calls. The commands
-   the UI issues first (`cache`, `meshes`, `texture`, `thumb`) are the cheapest
-   to move, since the layering is complete.
-2. **Std-only PNG writer** (deflate + CRC32): the previewer and thumbnails
-   currently get PNGs from PIL through Python, and retiring that subprocess
-   needs an encoder in this crate.
-3. **Retire the Python core** once texture work and the analysis products
-   (`GameCache`) are covered.
+1. **`modpack` write path in Rust**: patch mesh/texture payloads, re-encode
+   replaced images through texconv, rebuild the bundle with `container::build`,
+   and route the command from `src-tauri`. The read/write layers are all here;
+   `skinpack` already proves the texconv + bundle plumbing.
+2. **`analyze` (GameCache) in Rust**: the multi-process library scan that
+   produces `manifest.json`, `names.json`, `skins.json` and the skin packs. This
+   is the last large Python-owned command.
+3. **Retire the Python core** once `analyze` is ported; until then `run_core`
+   falls back to it for every command except `skinpack`.
 
 ## Conventions
 
