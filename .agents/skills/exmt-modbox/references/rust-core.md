@@ -34,10 +34,10 @@
 | 预览 `thumbs` / `skinfo` | `src-tauri/src/preview.rs` | 完成，贴图网格走 texconv |
 | `backup` / `restore` / `backup-size` | `src-tauri/src/store.rs` | 完成，Tauri 已直接调用 |
 | `workspace`（Blender 导出） | `src-tauri/src/workspace.rs` + `skeleton.rs` + `anim.rs` | 完成（网格/贴图/骨架/动画） |
-| analyze（GameCache） | `src-tauri/src/analyze.rs` + `pairings.rs` | 完成：索引/皮肤/249 包/骨骼；文件级进度、可停止、原子替换 |
+| analyze（GameCache） | `src-tauri/src/analyze.rs` + `pairings.rs` | 完成：一次扫描收名字/动作/骨骼，原生解码 + 批量 PNG，原子替换 |
 
-156 个测试。`cargo test` 在 `core-rs/` 下跑；`src-tauri` 另有 27 个单测和 7 个可选
-端到端测试（skinpack、modpack、exmtmesh、preview×2、workspace、analyze）。`texconv.exe`（966 KB，MIT，许可证同目录）随仓库放在
+161 个测试。`cargo test` 在 `core-rs/` 下跑；`src-tauri` 另有 28 个单测和 8 个可选
+端到端测试（skinpack、modpack、exmtmesh、preview×2、workspace、analyze、scan）。`texconv.exe`（966 KB，MIT，许可证同目录）随仓库放在
 `src-tauri/bin/`，并由 `tauri.conf.json` 的 `bundle.resources` 打进安装包；`EXMT_TEXCONV`
 可覆盖路径，找不到时图像任务直接报错（没有 Python 回退）。
 
@@ -55,15 +55,50 @@ Python core 与 Python 测试已删除。
   RGBA32 有意不同（Python 把它当 BGRA 交换了红蓝，Unity 实际就是 RGBA）。
   缩略图尺寸 283/283 与 Pillow `thumbnail` 一致；像素差异来自 FANT vs Lanczos。
 
-## analyze 的等待体验（2026-10-21）
+## analyze：唯一输入是游戏本体（2026-10-21 重做）
+
+全量实测（9,613 包 / 66 GB，debug + `[profile.dev] opt-level=1`、core 为 3，8 线程）：
+
+| 阶段 | 耗时 | 做什么 |
+| --- | --- | --- |
+| `scan` | 90 s | 每个包只解 node 0：网格/贴图/动作名 + 骨骼路径一次收齐 |
+| `skins` | 1.4 s | 名字推导皮肤 |
+| `packs` | 119 s | 249 个皮肤：原生解码/降采样 + 批量 PNG |
+| 合计 | **211 s** | 改前 1,507 s（names 393 + packs 551 + bones 288 + 未计 276） |
+
+四条性能判据，改 analyze 前先确认它们还在：
+
+1. **只读 node 0**：`asset::open_serialized` 走 `container::open_file_index` + `read_stream_range`。
+   GF2 把大部分字节放在同包的 `.resS` 节点里，scan 不需要它；全量读取量从 66 GB 降到 ~31 GB。
+   不要为了省事回到 `asset::open`（那样会把 `.resS` 一起解出来）。
+2. **一次扫描**：`scan_bundle_with(path, with_bones)` 同时收名字与骨骼，`build_indexes` 返回
+   `ScanOutcome { index, bones, seconds }`。不要再加第二遍全库扫描。
+3. **按名找对象要走 `peek_name_matches`**：`OpenedBundle::find_named` 先比 `m_Name` 字节，
+   只有类型树不是 name-first 时才回退全解。用 `values_of` 遍历会让一个 3,292 贴图的包
+   按“想要几张图”重复解包。
+4. **配对目录只建一次**：`pairings::Catalog::new(&index.textures, &index.texture_order)`，
+   `pair` 每皮肤调用。旧实现每个皮肤重新 parse 47k 贴图名，是 packs 里最大的一笔浪费。
+
+图片路径：
+
+- `Texture::decode_rgba_resized` 只接管 BC1/BC3/BC7（原生解码与 texconv 完全一致或 ±1）；
+  RGBA32/BC4/BC5 仍走 texconv，避免通道约定差异。
+- `Texconv::rgba_to_png` 每 32 张一次进程；整批失败会逐张重试，单张坏图只坏自己那行。
+- 缩略图/漫反射改用盒式降采样后，与旧 FANT 输出在边缘最多差几十级（FANT 有振铃），
+  这是有意的：干净、更快，尺寸与 Pillow `thumbnail` 仍逐张一致。
+
+等待体验：
 
 - 扫描进度写到 `<缓存目录>/GameCache.progress.json`（**在缓存目录之外**），字段
   `live.current` / `done` / `total` / `eta_seconds` / `bytes_done` / `bytes_total`，
-  `files_total` 是整库包数。UI 显示总文件数、已扫数、当前文件名/皮肤名、已用/约剩。
+  `files_total` 是整库包数。ETA 现在按**文件数**推进（`bytes_total` 为 0），因为 scan
+  读的字节数与文件大小无关；`bytes_done` 报告真实读取量。
 - `cancel_analyze` 只置一个全局 AtomicBool；worker 在每个 bundle/皮肤之间检查，
   当前文件会做完再停。返回错误串 `已停止分析`，前端按“停止”而非失败处理。
 - 输出先写 `<缓存目录>/GameCache.new`，manifest 落盘后才把旧目录改名 `.old`、
-  新目录换上；停止/失败会删 `.new`，旧缓存保持可用。不要退回“先删旧 manifest”的做法。
+  新目录换上；停止/失败会删 `.new`，旧缓存保持可用。开始前会清 `.new`/`.old` 残留。
+- `manifest.json` 的 `bundle_dir` 必须写 `analyze::display_dir()`（去掉 `\\?\`）。
+  前端 `normalizePath` 负责比较；两端都做，历史缓存也能继续用。
 
 ## 三条硬规矩
 

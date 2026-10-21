@@ -20,8 +20,11 @@ use std::path::{Path, PathBuf};
 use std::time::Instant;
 
 use exmt_core::asset;
+use exmt_core::base64;
+use exmt_core::container::Node;
 use exmt_core::skin;
 use exmt_core::texconv::Texconv;
+use exmt_core::texture::Texture;
 use serde::{Deserialize, Serialize};
 
 pub const FORMAT: &str = "exmt-skinpack-2";
@@ -128,6 +131,49 @@ struct Summary {
     seconds: f64,
 }
 
+/// One image on its way to PNG: decoded RGBA waiting for the batch encoder,
+/// already-encoded PNG (texconv fallback), or a failure to report in the row.
+enum Pending {
+    Image { index: usize, width: u32, height: u32 },
+    Png { png: Vec<u8>, width: u32, height: u32 },
+    Failed(String),
+}
+
+/// Decode one texture for the cache: native + resize when possible, otherwise
+/// the texconv path (unsupported formats and odd payloads).
+fn decode_pending(
+    texture: &Texture,
+    nodes: &[Node],
+    texconv: &Texconv,
+    limit: usize,
+    images: &mut Vec<(u32, u32, Vec<u8>)>,
+) -> Pending {
+    if let Some((width, height, rgba)) = texture.decode_rgba_resized(nodes, Some(limit)) {
+        let index = images.len();
+        images.push((width, height, rgba));
+        return Pending::Image { index, width, height };
+    }
+    match texture.decode_png(nodes, texconv, Some(limit)) {
+        Ok((width, height, png)) => Pending::Png { png, width, height },
+        Err(e) => Pending::Failed(e.to_string()),
+    }
+}
+
+fn resolve_pending<'a>(
+    pending: &'a Pending,
+    pngs: &'a [Result<Vec<u8>, String>],
+) -> Result<(u32, u32, &'a [u8]), String> {
+    match pending {
+        Pending::Image { index, width, height } => match pngs.get(*index) {
+            Some(Ok(png)) => Ok((*width, *height, png)),
+            Some(Err(e)) => Err(e.clone()),
+            None => Err("missing encoded image".into()),
+        },
+        Pending::Png { png, width, height } => Ok((*width, *height, png)),
+        Pending::Failed(e) => Err(e.clone()),
+    }
+}
+
 /// Bundles opened so far, keyed by hash.
 struct Cache {
     dir: PathBuf,
@@ -227,67 +273,114 @@ pub fn build(spec: &Spec, texconv: &Texconv) -> Result<String, String> {
         }
     }
 
-    // --- texture thumbnails ------------------------------------------------
+    // --- image work ---------------------------------------------------------
+    // Thumbnails and diffuse maps are decoded natively, downscaled in-process,
+    // and converted to PNG in one texconv call for the whole skin. Decoding
+    // each texture through its own texconv process was the pack phase's cost:
+    // start-up plus a block decode at full resolution, once per image.
     let thumb_size = spec.thumb_size.unwrap_or(160) as usize;
-    let mut thumbs = Vec::new();
+    let map_size = spec.map_size.unwrap_or(1024) as usize;
+    let mut images: Vec<(u32, u32, Vec<u8>)> = Vec::new();
+    // (name, bundle, source width, source height, decoded image)
+    let mut thumbs: Vec<(String, String, u32, u32, Pending)> = Vec::new();
     for group in &spec.textures {
         match cache.get(&group.bundle) {
             Ok(bundle) => {
                 for name in &group.names {
-                    let row = bundle.texture(name).and_then(|texture| {
-                        skin::thumb(&texture, &bundle.nodes, texconv, thumb_size)
-                    });
-                    thumbs.push(match row {
-                        Ok(thumb) => ThumbRow {
-                            name: thumb.name,
-                            width: Some(thumb.width),
-                            height: Some(thumb.height),
-                            png: Some(thumb.png),
-                            bundle: group.bundle.clone(),
-                            error: None,
-                        },
-                        Err(e) => ThumbRow {
-                            name: name.clone(),
-                            width: None,
-                            height: None,
-                            png: None,
-                            bundle: group.bundle.clone(),
-                            error: Some(e.to_string().chars().take(200).collect()),
-                        },
-                    });
+                    let (source, pending) = match bundle.texture(name) {
+                        Ok(texture) => (
+                            (texture.width as u32, texture.height as u32),
+                            decode_pending(&texture, &bundle.nodes, texconv, thumb_size, &mut images),
+                        ),
+                        Err(e) => ((0, 0), Pending::Failed(e.to_string())),
+                    };
+                    thumbs.push((name.clone(), group.bundle.clone(), source.0, source.1, pending));
                 }
             }
             Err(e) => {
-                let message: String = e.chars().take(200).collect();
                 for name in &group.names {
-                    thumbs.push(ThumbRow {
-                        name: name.clone(),
-                        width: None,
-                        height: None,
-                        png: None,
-                        bundle: group.bundle.clone(),
-                        error: Some(message.clone()),
-                    });
+                    thumbs.push((
+                        name.clone(),
+                        group.bundle.clone(),
+                        0,
+                        0,
+                        Pending::Failed(e.clone()),
+                    ));
                 }
             }
         }
     }
-    thumbs.sort_by(|a, b| a.name.cmp(&b.name));
 
-    // --- diffuse maps ------------------------------------------------------
-    let map_size = spec.map_size.unwrap_or(1024) as usize;
-    let mut diffuse = BTreeMap::new();
+    let mut map_slots: HashMap<(String, String), usize> = HashMap::new();
+    let mut map_items: Vec<Pending> = Vec::new();
+    let mut map_choices: Vec<usize> = Vec::with_capacity(spec.maps.len());
     for map in &spec.maps {
-        let Ok(bundle) = cache.get(&map.bundle) else {
-            continue;
+        let key = (map.bundle.clone(), map.texture.clone());
+        let slot = match map_slots.get(&key) {
+            Some(slot) => *slot,
+            None => {
+                let pending = match cache.get(&map.bundle) {
+                    Ok(bundle) => match bundle.texture(&map.texture) {
+                        Ok(texture) => {
+                            decode_pending(&texture, &bundle.nodes, texconv, map_size, &mut images)
+                        }
+                        Err(e) => Pending::Failed(e.to_string()),
+                    },
+                    Err(e) => Pending::Failed(e),
+                };
+                let slot = map_items.len();
+                map_items.push(pending);
+                map_slots.insert(key, slot);
+                slot
+            }
         };
-        let Ok(texture) = bundle.texture(&map.texture) else {
-            continue;
-        };
-        let Ok(row) = skin::diffuse(&texture, &map.mesh, &bundle.nodes, texconv, map_size) else {
-            continue;
-        };
-        diffuse.insert(row.mesh, row.png);
+        map_choices.push(slot);
+    }
+
+    let pngs: Vec<Result<Vec<u8>, String>> = texconv
+        .rgba_to_png(&images)
+        .into_iter()
+        .map(|row| row.map_err(|e| e.to_string()))
+        .collect();
+
+    let mut thumb_rows = Vec::with_capacity(thumbs.len());
+    for (name, bundle, source_width, source_height, pending) in thumbs {
+        thumb_rows.push(match resolve_pending(&pending, &pngs) {
+            Ok((_, _, png)) => ThumbRow {
+                name,
+                // The row carries the *source* size, not the thumbnail's: the
+                // model page labels a texture with its original resolution.
+                width: Some(source_width),
+                height: Some(source_height),
+                png: Some(base64::encode(png)),
+                bundle,
+                error: None,
+            },
+            Err(e) => ThumbRow {
+                name,
+                width: None,
+                height: None,
+                png: None,
+                bundle,
+                error: Some(e.chars().take(200).collect()),
+            },
+        });
+    }
+    thumb_rows.sort_by(|a, b| a.name.cmp(&b.name));
+
+    let map_pngs: Vec<Option<String>> = map_items
+        .iter()
+        .map(|pending| {
+            resolve_pending(pending, &pngs)
+                .ok()
+                .map(|(_, _, png)| base64::encode(png))
+        })
+        .collect();
+    let mut diffuse = BTreeMap::new();
+    for (index, map) in spec.maps.iter().enumerate() {
+        if let Some(png) = &map_pngs[map_choices[index]] {
+            diffuse.insert(map.mesh.clone(), png.clone());
+        }
     }
 
     // --- files -------------------------------------------------------------
@@ -296,7 +389,7 @@ pub fn build(spec: &Spec, texconv: &Texconv) -> Result<String, String> {
         &out_dir.join("geometry.json"),
         &serde_json::json!({ "meshes": geometry_rows }),
     )?;
-    write_json(&out_dir.join("thumbs.json"), &thumbs)?;
+    write_json(&out_dir.join("thumbs.json"), &thumb_rows)?;
     write_json(&out_dir.join("groups.json"), &spec.groups)?;
     write_json(&out_dir.join("diffuse.json"), &diffuse)?;
     write_json(
@@ -316,7 +409,7 @@ pub fn build(spec: &Spec, texconv: &Texconv) -> Result<String, String> {
         dir: spec.dir.clone(),
         meshes: mesh_rows.len(),
         geometry: geometry_rows.len(),
-        textures: thumbs.len(),
+        textures: thumb_rows.len(),
         maps: diffuse.len(),
         seconds: (started.elapsed().as_secs_f64() * 100.0).round() / 100.0,
     };

@@ -34,12 +34,20 @@ and `texconv.exe`.
 | `workspace` export (meshes, textures, skeleton, clips) | done | `../src-tauri/src/workspace.rs`, `src/skeleton.rs`, `src/anim.rs` |
 | `analyze` (GameCache) | done (names, clips, skins, packs, bones) | `../src-tauri/src/analyze.rs` |
 
-`156 tests`, all green (115 unit + 41 integration); `../src-tauri` adds 27 unit and 7 real-data end-to-end tests. See "Verification" below for what they actually prove.
+`161 tests`, all green (120 unit + 41 integration); `../src-tauri` adds 28 unit and 8 real-data end-to-end tests. See "Verification" below for what they actually prove.
 
-Pixel work is **not** implemented here: decoding, resizing, PNG output and BC
-encoding all go through the bundled DirectXTex `texconv.exe`
-(`../src-tauri/bin/texconv.exe`, MIT, licence next to it). This crate owns the
-DDS header, the process call and the asset logic around them.
+Pixel work is split:
+
+- **Thumbnails and diffuse maps for the cache** are decoded natively
+  (`bc.rs` + `texture.rs`), box-downscaled in-process (`resize_rgba`) and only
+  the final RGBA→PNG step goes through `texconv.exe`, batched many images per
+  process. Native BC decode is 4-10x faster than starting the tool per texture;
+  it matches texconv exactly for BC7 and to within one code value for
+  BC1/BC3 (the tolerance the cache has always accepted).
+- **Everything that produces a Unity payload** (BC1/3/4/5/7 encoding, mip
+  chains) still goes through DirectXTex `texconv.exe`
+  (`../src-tauri/bin/texconv.exe`, MIT, licence next to it). This crate owns the
+  DDS header, the process calls and the asset logic around them.
 
 ## Build and test
 
@@ -176,11 +184,28 @@ Every layer is checked three ways, and the third is the one that matters:
      stops a second run part-way and asserts the previous `manifest.json`
      `built_at` is unchanged; progress reports the current file, files done/total,
      total files, bytes-based ETA and accepts a Stop command.
-   - analyze, **full installed game** (9,613 bundles, 66 GB): 16,482 meshes,
-     47,008 textures, 39,974 clips, 464 skins, **249/249 packs** and 621,845 bone
-     paths in **623.2 s** (names 175.2 s, packs 248.6 s with 8 threads, bones
-     170.6 s). The run builds into `GameCache.new` and swaps only after the
-     manifest is written, so Stop leaves the previous cache usable.
+   - analyze, **full installed game** (9,613 bundles, 66 GB), measured after the
+     2026-10-21 rewrite in a debug build (`[profile.dev] opt-level=1`, core 3,
+     8 threads): 16,482 meshes, 47,008 textures, 39,974 clips, 464 skins,
+     **249/249 packs** and 621,845 bone paths in **211 s** — scan 90 s,
+     skins 1.4 s, packs 119 s. The same run took **1,507 s** before (names 393 s,
+     bones 288 s as a second full pass, packs 551 s plus 276 s of unmeasured
+     pairing work), so the rewrite is 7.1x faster.
+     Why: one pass collects names + clips + bones, only node 0 of each bundle is
+     decompressed (the scan reads ~31 GB instead of 66 GB), objects are found by
+     `m_Name` without decoding their payloads, the texture catalogue is built
+     once instead of per skin, and thumbnails/diffuse maps are decoded natively
+     and converted to PNG in batches.
+   - analyze path handling: `manifest.json` writes `bundle_dir` through
+     `display_dir` (no `\\?\`); the UI compares with `normalizePath`. A cache
+     written by an older build (verbatim prefix) still reads as ready. Without
+     this, a finished analysis surfaced as `分析失败: Error: game cache is
+     elsewhere`.
+   - analyze partial read: `tests/scan_real.rs` compares names from
+     `asset::open_serialized` against a full `asset::open` for a spread of real
+     bundles. On the full install the rewritten scan reproduced the old
+     `names.json`, `clips.json` and `bones.json` exactly (621,845 bone paths,
+     47,008 textures, 39,974 clips, byte-identical after ignoring `built_at`).
 
 DirectXTex (`texconv.exe`) is vendored under `../src-tauri/bin/` with its MIT
 licence and bundled through `tauri.conf.json`. `EXMT_TEXCONV` overrides the
@@ -341,10 +366,13 @@ Each of these cost a debugging round; all are now pinned by tests.
 1. **Packaging**: confirm the installer ships only the app + `texconv.exe`
    (there is no Python/core resource left) and that a clean machine can run
    `analyze` end to end.
-2. **Performance**: the full analyze is dominated by bundle decompression; a
-   prefix reader for name-only scans would cut the names and bones passes.
+2. **Performance, what is left**: the scan still reads every block that holds a
+   SerializedFile byte. Decompressing only the metadata plus the object heads
+   would need a per-object block index and is the next measurable step; the pack
+   phase is now dominated by PNG encoding (~119 s for 249 skins).
 3. Keep the `examples/` differential drivers as historical tools; they no longer
-   have a Python side to compare against.
+   have a Python side to compare against. `skinpack_cli` and `analyze_run_cli`
+   are the live timing harnesses.
 
 ## Conventions
 

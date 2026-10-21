@@ -7,8 +7,8 @@
 //!
 //! Only the arrays the game needs are read. The embedded typetree is not used:
 //! when the target bundle stores the same cook, its own tree is the better
-//! source of truth, and when it does not, the core refuses the patch so the
-//! Python core can do the bone remapping.
+//! source of truth. A different cook is adapted by `mesh::adapt_to_target`,
+//! which crops/pads the channels and remaps the bone hashes.
 
 use std::path::Path;
 

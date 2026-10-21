@@ -117,7 +117,7 @@ async function runAnalysis(): Promise<void> {
   ticker = setInterval(() => {
     elapsed.value = Math.round((Date.now() - started) / 1000);
   }, 500);
-  progress.value = { state: "running", phase: "names", phases: [], seconds: 0 };
+  progress.value = { state: "running", phase: "scan", phases: [], seconds: 0 };
   try {
     const manifest = await analyzeGame({
       onProgress: (event) => {
@@ -187,6 +187,12 @@ async function enter(): Promise<void> {
 
 onMounted(async () => {
   await checkCache();
+  // The analysis only needs the installed game. Look for it before asking the
+  // user to, so a normal install goes straight to "start analysis".
+  if (!gamePath.value) {
+    const found = await detectGamePath().catch(() => null);
+    if (found) await useGamePath(found);
+  }
   // a returning user (cache lost / game moved) keeps the path they already set
   if (gamePath.value) await checkGamePath(gamePath.value);
 

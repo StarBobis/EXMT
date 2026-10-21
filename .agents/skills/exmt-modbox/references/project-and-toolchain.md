@@ -37,7 +37,7 @@ node scripts/dev.mjs                   # 只起前端
 & $bun run check                       # 质量门
 cargo test --manifest-path core-rs/Cargo.toml          # 资产核心测试
 cargo test --manifest-path src-tauri/Cargo.toml        # 外壳/命令测试
-# analyze 在应用内跑（设置里选游戏目录 → 重建缓存），全量约 12 分钟，可随时停止
+# analyze 在应用内跑（设置里选游戏目录 → 重建缓存），全量约 3.5 分钟（debug），可随时停止
 C:\DevCache\gf2\app2.ps1 shot -out p.png
 C:\DevCache\gf2\app2.ps1 click <cx> <cy>
 & 'C:\Program Files\Blender Foundation\Blender 5.2\blender.exe' --background --factory-startup --python x.py
@@ -75,23 +75,27 @@ C:\DevCache\gf2\app2.ps1 click <cx> <cy>
 | 文件 | 内容 | 谁写 |
 | --- | --- | --- |
 | `manifest.json` | format / built_at / bundle_dir / 计数 / 耗时 | `analyze`，最后写（存在 = 完整） |
-| `names.json` | 网格名 → bundle 列表，贴图名 → bundle 列表 | `meshidx.build` |
+| `names.json` | 网格名 → bundle 列表，贴图名 → bundle 列表 | `analyze` 扫描阶段 |
 | `skins.json` | 皮肤 → 部件 + 贴图/动作计数 | `analyze` |
-| `clips.json` | AnimationClip 名 → bundle | `animidx.build` |
-| `bones.json` | 骨骼路径（crc32 → 路径） | `bonenames.build` |
-| `skins/<key>/` | 每个皮肤已解好的 meshes / geometry / thumbs / diffuse / meta | `skinpack.build`，8 进程并行 |
+| `clips.json` | AnimationClip 名 → bundle | `analyze` 扫描阶段 |
+| `bones.json` | 骨骼路径（crc32 → 路径） | `analyze` 扫描阶段 |
+| `skins/<key>/` | 每个皮肤已解好的 meshes / geometry / thumbs / diffuse / meta | `skinpack.build`，8 线程并行 |
 | `progress.json` | 当前阶段 / 已完成阶段 / 耗时 + `live:{done,total}` | `analyze`，边跑边写 |
 
-**关键不变量**：`skins/<key>/meta.json` 的 `cache_built_at` 必须等于 `manifest.json` 的 `built_at`。整个 `analyze` 只取一次时间戳，manifest 和所有包共用；前端只认「两者相等」的包。各自取时间会把预解包判成过期，又退回现场解。
+**阶段只有三个**：`scan`（一次读包里同时收网格/贴图/动作名 + 骨骼路径）、`skins`、`packs`。UI 的 `AnalyzeProgress.vue` 与 i18n 的 `setup.phase.*` 必须与之一致。
 
-**启动三态**（`src/lib/boot.ts`）：`loading → ready | setup | error`。`ready` = setup 标记 + 游戏路径可用 + `cacheState() === "ready"`（manifest 可解析、format 对、`bundle_dir` 与当前游戏目录一致、三个数据文件在）。不满足进向导，第 4 步分析完才进主界面。
+**分析只依赖游戏本体，不依赖旧 GameCache**：唯一的输入是 `bundle_dir`，旧缓存只在成功后原子替换。`manifest.json` 的 `bundle_dir` 用 `analyze::display_dir` 写（去掉 Windows 的 `\\?\` verbatim 前缀），前端用 `normalizePath` 比较；两处任缺其一，分析成功也会被误判成 `elsewhere`。
+
+**关键不变量**：`skins/<key>/meta.json` 的 `cache_built_at` 必须等于 `manifest.json` 的 `built_at`。整个 `analyze` 只取一次时间戳，manifest 和所有包共用；前端只认「两者相等」的包。
+
+**启动三态**（`src/lib/boot.ts`）：`loading → ready | setup | error`。`ready` = setup 标记 + 游戏路径可用 + `cacheState() === "ready"`（manifest 可解析、format 对、`bundle_dir` 与当前游戏目录一致、三个数据文件在）。不满足进向导，第 4 步分析完才进主界面。没有游戏路径时 `boot()` 会先自动探测一次。
 
 改这些地方会互相影响：
 
 - 改缓存目录 / 游戏目录 → 旧缓存立即失效（`elsewhere`）；设置页两个入口都接 `boot()`。
-- 改 `analyze.py` 产物格式 → 给 `FORMAT` 加版本，否则旧缓存被当成 `outdated`。
-- 只改皮肤推导规则（lod / 部件名）不必重扫全库：`cd core; & $py -m exmt_core packs <缓存目录> 8` 复用 `names.json` 重算 `skins.json` 并重建皮肤包（≈150 s），manifest 时间戳不变。
-- 只解一个皮肤：`& $py -m exmt_core skinpack <spec.json>`。
+- 改 analyze 产物格式 → 给 `analyze::FORMAT` 加版本，否则旧缓存被当成 `outdated`。
+- 只解一个皮肤 / 复测 pack 速度：`cargo run --example skinpack_cli -- <spec.json>`。
+- 只重扫索引 / 测扫描速度：`cargo run --example analyze_cli -- <bundle_dir> <cache_dir> <limit|0> <workers> [bones]`。
 
 ## 6. 验收方法（可复用）
 

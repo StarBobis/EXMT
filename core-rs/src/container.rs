@@ -202,8 +202,24 @@ impl<'a> Cursor<'a> {
     }
 }
 
-/// Parse a decrypted bundle's header and tables.
-pub fn parse(plain: &[u8]) -> Result<BundleInfo> {
+/// The fixed part of a bundle header, enough to locate the block table.
+#[derive(Debug, Clone)]
+pub struct Header {
+    pub version: u32,
+    pub engine: String,
+    pub revision: String,
+    /// Declared total size of the first archive (concatenated hot-update files
+    /// carry more bytes after it).
+    pub size: i64,
+    pub compressed_blocks_info_size: u32,
+    pub uncompressed_blocks_info_size: u32,
+    pub flags: u32,
+    /// File offset of the compressed blocksInfo block.
+    pub blocks_info_offset: usize,
+}
+
+/// Parse the header of a decrypted bundle without reading past it.
+pub fn read_header(plain: &[u8]) -> Result<Header> {
     if plain.len() < 8 || &plain[..8] != b"UnityFS\0" {
         return Err(Error::BadSignature { expected: "UnityFS\\0", offset: 0 });
     }
@@ -227,21 +243,42 @@ pub fn parse(plain: &[u8]) -> Result<BundleInfo> {
             available: plain.len() - c.pos,
         });
     }
-    let ci = cbis as usize;
-    let ui = ubis as usize;
-    let bi_end = blocks_info_offset.checked_add(ci).ok_or(Error::Implausible {
+    Ok(Header {
+        version,
+        engine,
+        revision,
+        size,
+        compressed_blocks_info_size: cbis,
+        uncompressed_blocks_info_size: ubis,
+        flags,
+        blocks_info_offset,
+    })
+}
+
+/// Parse a decrypted bundle's header and tables.
+pub fn parse(plain: &[u8]) -> Result<BundleInfo> {
+    let header = read_header(plain)?;
+    let ci = header.compressed_blocks_info_size as usize;
+    let start = header.blocks_info_offset;
+    let end = start.checked_add(ci).ok_or(Error::Implausible {
         what: "blocksInfo size",
         value: ci as u64,
     })?;
-    if bi_end > plain.len() {
+    if end > plain.len() {
         return Err(Error::Truncated {
             what: "blocksInfo",
-            offset: blocks_info_offset,
+            offset: start,
             wanted: ci,
-            available: plain.len() - blocks_info_offset,
+            available: plain.len() - start,
         });
     }
-    let raw_bi = lz4::decompress(&plain[blocks_info_offset..bi_end], Some(ui))?;
+    parse_tables(header, &plain[start..end], plain.len())
+}
+
+/// Parse the block/node tables of a decrypted `blocksInfo` block.
+pub fn parse_tables(header: Header, blocks_info: &[u8], file_len: usize) -> Result<BundleInfo> {
+    let ui = header.uncompressed_blocks_info_size as usize;
+    let raw_bi = lz4::decompress(blocks_info, Some(ui))?;
 
     let mut b = Cursor::new(&raw_bi);
     b.pos = 16; // four hash bytes the format leaves unused
@@ -269,21 +306,28 @@ pub fn parse(plain: &[u8]) -> Result<BundleInfo> {
         nodes.push(NodeEntry { offset, size, flags, path });
     }
 
+    let data_offset = header
+        .blocks_info_offset
+        .checked_add(header.compressed_blocks_info_size as usize)
+        .ok_or(Error::Implausible {
+            what: "blocksInfo end",
+            value: header.compressed_blocks_info_size as u64,
+        })?;
     let info = BundleInfo {
-        version,
-        engine,
-        revision,
-        size,
-        flags,
-        compressed_blocks_info_size: cbis,
-        uncompressed_blocks_info_size: ubis,
-        blocks_info_offset,
-        data_offset: bi_end,
+        version: header.version,
+        engine: header.engine,
+        revision: header.revision,
+        size: header.size,
+        flags: header.flags,
+        compressed_blocks_info_size: header.compressed_blocks_info_size,
+        uncompressed_blocks_info_size: header.uncompressed_blocks_info_size,
+        blocks_info_offset: header.blocks_info_offset,
+        data_offset,
         blocks,
         nodes,
-        trailing: plain.len().saturating_sub(size.max(0) as usize),
+        trailing: file_len.saturating_sub(header.size.max(0) as usize),
     };
-    info.validate(plain.len())?;
+    info.validate(file_len)?;
     Ok(info)
 }
 
@@ -346,6 +390,227 @@ pub fn read_stream(plain: &[u8], info: &BundleInfo) -> Result<Vec<u8>> {
         pos = end;
     }
     Ok(out)
+}
+
+/// A bundle's header and tables, read without decompressing its data blocks.
+///
+/// The scan pass only needs node 0 (the SerializedFile). GF2 bundles put most of
+/// their bytes in a sibling `.resS` stream node, so decompressing the whole
+/// bundle to read names wastes an order of magnitude of I/O.
+#[derive(Debug, Clone)]
+pub struct FileIndex {
+    pub info: BundleInfo,
+    /// The original NEP2 ciphertext head, needed to undo the prefix cipher.
+    pub cipher_head: [u8; 4],
+    pub file_len: u64,
+}
+
+/// Read a bundle's header and tables from disk (no data blocks).
+pub fn open_file_index(path: &std::path::Path) -> Result<FileIndex> {
+    use std::io::{Read, Seek, SeekFrom};
+
+    let mut file = std::fs::File::open(path)?;
+    let file_len = file.metadata()?.len();
+    if file_len < 16 {
+        return Err(Error::Truncated {
+            what: "bundle header",
+            offset: 0,
+            wanted: 16,
+            available: file_len as usize,
+        });
+    }
+
+    let mut cipher_head = [0u8; 4];
+    file.read_exact(&mut cipher_head)?;
+    let ks = keystream(&cipher_head)?;
+
+    // The header is a few hundred bytes at most; a page is plenty even when the
+    // file is shorter, in which case the read stops at its end.
+    let head_len = (file_len as usize).min(4096);
+    let mut head = vec![0u8; head_len];
+    file.seek(SeekFrom::Start(0))?;
+    file.read_exact(&mut head)?;
+    decrypt_in_place(&mut head, 0, &ks);
+    let header = read_header(&head)?;
+
+    let start = header.blocks_info_offset as u64;
+    let len = header.compressed_blocks_info_size as u64;
+    let end = start.checked_add(len).ok_or(Error::Implausible {
+        what: "blocksInfo range",
+        value: len,
+    })?;
+    if end > file_len {
+        return Err(Error::Truncated {
+            what: "blocksInfo",
+            offset: start as usize,
+            wanted: len as usize,
+            available: file_len.saturating_sub(start) as usize,
+        });
+    }
+    let mut blocks_info = vec![0u8; len as usize];
+    file.seek(SeekFrom::Start(start))?;
+    file.read_exact(&mut blocks_info)?;
+    decrypt_in_place(&mut blocks_info, start, &ks);
+
+    let info = parse_tables(header, &blocks_info, file_len as usize)?;
+    Ok(FileIndex {
+        info,
+        cipher_head,
+        file_len,
+    })
+}
+
+/// Undo NEP2 in place for bytes whose absolute file offset is `start`.
+fn decrypt_in_place(buf: &mut [u8], start: u64, ks: &[u8; 16]) {
+    if start >= ENC_PREFIX as u64 {
+        return;
+    }
+    let end = (start + buf.len() as u64).min(ENC_PREFIX as u64);
+    for abs in start..end {
+        buf[(abs - start) as usize] ^= ks[(abs % 16) as usize];
+    }
+}
+
+impl FileIndex {
+    /// Decompress one node and return its payload.
+    pub fn read_node(&self, path: &std::path::Path, index: usize) -> Result<Vec<u8>> {
+        Ok(self.read_node_with_len(path, index)?.0)
+    }
+
+    /// The same, also returning how many bytes were read from disk.
+    pub fn read_node_with_len(
+        &self,
+        path: &std::path::Path,
+        index: usize,
+    ) -> Result<(Vec<u8>, u64)> {
+        let node = self.info.nodes.get(index).ok_or(Error::Invalid {
+            what: "bundle node",
+            detail: format!("index {index} of {}", self.info.nodes.len()),
+        })?;
+        if node.offset < 0 || node.size < 0 {
+            return Err(Error::Implausible {
+                what: "node range",
+                value: node.offset.max(node.size) as u64,
+            });
+        }
+        read_stream_range_with_len(
+            path,
+            &self.info,
+            &self.cipher_head,
+            node.offset as u64,
+            node.size as u64,
+        )
+    }
+}
+
+/// Decompress only the data blocks that overlap `[start, start + len)` of the
+/// bundle's uncompressed stream.
+///
+/// Blocks are contiguous in the file, so this issues one sequential read for
+/// the whole span instead of one per block.
+pub fn read_stream_range(
+    path: &std::path::Path,
+    info: &BundleInfo,
+    cipher_head: &[u8; 4],
+    start: u64,
+    len: u64,
+) -> Result<Vec<u8>> {
+    Ok(read_stream_range_with_len(path, info, cipher_head, start, len)?.0)
+}
+
+/// The same as [`read_stream_range`], also reporting how many bytes were read
+/// from disk. Progress uses that to give an ETA that matches the real work
+/// instead of the (much larger) bundle size.
+pub fn read_stream_range_with_len(
+    path: &std::path::Path,
+    info: &BundleInfo,
+    cipher_head: &[u8; 4],
+    start: u64,
+    len: u64,
+) -> Result<(Vec<u8>, u64)> {
+    use std::io::{Read, Seek, SeekFrom};
+
+    let end = start.checked_add(len).ok_or(Error::Implausible {
+        what: "node end",
+        value: len,
+    })?;
+
+    // Locate the blocks covering the range and their file offsets.
+    let mut file_pos = info.data_offset as u64;
+    let mut stream_pos = 0u64;
+    let mut first: Option<(usize, u64)> = None;
+    let mut last = 0usize;
+    let mut block_offsets: Vec<u64> = Vec::with_capacity(info.blocks.len());
+    for (index, block) in info.blocks.iter().enumerate() {
+        block_offsets.push(file_pos);
+        let block_start = stream_pos;
+        let block_end = stream_pos + block.uncompressed as u64;
+        if block.uncompressed > 0 && block_start < end && block_end > start {
+            first.get_or_insert((index, block_start));
+            last = index;
+        }
+        stream_pos = block_end;
+        file_pos += block.compressed as u64;
+    }
+    let Some((first_index, first_stream)) = first else {
+        return Err(Error::Invalid {
+            what: "node range",
+            detail: format!("{start}..{end} outside {stream_pos} byte stream"),
+        });
+    };
+    if end > stream_pos {
+        return Err(Error::Truncated {
+            what: "node payload",
+            offset: start as usize,
+            wanted: len as usize,
+            available: stream_pos.saturating_sub(start) as usize,
+        });
+    }
+
+    let read_start = block_offsets[first_index];
+    let last_block = &info.blocks[last];
+    let read_end = block_offsets[last] + last_block.compressed as u64;
+    if read_end > info.data_offset as u64 + info.blocks.iter().map(|b| b.compressed as u64).sum::<u64>() {
+        return Err(Error::Truncated {
+            what: "data blocks",
+            offset: read_start as usize,
+            wanted: (read_end - read_start) as usize,
+            available: 0,
+        });
+    }
+    let mut raw = vec![0u8; (read_end - read_start) as usize];
+    let mut file = std::fs::File::open(path)?;
+    file.seek(SeekFrom::Start(read_start))?;
+    file.read_exact(&mut raw)?;
+    let ks = keystream(cipher_head)?;
+    decrypt_in_place(&mut raw, read_start, &ks);
+
+    let mut out = Vec::with_capacity(len as usize);
+    let mut stream_pos = first_stream;
+    for index in first_index..=last {
+        let block = &info.blocks[index];
+        let offset = (block_offsets[index] - read_start) as usize;
+        let compressed = block.compressed as usize;
+        let chunk = &raw[offset..offset + compressed];
+        let decoded = if block.is_lz4() {
+            lz4::decompress(chunk, Some(block.uncompressed as usize))?
+        } else {
+            chunk.to_vec()
+        };
+        if decoded.len() != block.uncompressed as usize {
+            return Err(Error::SizeMismatch {
+                what: "data block",
+                got: decoded.len(),
+                want: block.uncompressed as usize,
+            });
+        }
+        let block_end = stream_pos + block.uncompressed as u64;
+        let from = start.saturating_sub(stream_pos) as usize;
+        let to = (block.uncompressed as u64).min(end - stream_pos) as usize;
+        out.extend_from_slice(&decoded[from..to]);
+        stream_pos = block_end;
+    }
+    Ok((out, read_end - read_start))
 }
 
 /// Split the decompressed stream into the bundle's node payloads.
@@ -611,5 +876,88 @@ mod tests {
             Err(Error::BadSignature { .. })
         ));
         assert!(parse(b"UnityF").is_err());
+    }
+
+    fn template() -> BundleInfo {
+        BundleInfo {
+            version: 7,
+            engine: "5.x.x".into(),
+            revision: "2019.4.29f1".into(),
+            size: 0,
+            flags: 0,
+            compressed_blocks_info_size: 0,
+            uncompressed_blocks_info_size: 0,
+            blocks_info_offset: 0,
+            data_offset: 0,
+            blocks: Vec::new(),
+            nodes: Vec::new(),
+            trailing: 0,
+        }
+    }
+
+    /// Bytes that LZ4 cannot fold into long matches, so the block table really
+    /// has several compressed blocks.
+    fn noisy(len: usize, seed: u32) -> Vec<u8> {
+        let mut state = seed;
+        (0..len)
+            .map(|_| {
+                state = state.wrapping_mul(1_664_525).wrapping_add(1_013_904_223);
+                (state >> 24) as u8
+            })
+            .collect()
+    }
+
+    #[test]
+    fn partial_reads_match_the_full_stream() {
+        let nodes = vec![
+            Node { path: "CAB-first".into(), data: noisy(300_000, 7), flags: 4 },
+            Node { path: "CAB-res".into(), data: noisy(500_000, 11), flags: 0 },
+            Node { path: "CAB-tail".into(), data: noisy(90_000, 13), flags: 4 },
+        ];
+        let plain = build(&nodes, &template(), true).expect("build");
+        assert!(plain.len() > ENC_PREFIX, "test must cross the NEP2 prefix");
+        let cipher = encrypt(&plain, &[0xaa, 0xbb, 0xcc, 0xdd]).expect("encrypt");
+
+        let path = std::env::temp_dir().join(format!(
+            "exmt-partial-{}-{}.bundle",
+            std::process::id(),
+            plain.len()
+        ));
+        std::fs::write(&path, &cipher).expect("write");
+
+        let index = open_file_index(&path).expect("index");
+        assert_eq!(index.info.nodes.len(), nodes.len());
+        assert_eq!(index.cipher_head, [0xaa, 0xbb, 0xcc, 0xdd]);
+        for (i, node) in nodes.iter().enumerate() {
+            let read = index.read_node(&path, i).expect("node");
+            assert_eq!(read.len(), node.data.len(), "node {i} length");
+            assert_eq!(read, node.data, "node {i} payload");
+        }
+
+        // A range in the middle of a block, not aligned to any block boundary.
+        let mid = read_stream_range(
+            &path,
+            &index.info,
+            &index.cipher_head,
+            1234,
+            70_000,
+        )
+        .expect("range");
+        let mut expected = Vec::new();
+        for node in &nodes {
+            expected.extend_from_slice(&node.data);
+        }
+        assert_eq!(mid, expected[1234..1234 + 70_000]);
+
+        // A range past the end is an error, not a short read.
+        assert!(read_stream_range(
+            &path,
+            &index.info,
+            &index.cipher_head,
+            expected.len() as u64 - 10,
+            100,
+        )
+        .is_err());
+        let _ = std::fs::remove_file(&path);
     }
 }

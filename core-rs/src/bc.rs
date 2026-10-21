@@ -1,12 +1,11 @@
 //! Block-compressed texture decoding: BC1, BC3, BC4, BC5 and BC7 to BGRA8.
 //!
-//! This is a port of the decoder the Python core currently uses
-//! (`texture2ddecoder` 1.0.6, MIT, Copyright (c) 2020 K0lb3; its BC code in
-//! turn comes from AssetStudio). It is ported
-//! rather than rewritten from the D3D spec on purpose: the Rust core has to
-//! replace Python without changing what the previewer shows, so the acceptance
-//! values are that decoder's pixels. Two consequences are visible and pinned by
-//! tests:
+//! This is a port of `texture2ddecoder` 1.0.6 (MIT, Copyright (c) 2020 K0lb3;
+//! its BC code in turn comes from AssetStudio), the decoder the retired script
+//! core used. It is ported rather than rewritten from the D3D spec on purpose:
+//! the acceptance values are that decoder's pixels, so replacing the script
+//! core did not change what the previewer shows. Two consequences are visible
+//! and pinned by tests:
 //!
 //! * BC1's three-colour mode yields **opaque black**, not transparent black.
 //!   The spec says alpha 0; this decoder writes `(0, 0, 0, 255)` and therefore

@@ -19,31 +19,21 @@ fn main() {
     };
     let workers: usize = workers.parse().unwrap_or(6);
     let built_at = exmt_modbox_lib::skinpack::local_timestamp();
-    let (index, seconds) = exmt_modbox_lib::analyze::build_indexes(
+    let with_bones = args.get(4).map(|v| v == "bones").unwrap_or(false);
+    let outcome = exmt_modbox_lib::analyze::build_indexes(
         Path::new(bundle_dir),
         &out,
         limit,
         workers,
+        with_bones,
         &built_at,
         None,
     )
     .expect("indexes");
+    let index = outcome.index;
     let skins = exmt_modbox_lib::analyze::skins_of(&index);
-    let with_bones = args.get(4).map(|v| v == "bones").unwrap_or(false);
-    let bones = if with_bones {
-        exmt_modbox_lib::analyze::build_bones(
-            Path::new(bundle_dir),
-            &out,
-            limit,
-            workers,
-            &built_at,
-            None,
-        )
-        .expect("bones")
-        .1
-    } else {
-        0
-    };
+    let bones = outcome.bones.len();
+    let seconds = outcome.seconds;
     let skin_json = serde_json::json!({
         "format": "exmt-skins-1",
         "built_at": built_at,

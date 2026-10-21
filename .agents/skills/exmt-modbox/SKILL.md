@@ -24,7 +24,9 @@ EXMT 是一个 Tauri 2 + Vue 3 + Rust 资产核心的桌面 Mod 工具箱，目�
 
 ## 核心不变量（动代码前先确认）
 
-1. **GameCache 是唯一事实来源**：主页 / 模型页 / 动作栏只读 `<缓存目录>\GameCache\`，不各自扫包。
+1. **GameCache 是页面的事实来源，但不是 analyze 的输入**：主页 / 模型页 / 动作栏只读 `<缓存目录>\GameCache\`，不各自扫包；
+   而 analyze 只需要游戏本体，旧缓存仅成功后原子替换。`manifest.json` 的 `bundle_dir` 一律写
+   `analyze::display_dir()`（无 `\\?\`），前端 `normalizePath` 比较；缺任一端都会把成功分析误判成 `elsewhere`。
    `skins/<key>/meta.json` 的 `cache_built_at` 必须等于 `manifest.json` 的 `built_at`；整个 analyze 只取一次时间戳。
 2. **启动三态**：`loading → ready | setup | error`。`ready` 需要 setup 标记 + 游戏路径可用 + `cacheState()==="ready"`。
    不满足就进向导，不要在页面里偷偷扫包绕过。

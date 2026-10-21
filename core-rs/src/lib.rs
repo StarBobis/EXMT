@@ -7,13 +7,15 @@
 //! Layers, bottom up:
 //!
 //! * [`lz4`] -- the block codec UnityFS compresses each data block with.
-//! * container (todo) -- UnityFS header, block table, NEP2 prefix encryption.
-//! * serialized (todo) -- the SerializedFile that a bundle wraps.
-//! * typetree (todo) -- decoding objects through their embedded type trees.
+//! * [`container`] -- UnityFS header, block table, node ranges, NEP2 prefix
+//!   encryption.
+//! * [`serialized`] -- the SerializedFile that a bundle wraps.
+//! * [`typetree`] -- decoding objects through their embedded type trees.
+//! * [`asset`] -- opening a bundle and finding its meshes and textures.
 //!
-//! The Python implementation under `core/` is kept as a differential oracle:
-//! the same fixtures are asserted on both sides while the Rust path is built out,
-//! and it is removed once Rust covers them.
+//! This crate is the whole runtime: there is no script interpreter, no helper
+//! process and no Python fallback. Image work goes through the bundled
+//! `texconv.exe`, which is a native executable rather than a script.
 
 pub mod asset;
 pub mod anim;

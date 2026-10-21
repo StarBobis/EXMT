@@ -366,6 +366,58 @@ fn prop_families(all_names: &[String]) -> BTreeMap<String, Prop> {
     out
 }
 
+/// The game's texture families, computed once and reused for every skin.
+///
+/// Deriving them from all ~47,000 texture names inside `pair` meant every skin
+/// re-parsed the whole catalogue. That work dominated the pack phase while its
+/// input never changed.
+pub struct Catalog {
+    families: BTreeMap<String, Vec<String>>,
+    ordered: Vec<(String, Vec<String>)>,
+    all_names: Vec<String>,
+    props: std::sync::OnceLock<BTreeMap<String, Prop>>,
+}
+
+impl Catalog {
+    /// Families in texture-name order (`names.json`); the order decides ties.
+    pub fn new(textures: &BTreeMap<String, Vec<String>>, order: &[String]) -> Self {
+        let families = if order.is_empty() {
+            families_of(textures.keys())
+        } else {
+            families_of(order.iter())
+        };
+        Self::from_families(families, textures, order)
+    }
+
+    fn from_families(
+        families: BTreeMap<String, Vec<String>>,
+        textures: &BTreeMap<String, Vec<String>>,
+        order: &[String],
+    ) -> Self {
+        let ordered = ordered_families(&families, order);
+        let mut all_names: Vec<String> =
+            ordered.iter().flat_map(|(_, names)| names.iter().cloned()).collect();
+        if all_names.is_empty() {
+            all_names = textures.keys().cloned().collect();
+        }
+        Catalog {
+            families,
+            ordered,
+            all_names,
+            props: std::sync::OnceLock::new(),
+        }
+    }
+
+    fn props(&self) -> &BTreeMap<String, Prop> {
+        self.props.get_or_init(|| prop_families(&self.all_names))
+    }
+
+    /// `{mesh name: [texture names]}` for one skin, strongest evidence first.
+    pub fn pair(&self, mesh_names: &[String]) -> BTreeMap<String, Vec<String>> {
+        pair_with(mesh_names, self)
+    }
+}
+
 /// `{mesh name: [texture names]}` for one skin, strongest evidence first.
 pub fn pair(
     mesh_names: &[String],
@@ -373,30 +425,29 @@ pub fn pair(
     families: Option<&BTreeMap<String, Vec<String>>>,
     order: &[String],
 ) -> BTreeMap<String, Vec<String>> {
+    let families = match families {
+        Some(families) => families.clone(),
+        None => Catalog::new(textures, order).families,
+    };
+    let catalog = Catalog::from_families(families, textures, order);
+    catalog.pair(mesh_names)
+}
+
+fn pair_with(mesh_names: &[String], catalog: &Catalog) -> BTreeMap<String, Vec<String>> {
     let meshes: Vec<Info> = mesh_names.iter().filter_map(|name| parse(name)).collect();
     if meshes.is_empty() {
         return BTreeMap::new();
     }
-    let computed = if families.is_none() {
-        if order.is_empty() {
-            families_of(textures.keys())
-        } else {
-            families_of(order.iter())
-        }
-    } else {
-        BTreeMap::new()
-    };
-    let families = families.unwrap_or(&computed);
-    let ordered = ordered_families(families, order);
-    let all_names: Vec<String> = ordered.iter().flat_map(|(_, names)| names.iter().cloned()).collect::<Vec<_>>();
-    let all_names = if all_names.is_empty() { textures.keys().cloned().collect() } else { all_names };
+    let families = &catalog.families;
+    let ordered = &catalog.ordered;
+    let all_names = &catalog.all_names;
     let mesh_heads: HashSet<String> = meshes.iter().map(|m| m.head.clone()).collect();
 
     let mut winners: HashMap<String, Vec<(String, (i32, i32, i32, String))>> = meshes
         .iter()
         .map(|m| (m.name.clone(), Vec::new()))
         .collect();
-    for (stem, names) in &ordered {
+    for (stem, names) in ordered {
         let Some(info) = names.first().and_then(|name| parse(name)) else { continue };
         let head = info.head.clone();
         let diffuse = i32::from(has_diffuse(names));
@@ -471,7 +522,7 @@ pub fn pair(
         }
         let Some((base_head, _)) = split_numeric_tail(&mesh.head) else { continue };
         let mut best: Option<((i32, i32), String)> = None;
-        for (stem, names) in &ordered {
+        for (stem, names) in ordered {
             let Some(info) = names.first().and_then(|name| parse(name)) else { continue };
             let Some((tex_base, number)) = split_numeric_tail(&info.head) else { continue };
             if tex_base != base_head || info.tokens[..info.tokens.len() - 1] != mesh.tokens[..mesh.tokens.len() - 1] {
@@ -493,7 +544,7 @@ pub fn pair(
     // shared hand props: exact part token, never another skin's body/cloth
     let unresolved: Vec<&Info> = meshes.iter().filter(|m| !has_diffuse(&out[&m.name])).collect();
     if !unresolved.is_empty() {
-        let props = prop_families(&all_names);
+        let props = catalog.props();
         for mesh in unresolved {
             let head = &mesh.head;
             if head.len() < 3 || is_generic_head(head) {
@@ -501,7 +552,7 @@ pub fn pair(
             }
             let stem_head = head.trim_end_matches(|c: char| c.is_ascii_digit());
             let mut best: Option<((i32, usize, String), String)> = None;
-            for (stem, entry) in &props {
+            for (stem, entry) in props {
                 if !entry.keys.contains(head) && !entry.keys.contains(stem_head) {
                     continue;
                 }
@@ -533,7 +584,7 @@ pub fn pair(
             continue;
         }
         let mut best: Option<((i32, i32, usize), String)> = None;
-        for (stem, names) in &ordered {
+        for (stem, names) in ordered {
             let Some(info) = names.first().and_then(|name| parse(name)) else { continue };
             if info.head.is_empty() || !mesh.head.starts_with(&info.head) {
                 continue;
@@ -567,7 +618,7 @@ pub fn pair(
             continue;
         }
         let mut best: Option<((i32, usize), String)> = None;
-        for (stem, names) in &ordered {
+        for (stem, names) in ordered {
             let Some(info) = names.first().and_then(|name| parse(name)) else { continue };
             if info.tokens.len() < 2 || info.tokens[..info.tokens.len() - 1] != prefix {
                 continue;

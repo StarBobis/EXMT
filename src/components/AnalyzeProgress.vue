@@ -19,16 +19,16 @@ const props = defineProps<{
 
 const emit = defineEmits<{ stop: [] }>();
 
-const PHASES = ["names", "clips", "skins", "packs", "bones"] as const;
+const PHASES = ["scan", "skins", "packs"] as const;
+// One pass over the game now collects names, clips and bones together; the
+// skin packs are the only other expensive stage.
 const WEIGHTS: Record<string, number> = {
-  names: 0.25,
-  clips: 0.005,
-  skins: 0.005,
-  packs: 0.47,
-  bones: 0.27,
+  scan: 0.6,
+  skins: 0.01,
+  packs: 0.39,
 };
 
-const phase = computed(() => props.event?.phase ?? (props.running ? "names" : ""));
+const phase = computed(() => props.event?.phase ?? (props.running ? "scan" : ""));
 const live = computed(() => props.event?.live ?? null);
 
 const phaseLabel = computed(() =>
@@ -64,12 +64,12 @@ const detail = computed(() => {
   if (!props.running && !props.complete) return "";
   const done = live.value?.done;
   const total = live.value?.total;
-  if (phase.value === "names" || phase.value === "bones") {
+  if (phase.value === "scan") {
     if (done == null || !total) return t("setup.scanStarting");
     return t("setup.scanFiles", { done, total });
   }
   if (phase.value === "packs") {
-    if (done == null || !total) return t("setup.scanStarting");
+    if (done == null || !total) return t("setup.phaseWorking");
     return t("setup.scanPacks", { done, total });
   }
   if (props.complete) return t("setup.analyzeFinished");

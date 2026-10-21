@@ -63,6 +63,23 @@ export async function gameCacheDir(): Promise<string> {
   return join(cacheFolder.value, "GameCache");
 }
 
+/**
+ * Comparison key for a Windows folder path.
+ *
+ * The core used to write `manifest.json` with `canonicalize()`, which returns a
+ * `\\?\`-prefixed path, while the UI builds the bundle folder from the chosen
+ * install. The two never matched, so a finished analysis was reported as
+ * "game cache is elsewhere" and the app fell back to the wizard. Both sides now
+ * compare through this: verbatim prefix off, separators unified, case ignored.
+ */
+export function normalizePath(path: string | undefined | null): string {
+  if (!path) return "";
+  let value = path.trim().replace(/\//g, "\\");
+  if (value.startsWith("\\\\?\\UNC\\")) value = `\\\\${value.slice("\\\\?\\UNC\\".length)}`;
+  else if (value.startsWith("\\\\?\\")) value = value.slice(4);
+  return value.replace(/\\+$/, "").toLowerCase();
+}
+
 /** `{state: ready|missing|incomplete|damaged|outdated|elsewhere, manifest}`. */
 export async function cacheState(): Promise<{
   state: "ready" | "missing" | "incomplete" | "damaged" | "outdated" | "elsewhere";
@@ -79,7 +96,7 @@ export async function cacheState(): Promise<{
     if (manifest.format !== CACHE_FORMAT) return { state: "outdated", manifest };
     // a cache built for another install (or another drive) is not usable
     const wanted = gameBundles();
-    if (wanted && manifest.bundle_dir.toLowerCase() !== wanted.toLowerCase()) {
+    if (wanted && manifest.bundle_dir && normalizePath(manifest.bundle_dir) !== normalizePath(wanted)) {
       return { state: "elsewhere", manifest };
     }
     for (const name of ["names.json", "skins.json", "clips.json"]) {
@@ -100,13 +117,7 @@ async function readJson<T>(dir: string, name: string): Promise<T> {
 /** The one in-memory copy. Pages read this, never the disk, after bootstrap. */
 export const gameCache = shallowRef<GameCache | null>(null);
 
-/** Read the whole cache from disk (throws when it is not ready). */
-export async function loadGameCache(): Promise<GameCache> {
-  const dir = await gameCacheDir();
-  const { state, manifest } = await cacheState();
-  if (state !== "ready" || !manifest) {
-    throw new Error(`game cache is ${state}`);
-  }
+async function readCache(dir: string, manifest: GameCacheManifest): Promise<GameCache> {
   const names = await readJson<{ meshes: Record<string, string[]>; textures: Record<string, string[]> }>(
     dir,
     "names.json",
@@ -122,6 +133,16 @@ export async function loadGameCache(): Promise<GameCache> {
   };
   gameCache.value = cache;
   return cache;
+}
+
+/** Read the whole cache from disk (throws when it is not ready). */
+export async function loadGameCache(): Promise<GameCache> {
+  const dir = await gameCacheDir();
+  const { state, manifest } = await cacheState();
+  if (state !== "ready" || !manifest) {
+    throw new Error(`game cache is ${state}`);
+  }
+  return readCache(dir, manifest);
 }
 
 export async function ensureGameCache(): Promise<GameCache> {
@@ -189,6 +210,8 @@ export interface AnalyzeOptions {
   intervalMs?: number;
   /** stop after N bundles — only used by tests */
   limit?: number;
+  /** scanner threads; defaults to 8 and is capped by the core at 16 */
+  workers?: number;
 }
 
 /**
@@ -203,8 +226,8 @@ export async function analyzeGame(options: AnalyzeOptions = {}): Promise<GameCac
 
   const dir = await gameCacheDir();
   await mkdir(dir, { recursive: true }).catch(() => undefined);
-  const argb = ["analyze", bundles, cacheFolder.value];
-  if (options.limit) argb.push("8", String(options.limit));
+  const argb = ["analyze", bundles, cacheFolder.value, String(options.workers ?? 8)];
+  if (options.limit) argb.push(String(options.limit));
 
   let live = true;
   const tick = async () => {
@@ -221,7 +244,12 @@ export async function analyzeGame(options: AnalyzeOptions = {}): Promise<GameCac
       throw new Error(tail || `分析失败（退出码 ${res.code}）`);
     }
     const parsed = JSON.parse(res.stdout.trim().split(/\r?\n/).pop() ?? "{}") as GameCacheManifest;
-    const cache = await loadGameCache();
+    if (!parsed || parsed.format !== CACHE_FORMAT) {
+      throw new Error("分析结束但没有写出可用的 manifest.json");
+    }
+    // Read what this run just wrote; re-checking "is it elsewhere" here used to
+    // turn a finished analysis into "分析失败: game cache is elsewhere".
+    const cache = await readCache(dir, parsed);
     const last = (await readAnalyzeProgress()) ?? null;
     options.onProgress?.({
       state: "done",

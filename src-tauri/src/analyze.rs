@@ -1,16 +1,21 @@
 //! GameCache analysis: the one pass that every studio page reads.
 //!
-//! Pipeline (same as `core/exmt_core/analyze.py`):
+//! The only input is the installed game. A prior cache is never required.
 //!
-//! 1. scan every bundle once for mesh/texture/clip **names** (`peek_name`, no
-//!    object payloads), writing `names.json` and `clips.json`;
+//! 1. scan every bundle once for mesh/texture/clip names, bone paths and
+//!    prefab hierarchies, writing `names.json`, `clips.json` and `bones.json`;
 //! 2. derive skins from the mesh-name convention (`skins.json`);
-//! 3. build every roster skin pack (not ported yet);
-//! 4. scan prefabs/Avatars for bone paths (`bones.json`, not ported yet);
-//! 5. write `manifest.json` **last** so a half-written cache is never accepted.
+//! 3. build every roster skin pack;
+//! 4. write `manifest.json` **last** so a half-written cache is never accepted.
 //!
-//! The scan is merged: Python walks the folder once for names and again (metadata
-//! only) for clips; here one open per bundle collects all three kinds.
+//! Two things keep the pass affordable on a 66 GB install:
+//!
+//! * one open per bundle collects every kind (the second full pass for bones
+//!   and the separate clip walk are gone);
+//! * only node 0 of each bundle is decompressed ([`asset::open_serialized`]).
+//!   GF2 puts streaming texture bytes in a sibling `.resS` node that the scan
+//!   never reads, so the pass reads a fraction of the folder instead of all of
+//!   it.
 
 use std::collections::{BTreeMap, HashMap};
 use std::path::{Path, PathBuf};
@@ -51,6 +56,10 @@ pub struct Scan {
     pub meshes: Vec<String>,
     pub textures: Vec<String>,
     pub clips: Vec<String>,
+    /// Bone paths recovered from this bundle, when the scan asked for them.
+    pub bones: Vec<BoneRow>,
+    /// Bytes actually read from disk (node 0 only), for the progress ETA.
+    pub bytes_read: u64,
 }
 
 #[derive(Debug, Default)]
@@ -80,19 +89,30 @@ pub struct Skin {
 
 /// Scan one bundle for the three indexed object kinds.
 pub fn scan_bundle(path: &Path) -> Scan {
+    scan_bundle_with(path, false)
+}
+
+/// Scan one bundle once for names, clips and (optionally) bone paths.
+///
+/// Only node 0 of the bundle is decompressed: names and prefab hierarchies live
+/// in the SerializedFile, while sibling `.resS` streams can be most of the
+/// file. A second full read pass for bones is what made the old analysis read
+/// the whole install twice.
+pub fn scan_bundle_with(path: &Path, with_bones: bool) -> Scan {
     let hash = path
         .file_stem()
         .map(|s| s.to_string_lossy().to_string())
         .unwrap_or_default();
     let mut scan = Scan {
-        hash: hash.clone(),
+        hash,
         ..Scan::default()
     };
-    let Ok(bundle) = asset::open(path) else {
+    let Ok((serialized, bytes_read)) = asset::open_serialized(path) else {
         return scan;
     };
-    for (_, obj) in &bundle.serialized.objects {
-        let Some(ty) = bundle.serialized.type_of(obj) else {
+    scan.bytes_read = bytes_read;
+    for (_, obj) in &serialized.objects {
+        let Some(ty) = serialized.type_of(obj) else {
             continue;
         };
         let bucket = match ty.class_id {
@@ -101,9 +121,12 @@ pub fn scan_bundle(path: &Path) -> Scan {
             CLIP => &mut scan.clips,
             _ => continue,
         };
-        if let Some(name) = bundle.serialized.peek_name(obj) {
+        if let Some(name) = serialized.peek_name(obj) {
             bucket.push(name);
         }
+    }
+    if with_bones {
+        scan.bones = scan_bones(&serialized);
     }
     scan
 }
@@ -116,7 +139,7 @@ pub fn scan_all(
 ) -> Result<(Vec<Scan>, usize), String> {
     let files = limited_files(bundle_dir, limit)?;
     let total = files.len();
-    let scans = scan_files(&files, workers, None)?;
+    let scans = scan_files(&files, workers, false, None)?;
     Ok((scans, total))
 }
 
@@ -136,6 +159,7 @@ pub fn limited_files(bundle_dir: &Path, limit: Option<usize>) -> Result<Vec<Path
 fn scan_files(
     files: &[PathBuf],
     workers: usize,
+    with_bones: bool,
     tracker: Option<&ScanTracker<'_>>,
 ) -> Result<Vec<Scan>, String> {
     let total = files.len();
@@ -153,10 +177,9 @@ fn scan_files(
                     if let Some(tracker) = tracker {
                         tracker.start_file(path);
                     }
-                    let size = std::fs::metadata(path).map(|m| m.len()).unwrap_or(0);
-                    let scan = scan_bundle(path);
+                    let scan = scan_bundle_with(path, with_bones);
                     if let Some(tracker) = tracker {
-                        tracker.finish_file(size);
+                        tracker.finish_file(scan.bytes_read);
                     }
                     rows.push(scan);
                 }
@@ -223,7 +246,7 @@ pub fn names_json(index: &Index, bundle_dir: &Path, built_at: &str) -> serde_jso
     serde_json::json!({
         "format": "exmt-meshindex-2",
         "built_at": built_at,
-        "game_bundles": bundle_dir.display().to_string(),
+        "game_bundles": display_dir(bundle_dir),
         "bundles": index.bundles,
         "mesh_count": index.meshes.len(),
         "texture_count": index.textures.len(),
@@ -246,7 +269,7 @@ pub fn clips_json(index: &Index, bundle_dir: &Path, built_at: &str) -> serde_jso
     serde_json::json!({
         "format": "exmt-animindex-1",
         "built_at": built_at,
-        "bundle_dir": bundle_dir.display().to_string(),
+        "bundle_dir": display_dir(bundle_dir),
         "bundles": index.bundles,
         "clip_count": index.clips.len(),
         "anim_bundles": anim_bundles,
@@ -410,20 +433,34 @@ fn lod_of(rest: &str) -> Option<(String, bool, i32, String)> {
     None
 }
 
-/// Write both indexes into `<cache>/GameCache`, atomically.
+/// Everything one scan pass produces.
+pub struct ScanOutcome {
+    pub index: Index,
+    /// `crc32(bone path) -> path`, empty when bones were not requested.
+    pub bones: BTreeMap<String, String>,
+    pub seconds: f64,
+}
+
+/// Scan every bundle once and write `names.json` / `clips.json` /
+/// `bones.json` into `<cache>/GameCache`.
+///
+/// One pass collects names, clips and (optionally) bone paths, because opening
+/// a bundle is what costs I/O: the old code read the whole install a second
+/// time for bones.
 pub fn build_indexes(
     bundle_dir: &Path,
     out_dir: &Path,
     limit: Option<usize>,
     workers: usize,
+    with_bones: bool,
     built_at: &str,
     progress: Option<&Progress>,
-) -> Result<(Index, f64), String> {
+) -> Result<ScanOutcome, String> {
     let started = Instant::now();
     let files = limited_files(bundle_dir, limit)?;
     let total = files.len();
-    let tracker = progress.map(|progress| ScanTracker::new(&files, "names", progress));
-    let scans = scan_files(&files, workers, tracker.as_ref())?;
+    let tracker = progress.map(|progress| ScanTracker::new(&files, "scan", progress));
+    let scans = scan_files(&files, workers, with_bones, tracker.as_ref())?;
     let mut index = merge(&scans);
     index.bundles = total;
     write_json(
@@ -434,106 +471,65 @@ pub fn build_indexes(
         &out_dir.join("clips.json"),
         &clips_json(&index, bundle_dir, built_at),
     )?;
-    Ok((index, started.elapsed().as_secs_f64()))
+
+    let mut paths: HashMap<u32, (String, i32)> = HashMap::new();
+    if with_bones {
+        for scan in &scans {
+            for row in &scan.bones {
+                match paths.get(&row.hash) {
+                    None => {
+                        paths.insert(row.hash, (row.path.clone(), row.priority));
+                    }
+                    Some((path, priority)) if path != &row.path && row.priority > *priority => {
+                        paths.insert(row.hash, (row.path.clone(), row.priority));
+                    }
+                    _ => {}
+                }
+            }
+        }
+    }
+    let bones: BTreeMap<String, String> = paths
+        .iter()
+        .map(|(hash, (path, _))| (hash.to_string(), path.clone()))
+        .collect();
+    if with_bones {
+        let payload = serde_json::json!({
+            "format": "exmt-bonenames-1",
+            "built_at": built_at,
+            "bundle_dir": display_dir(bundle_dir),
+            "bundles": total,
+            "names": bones.len(),
+            "paths": bones,
+        });
+        write_json(&out_dir.join("bones.json"), &payload)?;
+    }
+    Ok(ScanOutcome {
+        index,
+        bones,
+        seconds: started.elapsed().as_secs_f64(),
+    })
 }
 
 #[derive(Debug, Clone)]
-struct BoneRow {
+pub struct BoneRow {
     hash: u32,
     path: String,
     priority: i32,
 }
 
 /// Recover `crc32(transform path) -> path` from Avatars and prefab hierarchies.
-pub fn build_bones(
-    bundle_dir: &Path,
-    out_dir: &Path,
-    limit: Option<usize>,
-    workers: usize,
-    built_at: &str,
-    progress: Option<&Progress>,
-) -> Result<(usize, usize), String> {
-    let files = limited_files(bundle_dir, limit)?;
-    let total = files.len();
-    let tracker = progress.map(|progress| ScanTracker::new(&files, "bones", progress));
-    let workers = workers.max(1).min(16).min(total.max(1));
-    let chunk = (total + workers - 1) / workers.max(1);
-    let scans: Vec<Vec<BoneRow>> = std::thread::scope(|scope| {
-        let mut handles = Vec::new();
-        for part in files.chunks(chunk.max(1)) {
-            let tracker = tracker.as_ref();
-            handles.push(scope.spawn(move || {
-                let mut rows = Vec::with_capacity(part.len());
-                for path in part {
-                    if cancelled() {
-                        break;
-                    }
-                    if let Some(tracker) = tracker {
-                        tracker.start_file(path);
-                    }
-                    let size = std::fs::metadata(path).map(|m| m.len()).unwrap_or(0);
-                    rows.push(scan_bones_bundle(path));
-                    if let Some(tracker) = tracker {
-                        tracker.finish_file(size);
-                    }
-                }
-                rows
-            }));
-        }
-        handles
-            .into_iter()
-            .flat_map(|handle| handle.join().expect("bone worker"))
-            .collect()
-    });
-    if cancelled() {
-        return Err(CANCELLED_MESSAGE.into());
-    }
-
-    let mut paths: HashMap<u32, (String, i32)> = HashMap::new();
-    for rows in scans {
-        for row in rows {
-            match paths.get(&row.hash) {
-                None => {
-                    paths.insert(row.hash, (row.path, row.priority));
-                }
-                Some((path, priority)) if path != &row.path && row.priority > *priority => {
-                    paths.insert(row.hash, (row.path, row.priority));
-                }
-                _ => {}
-            }
-        }
-    }
-    let sorted: BTreeMap<String, String> = paths
-        .iter()
-        .map(|(hash, (path, _))| (hash.to_string(), path.clone()))
-        .collect();
-    let payload = serde_json::json!({
-        "format": "exmt-bonenames-1",
-        "built_at": built_at,
-        "bundle_dir": bundle_dir.display().to_string(),
-        "bundles": total,
-        "names": sorted.len(),
-        "paths": sorted,
-    });
-    write_json(&out_dir.join("bones.json"), &payload)?;
-    Ok((total, sorted.len()))
-}
-
-fn scan_bones_bundle(path: &Path) -> Vec<BoneRow> {
-    let Ok(bundle) = asset::open(path) else {
-        return Vec::new();
-    };
+fn scan_bones(serialized: &exmt_core::serialized::SerializedFile) -> Vec<BoneRow> {
     let mut out: HashMap<u32, (String, i32)> = HashMap::new();
     let mut names: HashMap<i64, String> = HashMap::new();
     let mut father: HashMap<i64, i64> = HashMap::new();
     let mut owner: HashMap<i64, i64> = HashMap::new();
-    for (path_id, obj) in &bundle.serialized.objects {
-        let Some(ty) = bundle.serialized.type_of(obj) else {
+    for (path_id, obj) in &serialized.objects {
+        let Some(ty) = serialized.type_of(obj) else {
             continue;
         };
         match ty.class_id {
             AVATAR => {
-                let Ok(tree) = typetree::read_value(&bundle.serialized, obj) else {
+                let Ok(tree) = typetree::read_value(serialized, obj) else {
                     continue;
                 };
                 let Some(rows) = tree.get("m_TOS").and_then(|v| v.as_array()) else {
@@ -548,7 +544,9 @@ fn scan_bones_bundle(path: &Path) -> Vec<BoneRow> {
                 }
             }
             1 => {
-                let Ok(tree) = typetree::read_value(&bundle.serialized, obj) else {
+                // `m_Name` is not the first GameObject field (m_Component and
+                // m_Layer come before it), so this needs the full decode.
+                let Ok(tree) = typetree::read_value(serialized, obj) else {
                     continue;
                 };
                 names.insert(
@@ -560,7 +558,7 @@ fn scan_bones_bundle(path: &Path) -> Vec<BoneRow> {
                 );
             }
             4 => {
-                let Ok(tree) = typetree::read_value(&bundle.serialized, obj) else {
+                let Ok(tree) = typetree::read_value(serialized, obj) else {
                     continue;
                 };
                 let father_id = tree
@@ -642,6 +640,25 @@ fn pair_value(value: &Value) -> Option<(u32, String)> {
             Some((first.1.as_u32()?, second.1.as_str()?.to_string()))
         }
         _ => None,
+    }
+}
+
+/// Absolute path for the cache files, without Windows' `\\?\` verbatim prefix.
+///
+/// `canonicalize()` returns a `\\?\`-prefixed path. The UI builds the bundle
+/// folder from the user's install path, so a verbatim prefix in `manifest.json`
+/// never compares equal -- a perfectly good cache then reads as
+/// "game cache is elsewhere", which is exactly the failure that made a
+/// finished analysis look like a failed one.
+pub fn display_dir(path: &Path) -> String {
+    let absolute = std::fs::canonicalize(path).unwrap_or_else(|_| path.to_path_buf());
+    let text = absolute.to_string_lossy().replace('/', "\\");
+    if let Some(rest) = text.strip_prefix(r"\\?\UNC\") {
+        return format!(r"\\{rest}");
+    }
+    match text.strip_prefix(r"\\?\") {
+        Some(rest) => rest.to_string(),
+        None => text,
     }
 }
 
@@ -774,16 +791,14 @@ struct ScanTracker<'a> {
 
 impl<'a> ScanTracker<'a> {
     fn new(files: &[PathBuf], phase: &'static str, progress: &'a Progress) -> Self {
-        let bytes_total = files
-            .iter()
-            .filter_map(|path| std::fs::metadata(path).ok())
-            .map(|meta| meta.len())
-            .sum();
+        // The scan reads only node 0, so the files' sizes say little about the
+        // remaining work. The ETA therefore advances by file count, and the
+        // byte counters report what was actually read.
         ScanTracker {
             progress,
             phase,
             total: files.len(),
-            bytes_total,
+            bytes_total: 0,
             done: AtomicUsize::new(0),
             bytes_done: AtomicU64::new(0),
             current: Mutex::new(String::new()),
@@ -839,6 +854,7 @@ fn pack_spec(
     out_dir: &Path,
     bundle_dir: &Path,
     index: &Index,
+    catalog: &pairings::Catalog,
     skin: &Skin,
     built_at: &str,
 ) -> skinpack::Spec {
@@ -859,7 +875,7 @@ fn pack_spec(
             bundle: None,
         });
     }
-    let groups = pairings::pair(&mesh_names, &index.textures, None, &index.texture_order);
+    let groups = catalog.pair(&mesh_names);
 
     let mut wanted: std::collections::BTreeSet<String> = std::collections::BTreeSet::new();
     for names in groups.values() {
@@ -892,7 +908,7 @@ fn pack_spec(
     skinpack::Spec {
         key: skin.id.clone(),
         dir: out_dir.join("skins").join(&skin.id).display().to_string(),
-        bundle_dir: bundle_dir.display().to_string(),
+        bundle_dir: display_dir(bundle_dir),
         cache_built_at: built_at.to_string(),
         meshes,
         textures,
@@ -908,6 +924,7 @@ fn build_packs(
     out_dir: &Path,
     bundle_dir: &Path,
     index: &Index,
+    catalog: &pairings::Catalog,
     skins: &[Skin],
     texconv: &Texconv,
     workers: usize,
@@ -923,14 +940,16 @@ fn build_packs(
         return 0;
     }
     progress.start("packs");
+    // Spec construction is part of the phase, not free: pairing every skin used
+    // to re-derive the texture catalogue and went unmeasured.
+    let started = Instant::now();
     let specs: Vec<skinpack::Spec> = roster
         .iter()
-        .map(|skin| pack_spec(out_dir, bundle_dir, index, skin, built_at))
+        .map(|skin| pack_spec(out_dir, bundle_dir, index, catalog, skin, built_at))
         .collect();
     let total = specs.len();
     let done = std::sync::atomic::AtomicUsize::new(0);
     let ok = std::sync::atomic::AtomicUsize::new(0);
-    let started = Instant::now();
     let total_started = progress.started;
     let thread_count = workers.clamp(1, 8).min(total);
     let chunk = (total + thread_count - 1) / thread_count;
@@ -1046,51 +1065,59 @@ fn run_inner(
     // Build into a sibling first: Stop or a crash must leave the working cache
     // untouched. Only a complete manifest is swapped into `GameCache`.
     let work_dir = cache_root.join("GameCache.new");
-    let _ = std::fs::remove_dir_all(&work_dir);
+    // Leftovers from an interrupted run must not block a fresh analysis; the
+    // only input this needs is the game install itself.
+    for stale in ["GameCache.new", "GameCache.old"] {
+        let _ = std::fs::remove_dir_all(cache_root.join(stale));
+    }
     std::fs::create_dir_all(&work_dir)
         .map_err(|e| format!("create {}: {e}", work_dir.display()))?;
-    std::fs::create_dir_all(&final_dir)
-        .map_err(|e| format!("create {}: {e}", final_dir.display()))?;
 
     let built_at = skinpack::local_timestamp();
     let total = Instant::now();
     let mut progress = Progress::new(cache_root.join("GameCache.progress.json"));
     progress.set_files_total(bundles.len());
 
-    progress.start("names");
-    let (index, names_seconds) =
-        build_indexes(
-            bundle_dir,
-            &work_dir,
-            options.limit,
-            options.workers,
-            &built_at,
-            Some(&progress),
-        )?;
-    progress.done("names", names_seconds, serde_json::json!({
+    progress.start("scan");
+    let ScanOutcome { index, bones, seconds: scan_seconds } = build_indexes(
+        bundle_dir,
+        &work_dir,
+        options.limit,
+        options.workers,
+        options.with_bones,
+        &built_at,
+        Some(&progress),
+    )?;
+    progress.done("scan", scan_seconds, serde_json::json!({
         "scanned": index.bundles,
         "meshes": index.meshes.len(),
         "textures": index.textures.len(),
+        "clips": index.clips.len(),
+        "bones": bones.len(),
     }));
 
-    progress.start("clips");
-    progress.done("clips", 0.0, serde_json::json!({"clipped": index.clips.len()}));
-
     progress.start("skins");
+    let skins_started = Instant::now();
     let skins = skins_of(&index);
     write_json(&work_dir.join("skins.json"), &serde_json::json!({
         "format": "exmt-skins-1",
         "built_at": built_at,
         "skins": skins,
     }))?;
-    progress.done("skins", 0.0, serde_json::json!({"skins": skins.len()}));
+    progress.done(
+        "skins",
+        skins_started.elapsed().as_secs_f64(),
+        serde_json::json!({"skins": skins.len()}),
+    );
 
     let mut pack_count = 0usize;
     if options.with_packs {
+        let catalog = pairings::Catalog::new(&index.textures, &index.texture_order);
         pack_count = build_packs(
             &work_dir,
             bundle_dir,
             &index,
+            &catalog,
             &skins,
             texconv,
             options.workers,
@@ -1103,27 +1130,12 @@ fn run_inner(
         }
     }
 
-    let mut bone_count = 0usize;
-    if options.with_bones {
-        progress.start("bones");
-        let started = Instant::now();
-        let (_, names) = build_bones(
-            bundle_dir,
-            &work_dir,
-            options.limit,
-            options.workers,
-            &built_at,
-            Some(&progress),
-        )?;
-        bone_count = names;
-        progress.done("bones", started.elapsed().as_secs_f64(), serde_json::json!({"bones": names}));
-    }
-
+    let bone_count = bones.len();
     let manifest = serde_json::json!({
         "format": FORMAT,
         "built_at": built_at,
-        "bundle_dir": bundle_dir.canonicalize().unwrap_or_else(|_| bundle_dir.to_path_buf()).display().to_string(),
-        "cache_dir": final_dir.canonicalize().unwrap_or_else(|_| final_dir.clone()).display().to_string(),
+        "bundle_dir": display_dir(bundle_dir),
+        "cache_dir": display_dir(&final_dir),
         "bundles": bundles.len(),
         "limited_to": options.limit,
         "workers": options.workers,
@@ -1189,6 +1201,17 @@ mod tests {
                 .push("a".into());
         }
         index
+    }
+
+    #[test]
+    fn cache_paths_have_no_verbatim_prefix() {
+        // canonicalize() returns `\\?\C:\...`; the UI compares the bundle folder
+        // it built from the install path, so the prefix must never be written.
+        let dir = std::env::temp_dir();
+        let shown = display_dir(&dir);
+        assert!(!shown.starts_with(r"\\?\"), "still verbatim: {shown}");
+        assert!(!shown.contains('/'), "separators not unified: {shown}");
+        assert_eq!(display_dir(&dir.join("nope")).ends_with("nope"), true);
     }
 
     #[test]

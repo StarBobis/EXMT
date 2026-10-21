@@ -10,7 +10,7 @@ use std::path::{Path, PathBuf};
 use crate::container::{self, BundleInfo, Node};
 use crate::error::{Error, Result};
 use crate::mesh::{self, Mesh};
-use crate::serialized::SerializedFile;
+use crate::serialized::{ObjectInfo, SerializedFile};
 use crate::texture::Texture;
 use crate::typetree::{self, Value};
 
@@ -36,6 +36,23 @@ pub fn open(path: impl AsRef<Path>) -> Result<OpenedBundle> {
     let mut opened = open_bytes(&raw)?;
     opened.path = path.to_path_buf();
     Ok(opened)
+}
+
+/// Open only the SerializedFile (node 0) of a bundle.
+///
+/// The scan pass needs object names and prefab hierarchies, both of which live
+/// in node 0; sibling `.resS` stream nodes can hold most of the file and are
+/// never touched. This is what keeps a full game scan from reading every byte
+/// of the install twice.
+/// Returns the SerializedFile and the number of bytes actually read.
+pub fn open_serialized(path: impl AsRef<Path>) -> Result<(SerializedFile, u64)> {
+    let path = path.as_ref();
+    let index = container::open_file_index(path)?;
+    let (data, bytes) = index.read_node_with_len(path, 0)?;
+    let serialized = SerializedFile::parse(&data)?;
+    // The header and block table were read too; they are small but the ETA is
+    // more honest when they are counted.
+    Ok((serialized, bytes + index.info.data_offset as u64))
 }
 
 /// The same, from bytes already in memory (bundles inside another archive).
@@ -83,13 +100,49 @@ impl OpenedBundle {
         Ok(out)
     }
 
+    /// First object of `class_id` whose `m_Name` matches, without decoding the
+    /// rest of the bundle.
+    ///
+    /// Name-first type trees are the norm, so this is a handful of string
+    /// comparisons. Objects whose type tree does not lead with `m_Name` are
+    /// decoded and compared in a second pass, which keeps the fast path from
+    /// changing which object wins.
+    fn find_named(&self, class_id: i32, name: &str) -> Option<(i64, &ObjectInfo)> {
+        let mut needs_decode = false;
+        for (path_id, obj) in &self.serialized.objects {
+            let Some(ty) = self.serialized.type_of(obj) else { continue };
+            if ty.class_id != class_id {
+                continue;
+            }
+            match self.serialized.peek_name_matches(obj, name) {
+                Some(true) => return Some((*path_id, obj)),
+                Some(false) => {}
+                None => needs_decode = true,
+            }
+        }
+        if needs_decode {
+            for (path_id, obj) in &self.serialized.objects {
+                let Some(ty) = self.serialized.type_of(obj) else { continue };
+                if ty.class_id != class_id {
+                    continue;
+                }
+                if self.serialized.peek_name_matches(obj, name).is_some() {
+                    continue;
+                }
+                let Ok(value) = typetree::read_value(&self.serialized, obj) else { continue };
+                if value.get("m_Name").and_then(|v| v.as_str()) == Some(name) {
+                    return Some((*path_id, obj));
+                }
+            }
+        }
+        None
+    }
+
     /// First mesh whose `m_Name` matches exactly, with its object path ID.
     pub fn mesh_object(&self, name: &str) -> Result<(i64, Mesh)> {
-        for (path_id, value) in self.values_of(CLASS_MESH)? {
-            let found = mesh::from_value(&value)?;
-            if found.name == name {
-                return Ok((path_id, found));
-            }
+        if let Some((path_id, obj)) = self.find_named(CLASS_MESH, name) {
+            let value = typetree::read_value(&self.serialized, obj)?;
+            return Ok((path_id, mesh::from_value(&value)?));
         }
         Err(Error::Invalid {
             what: "mesh",
@@ -104,11 +157,9 @@ impl OpenedBundle {
 
     /// First Texture2D whose `m_Name` matches exactly, with its object path ID.
     pub fn texture_object(&self, name: &str) -> Result<(i64, Texture)> {
-        for (path_id, value) in self.values_of(CLASS_TEXTURE)? {
-            let found = Texture::from_value(&value)?;
-            if found.name == name {
-                return Ok((path_id, found));
-            }
+        if let Some((path_id, obj)) = self.find_named(CLASS_TEXTURE, name) {
+            let value = typetree::read_value(&self.serialized, obj)?;
+            return Ok((path_id, Texture::from_value(&value)?));
         }
         Err(Error::Invalid {
             what: "texture",

@@ -10,7 +10,7 @@ import { ref } from "vue";
 import { cacheState, dropGameCache, loadGameCache, markSetupDone, setupDone } from "./gamecache";
 import { hydrateRoster } from "./roster";
 import { restoreSelection } from "./selection";
-import { checkGamePath, gamePath, refreshBackup } from "./settings";
+import { checkGamePath, detectGamePath, gamePath, refreshBackup, useGamePath } from "./settings";
 
 export type BootState = "loading" | "setup" | "ready" | "error";
 
@@ -27,6 +27,13 @@ export async function boot(): Promise<void> {
       setupReason.value = "first-run";
       bootState.value = "setup";
       return;
+    }
+    // "Installed the game" is the only requirement the analysis has. Look for
+    // it before asking: a fresh install that was never pointed at by hand still
+    // finds its bundle folder and can build the cache.
+    if (!gamePath.value) {
+      const found = await detectGamePath().catch(() => null);
+      if (found) await useGamePath(found);
     }
     if (!gamePath.value) {
       setupReason.value = "no-game";

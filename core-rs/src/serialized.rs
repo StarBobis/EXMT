@@ -472,6 +472,13 @@ impl SerializedFile {
     /// mesh/texture payloads. Returns `None` when the type tree does not start
     /// that way or the string does not fit.
     pub fn peek_name(&self, obj: &ObjectInfo) -> Option<String> {
+        let data = self.peek_name_bytes(obj)?;
+        std::str::from_utf8(data).ok().map(str::to_string)
+    }
+
+    /// The raw bytes of `m_Name` without allocating, when the type tree starts
+    /// with that field (the normal layout for Mesh and Texture2D).
+    fn peek_name_bytes<'a>(&'a self, obj: &ObjectInfo) -> Option<&'a [u8]> {
         let ty = self.type_of(obj)?;
         let first = ty.nodes.get(1)?;
         if first.level != 1 || first.name != "m_Name" || first.type_name != "string" {
@@ -482,14 +489,26 @@ impl SerializedFile {
             return None;
         }
         let len = i32::from_le_bytes([data[0], data[1], data[2], data[3]]);
-        if len < 0 || 4 + len as usize > data.len() {
+        if len <= 0 || 4 + len as usize > data.len() {
             return None;
         }
-        if len == 0 {
+        Some(&data[4..4 + len as usize])
+    }
+
+    /// Compare `m_Name` with `name` without decoding the object.
+    ///
+    /// Returns `None` when the type tree does not start with `m_Name`, so the
+    /// caller knows it has to fall back to a full decode. Looking objects up by
+    /// name this way turns "decode every texture in the bundle" into a few
+    /// string comparisons; a 3,000-texture bundle is otherwise parsed in full
+    /// once per wanted texture.
+    pub fn peek_name_matches(&self, obj: &ObjectInfo, name: &str) -> Option<bool> {
+        let ty = self.type_of(obj)?;
+        let first = ty.nodes.get(1)?;
+        if first.level != 1 || first.name != "m_Name" || first.type_name != "string" {
             return None;
         }
-        let text = std::str::from_utf8(&data[4..4 + len as usize]).ok()?;
-        Some(text.to_string())
+        Some(self.peek_name_bytes(obj) == Some(name.as_bytes()))
     }
 
     /// Rebuild this file with some object payloads replaced.
@@ -501,8 +520,8 @@ impl SerializedFile {
     /// object keeps its exact payload bytes.
     ///
     /// v22 files are refused: the header layout for that version differs from
-    /// the one this reader implements, and writing it untested would be worse
-    /// than falling back to Python.
+    /// the one this reader implements, and writing it untested would silently
+    /// corrupt the bundle.
     pub fn rebuild(
         &self,
         replacements: &std::collections::BTreeMap<i64, Vec<u8>>,

@@ -16,7 +16,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::atomic::{AtomicU64, Ordering};
 
-use crate::dds;
+use crate::dds::{self, DdsFormat};
 use crate::error::{Error, Result};
 
 /// Wrapper around one `texconv.exe`.
@@ -168,6 +168,92 @@ impl Texconv {
             });
         }
         Ok(png)
+    }
+
+    /// Convert upright RGBA8 images to PNG, batching many images per process.
+    ///
+    /// A texconv start-up costs tens of milliseconds, which is most of a
+    /// 160x160 thumbnail. One call carries a whole batch; a failed batch is
+    /// retried image by image so one bad texture cannot fail the skin.
+    ///
+    /// Results are positionally aligned with `images`; a failure is reported on
+    /// its own row instead of aborting the batch.
+    pub fn rgba_to_png(&self, images: &[(u32, u32, Vec<u8>)]) -> Vec<Result<Vec<u8>>> {
+        const BATCH: usize = 32;
+        let mut rows: Vec<Option<Result<Vec<u8>>>> = (0..images.len()).map(|_| None).collect();
+        let mut start = 0;
+        while start < images.len() {
+            let end = (start + BATCH).min(images.len());
+            match self.rgba_batch(&images[start..end]) {
+                Ok(pngs) => {
+                    for (offset, png) in pngs.into_iter().enumerate() {
+                        rows[start + offset] = Some(Ok(png));
+                    }
+                }
+                Err(_) => {
+                    for index in start..end {
+                        rows[index] = Some(
+                            self.rgba_batch(&images[index..=index])
+                                .map(|mut pngs| pngs.remove(0)),
+                        );
+                    }
+                }
+            }
+            start = end;
+        }
+        rows.into_iter()
+            .map(|row| {
+                row.unwrap_or_else(|| {
+                    Err(Error::Invalid {
+                        what: "rgba to png",
+                        detail: "no result produced".into(),
+                    })
+                })
+            })
+            .collect()
+    }
+
+    fn rgba_batch(&self, images: &[(u32, u32, Vec<u8>)]) -> Result<Vec<Vec<u8>>> {
+        let dir = TempDir::new()?;
+        let mut args: Vec<String> = vec![
+            "-nologo".into(),
+            "-y".into(),
+            "-f".into(),
+            "R8G8B8A8_UNORM".into(),
+            "-ft".into(),
+            "png".into(),
+            "-m".into(),
+            "1".into(),
+            "-o".into(),
+            dir.out_arg(),
+        ];
+        let mut names = Vec::with_capacity(images.len());
+        for (index, (width, height, rgba)) in images.iter().enumerate() {
+            let dds = dds::build(*width, *height, DdsFormat::Rgba32, rgba)?;
+            let stem = format!("in{index}");
+            let src = dir.path.join(format!("{stem}.dds"));
+            std::fs::write(&src, &dds)?;
+            names.push((format!("{stem}.png"), *width, *height));
+            args.push(src_arg(&src));
+        }
+        self.run(&args)?;
+        let mut out = Vec::with_capacity(names.len());
+        for (name, width, height) in names {
+            let png = std::fs::read(dir.path.join("out").join(&name))?;
+            let got = png_size(&png).ok_or(Error::Invalid {
+                what: "texconv png",
+                detail: "missing IHDR".into(),
+            })?;
+            if got != (width, height) {
+                return Err(Error::SizeMismatch {
+                    what: "texconv png size",
+                    got: (got.0 * got.1) as usize,
+                    want: (width * height) as usize,
+                });
+            }
+            out.push(png);
+        }
+        Ok(out)
     }
 
     /// Encode a PNG into the Unity payload layout for `unity_format`.
@@ -396,6 +482,30 @@ mod tests {
         assert_eq!(payload.len(), 56);
         let back = tool.decode_rgba(10, 8, 8, &payload[..32]).unwrap();
         assert_eq!(back.len(), 8 * 8 * 4);
+    }
+
+    #[test]
+    fn converts_rgba_images_in_one_batch() {
+        let Some(tool) = texconv() else { return };
+        let red = (4u32, 4u32, [255u8, 0, 0, 255].repeat(16));
+        let green = (2u32, 3u32, [0u8, 255, 0, 255].repeat(6));
+        let pngs = tool.rgba_to_png(&[red, green]);
+        assert_eq!(pngs.len(), 2);
+        assert_eq!(png_size(&pngs[0].as_ref().unwrap()), Some((4, 4)));
+        assert_eq!(png_size(&pngs[1].as_ref().unwrap()), Some((2, 3)));
+    }
+
+    #[test]
+    fn a_bad_image_does_not_sink_the_batch() {
+        let Some(tool) = texconv() else { return };
+        let good = (4u32, 4u32, vec![0u8, 0, 255, 255].repeat(16));
+        let bad = (4u32, 4u32, vec![0u8; 12]); // wrong payload length
+        let pngs = tool.rgba_to_png(&[good, bad.clone()]);
+        assert_eq!(pngs.len(), 2);
+        assert_eq!(png_size(&pngs[0].as_ref().unwrap()), Some((4, 4)));
+        assert!(pngs[1].is_err(), "wrong-sized input must report its own error");
+        let pngs = tool.rgba_to_png(&[bad]);
+        assert!(pngs[0].is_err());
     }
 
     #[test]

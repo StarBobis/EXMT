@@ -336,6 +336,38 @@ impl Texture {
         Ok(raw)
     }
 
+    /// Decode mip 0 natively and box-downscale it to fit `limit`.
+    ///
+    /// Returns `None` for formats the native decoder must not take over:
+    /// RGBA32 (its stored order is BGRA, which texconv already decodes
+    /// correctly) and BC4/BC5 (mask channels, verified only for colour
+    /// formats). The caller falls back to [`Texture::decode_png`] in that case.
+    ///
+    /// For BC1/BC3/BC7 the native decoder matches texconv exactly (BC7) or to
+    /// within one code value (BC1/BC3), while skipping the tool's process
+    /// start-up and block-decode cost.
+    pub fn decode_rgba_resized(
+        &self,
+        nodes: &[Node],
+        limit: Option<usize>,
+    ) -> Option<(u32, u32, Vec<u8>)> {
+        if !matches!(self.format, 10 | 12 | 25) || self.width == 0 || self.height == 0 {
+            return None;
+        }
+        format(self.format)?;
+        let rgba = self.decode_rgba(nodes).ok()?;
+        let (w, h) = match limit.and_then(|l| thumbnail_size(self.width, self.height, l)) {
+            Some(size) => size,
+            None => (self.width, self.height),
+        };
+        let out = if (w, h) == (self.width, self.height) {
+            rgba
+        } else {
+            resize_rgba(&rgba, self.width, self.height, w, h)
+        };
+        Some((w as u32, h as u32, out))
+    }
+
     /// Decode mip 0 to an upright PNG through texconv, optionally downscaled.
     ///
     /// Returns `(width, height, png bytes)` of the produced image. When the
@@ -375,6 +407,48 @@ impl Texture {
         let (w, h) = target.unwrap_or((self.width as u32, self.height as u32));
         Ok((w, h, png))
     }
+}
+
+/// Area-average an upright RGBA8 image down to `dw x dh`.
+///
+/// Only downscaling is supported: callers pass a target from
+/// [`thumbnail_size`], which never grows an image. Each destination pixel is
+/// the mean of the source pixels it covers, which keeps the result stable under
+/// the sub-pixel shifts the game's atlases have.
+pub fn resize_rgba(src: &[u8], sw: usize, sh: usize, dw: usize, dh: usize) -> Vec<u8> {
+    debug_assert_eq!(src.len(), sw * sh * 4);
+    if sw == dw && sh == dh {
+        return src.to_vec();
+    }
+    let mut out = vec![0u8; dw * dh * 4];
+    for dy in 0..dh {
+        let y0 = dy * sh / dh;
+        let y1 = (((dy + 1) * sh) / dh).clamp(y0 + 1, sh);
+        for dx in 0..dw {
+            let x0 = dx * sw / dw;
+            let x1 = (((dx + 1) * sw) / dw).clamp(x0 + 1, sw);
+            let mut sums = [0u32; 4];
+            let mut samples = 0u32;
+            for y in y0..y1 {
+                let row = y * sw;
+                for x in x0..x1 {
+                    let i = (row + x) * 4;
+                    sums[0] += src[i] as u32;
+                    sums[1] += src[i + 1] as u32;
+                    sums[2] += src[i + 2] as u32;
+                    sums[3] += src[i + 3] as u32;
+                    samples += 1;
+                }
+            }
+            let o = (dy * dw + dx) * 4;
+            let n = samples.max(1);
+            out[o] = (sums[0] / n) as u8;
+            out[o + 1] = (sums[1] / n) as u8;
+            out[o + 2] = (sums[2] / n) as u8;
+            out[o + 3] = (sums[3] / n) as u8;
+        }
+    }
+    out
 }
 
 /// Rewrite BGRA rows stored bottom-up into upright RGBA.
@@ -589,6 +663,45 @@ mod tests {
             data,
             flags: 0,
         }
+    }
+
+    #[test]
+    fn resize_rgba_averages_source_pixels() {
+        // 4x4: left half red, right half blue; a 2x2 result keeps one pixel of
+        // each colour per row.
+        let mut src = vec![0u8; 4 * 4 * 4];
+        for y in 0..4 {
+            for x in 0..4 {
+                let i = (y * 4 + x) * 4;
+                if x < 2 {
+                    src[i] = 255;
+                } else {
+                    src[i + 2] = 255;
+                }
+                src[i + 3] = 255;
+            }
+        }
+        let out = resize_rgba(&src, 4, 4, 2, 2);
+        assert_eq!(out.len(), 2 * 2 * 4);
+        assert_eq!(&out[0..4], &[255, 0, 0, 255]);
+        assert_eq!(&out[4..8], &[0, 0, 255, 255]);
+        assert_eq!(&out[8..12], &[255, 0, 0, 255]);
+        assert_eq!(&out[12..16], &[0, 0, 255, 255]);
+        // No copy when the size already matches.
+        assert_eq!(resize_rgba(&src, 4, 4, 4, 4), src);
+    }
+
+    #[test]
+    fn native_resize_only_owns_colour_formats() {
+        // RGBA32 must keep the texconv path: its stored order is BGRA.
+        let texture = Texture::from_value(&tree(4, 4, 4, 1, &[0u8; 64], None)).unwrap();
+        assert!(texture.decode_rgba_resized(&[], Some(2)).is_none());
+        // BC7 is decoded natively and resized without texconv.
+        let payload = [0x40u8; 16];
+        let texture = Texture::from_value(&tree(4, 4, 25, 1, &payload, None)).unwrap();
+        let (w, h, rgba) = texture.decode_rgba_resized(&[], Some(2)).expect("native");
+        assert_eq!((w, h), (2, 2));
+        assert_eq!(rgba.len(), 2 * 2 * 4);
     }
 
     #[test]

@@ -24,6 +24,16 @@ serde_json = "1"
 # of this repo and ships with the app.
 exmt-core = { path = "../core-rs" }
 
+# `tauri dev` is how the app is used day to day, and the analysis pass is
+# parsing-bound (LZ4 + type trees over tens of GB). At opt-level 0 that work is
+# several times slower than it needs to be, so the asset core stays optimized
+# in debug builds while the shell keeps its debug info.
+[profile.dev]
+opt-level = 1
+
+[profile.dev.package.exmt-core]
+opt-level = 3
+
 # Read the optimization guideline for more details: https://tauri.app/concept/size/#cargo-configuration
 [profile.release]
 codegen-units = 1

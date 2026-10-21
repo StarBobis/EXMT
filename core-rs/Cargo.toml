@@ -12,3 +12,9 @@ path = "src/lib.rs"
 # Intentionally empty: the asset core uses only the standard library. Tauri's
 # own dependencies live in src-tauri and are not part of this crate.
 [dependencies]
+
+# The test suite parses real bundles; opt-level 0 makes the LZ4 and type-tree
+# work several times slower. This is a separate workspace from src-tauri, so
+# the setting has to be repeated here.
+[profile.dev]
+opt-level = 1
