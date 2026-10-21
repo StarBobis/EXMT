@@ -27,6 +27,7 @@ ship without upstream churn.
 | `skinpack` command in Rust | done | `../src-tauri/src/skinpack.rs` |
 | `modpack` texture path | done | `../src-tauri/src/modpack.rs` |
 | `.exmtmesh` mesh patches | done (same cook; other cooks fall back) | `../src-tauri/src/exmtmesh.rs`, `src/mesh.rs` |
+| preview `thumbs` / `skinfo` | done | `../src-tauri/src/preview.rs` |
 | `analyze` (GameCache) | **not started** (still Python) | — |
 
 `142 tests`, all green. See "Verification" below for what they actually prove.
@@ -286,7 +287,8 @@ Each of these cost a debugging round; all are now pinned by tests.
    produces `manifest.json`, `names.json`, `skins.json` and the skin packs. This
    is the last large Python-owned command.
 2. **Retire the Python core** once `analyze` is ported; until then `run_core`
-   falls back to it for `analyze` and for mesh patches whose cook differs.
+   falls back to it for `analyze`, `workspace`, `backup`/`restore` and mesh
+   patches whose cook differs.
 3. Keep `modpack`'s Python fallback as a safety net for exotic meshes
    (compressed meshes, bone remapping) even after `analyze` moves.
 

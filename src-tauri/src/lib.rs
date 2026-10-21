@@ -7,11 +7,13 @@
 
 pub mod exmtmesh;
 pub mod modpack;
+pub mod preview;
 pub mod skinpack;
 
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
+use exmt_core::asset;
 use exmt_core::texconv::Texconv;
 use serde::Serialize;
 use tauri::{LogicalSize, Manager, PhysicalPosition, PhysicalSize};
@@ -113,6 +115,22 @@ fn run_rust_core(app: &tauri::AppHandle, args: &[String]) -> Option<CoreOutput> 
                 Some(CoreOutput { code: 1, stdout: String::new(), stderr: e })
             }
         },
+        Some("skinfo") => {
+            let bundle = asset::open(&args[1]).ok()?;
+            Some(match preview::skinfo(&bundle) {
+                Ok(stdout) => CoreOutput { code: 0, stdout, stderr: String::new() },
+                Err(e) => CoreOutput { code: 1, stdout: String::new(), stderr: e },
+            })
+        }
+        Some("thumbs") => {
+            let tool = texconv_for(app)?;
+            let size = args.get(2)?.parse::<usize>().ok()?;
+            let bundle = asset::open(&args[1]).ok()?;
+            Some(match preview::thumbs(&bundle, size, &args[3..], &tool) {
+                Ok(stdout) => CoreOutput { code: 0, stdout, stderr: String::new() },
+                Err(e) => CoreOutput { code: 1, stdout: String::new(), stderr: e },
+            })
+        }
         _ => None,
     }
 }

@@ -30,10 +30,11 @@
 | modpack 贴图路径 | `src-tauri/src/modpack.rs` | 完成，Tauri 已直接调用 |
 | NPZ 读取（ZIP + DEFLATE + `.npy`） | `inflate.rs` / `zip.rs` / `npy.rs` | 完成 |
 | modpack 网格补丁（`.exmtmesh`） | `mesh.rs` + `src-tauri/src/exmtmesh.rs` | 完成（同 cook）；异 cook 回退 Python |
+| 预览 `thumbs` / `skinfo` | `src-tauri/src/preview.rs` | 完成，贴图网格走 texconv |
 | analyze（GameCache） | — | 未开始（仍 Python） |
 
-142 个测试。`cargo test` 在 `core-rs/` 下跑；`src-tauri` 另有 9 个单测和 3 个可选
-端到端测试（skinpack、modpack、exmtmesh）。`texconv.exe`（966 KB，MIT，许可证同目录）随仓库放在
+142 个测试。`cargo test` 在 `core-rs/` 下跑；`src-tauri` 另有 10 个单测和 5 个可选
+端到端测试（skinpack、modpack、exmtmesh、preview×2）。`texconv.exe`（966 KB，MIT，许可证同目录）随仓库放在
 `src-tauri/bin/`，并由 `tauri.conf.json` 的 `bundle.resources` 打进安装包；`EXMT_TEXCONV`
 可覆盖路径，找不到时 `skinpack` 回退 Python。
 
