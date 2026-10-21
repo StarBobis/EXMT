@@ -53,6 +53,12 @@ Step 'core smoke' {
   } finally { Pop-Location }
 }
 
+Step 'core tests' {
+  # Contract tests for the self-hosted readers; no third-party packages needed.
+  Push-Location (Join-Path $root 'core')
+  try { & $py -m unittest discover -s tests -q } finally { Pop-Location }
+}
+
 Step 'docs build' {
   $doc = 'C:\Dev\EXMTDoc'
   if (Test-Path $doc) {
