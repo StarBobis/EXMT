@@ -104,7 +104,11 @@ class _Reader:
 
 @dataclass
 class TypeNode:
-    """One entry of a type tree. Children follow the parent at level + 1."""
+    """One entry of a type tree. Children follow the parent at level + 1.
+
+    `nodes` in a SerializedType is the flat pre-order list; `children` is filled
+    in by `attach_children` and is what the value reader walks.
+    """
 
     version: int
     level: int
@@ -115,6 +119,7 @@ class TypeNode:
     index: int
     meta_flag: int
     ref_type_hash: int = 0
+    children: list["TypeNode"] = field(default_factory=list)
 
     @property
     def is_array(self) -> bool:
