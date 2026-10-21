@@ -1,10 +1,6 @@
-/** Bridge to the Python core (`core/exmt_core`) and the game's bundle folder. */
+/** Bridge to the Rust asset core. */
 import { invoke } from "@tauri-apps/api/core";
 import { gameBundleDir } from "./settings";
-
-export const DEFAULT_PYTHON =
-  "C:\\Users\\Administrator\\.dsh\\dsh-runtimes\\dsh-primary-runtime\\dependencies\\python\\python.exe";
-export const DEFAULT_CORE = "C:\\Dev\\EXMT\\core";
 
 /** Bundle folder of the game install chosen in Settings (empty until then). */
 export function gameBundles(): string {
@@ -17,12 +13,8 @@ export interface CoreOutput {
   stderr: string;
 }
 
-export async function runCore(
-  args: string[],
-  python: string = DEFAULT_PYTHON,
-  coreDir: string = DEFAULT_CORE,
-): Promise<CoreOutput> {
-  return invoke<CoreOutput>("run_core", { python, coreDir, args });
+export async function runCore(args: string[]): Promise<CoreOutput> {
+  return invoke<CoreOutput>("run_core", { args });
 }
 
 export function bundlePath(hash: string): string {

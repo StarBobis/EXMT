@@ -2,6 +2,9 @@
 
 > 覆盖 UnityFS 容器 → 网格 / 骨骼 / 贴图 / 动画 → Mod 打包 → Blender 插件 → 工作空间。
 > 只写链路、字段、命令、阈值、坑与修法，可脱离本项目复用。
+>
+> **2026-10 起 Python core 已删除**：本页的 `python -m exmt_core …` 是历史命令，
+> 运行时全部在 Rust（`core-rs/` + `src-tauri/src/`）。字段、阈值与坑仍然有效。
 
 ## 1. 链路总览
 

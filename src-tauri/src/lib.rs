@@ -1,21 +1,20 @@
 //! EXMT Modbox — Tauri backend.
 //!
 //! The shell is thin: window chrome is drawn by the frontend. Asset work runs
-//! in-process through `exmt-core` where the Rust pipeline is complete
-//! (`skinpack` today), and everything else still goes through the Python core
-//! (`core/exmt_core`) until it is ported.
+//! in-process through `exmt-core`; there is no Python runtime to fall back to.
+//! Every command the UI sends must be implemented by `run_core_inner`.
 
 pub mod analyze;
 pub mod exmtmesh;
 pub mod interchange;
 pub mod modpack;
+pub mod pairings;
 pub mod preview;
 pub mod skinpack;
 pub mod store;
 pub mod workspace;
 
 use std::path::{Path, PathBuf};
-use std::process::Command;
 
 use exmt_core::asset;
 use exmt_core::texconv::Texconv;
@@ -39,35 +38,6 @@ struct CoreOutput {
     code: i32,
     stdout: String,
     stderr: String,
-}
-
-/// Run `python -m exmt_core <args…>` inside the core directory.
-///
-/// The GUI never shells out to arbitrary commands: the caller selects a Python
-/// interpreter and a core directory (both explicit), and the argument vector is
-/// passed through without a shell, so nothing is re-interpreted.
-fn run_core_blocking(
-    python: String,
-    core_dir: String,
-    args: Vec<String>,
-) -> Result<CoreOutput, String> {
-    if !std::path::Path::new(&core_dir).is_dir() {
-        return Err(format!("core directory not found: {core_dir}"));
-    }
-    let mut cmd = Command::new(&python);
-    cmd.arg("-m").arg("exmt_core").args(&args).current_dir(&core_dir);
-    #[cfg(windows)]
-    {
-        use std::os::windows::process::CommandExt;
-        const CREATE_NO_WINDOW: u32 = 0x0800_0000;
-        cmd.creation_flags(CREATE_NO_WINDOW);
-    }
-    let out = cmd.output().map_err(|e| format!("failed to start python: {e}"))?;
-    Ok(CoreOutput {
-        code: out.status.code().unwrap_or(-1),
-        stdout: String::from_utf8_lossy(&out.stdout).into_owned(),
-        stderr: String::from_utf8_lossy(&out.stderr).into_owned(),
-    })
 }
 
 /// Locate `texconv.exe`: env override, bundled resource, then the dev tree.
@@ -96,9 +66,9 @@ fn texconv_for(app: &tauri::AppHandle) -> Option<Texconv> {
 
 /// Commands the Rust core implements end to end.
 ///
-/// Returning `None` falls back to the Python process, which keeps the app
-/// working on a checkout where `texconv.exe` is missing.
-fn run_rust_core(app: &tauri::AppHandle, args: &[String]) -> Option<CoreOutput> {
+/// Returning `None` means the command is unknown (or an argument is missing);
+/// the caller reports that as an error instead of looking for another runtime.
+fn run_core_inner(app: &tauri::AppHandle, args: &[String]) -> Option<CoreOutput> {
     let spec = args.get(1)?.clone();
     match args.first().map(String::as_str) {
         Some("skinpack") => {
@@ -136,6 +106,41 @@ fn run_rust_core(app: &tauri::AppHandle, args: &[String]) -> Option<CoreOutput> 
                 Err(e) => CoreOutput { code: 1, stdout: String::new(), stderr: e },
             })
         }
+        Some("analyze") => {
+            let bundle_dir = args.get(1)?;
+            let cache_dir = args.get(2)?;
+            let workers = args
+                .get(3)
+                .and_then(|value| value.parse::<usize>().ok())
+                .filter(|value| *value > 0)
+                .unwrap_or(6);
+            let limit = args
+                .get(4)
+                .and_then(|value| value.parse::<usize>().ok())
+                .filter(|value| *value > 0);
+            let options = analyze::Options {
+                workers,
+                limit,
+                with_packs: true,
+                with_bones: true,
+            };
+            let Some(tool) = texconv_for(app) else {
+                return Some(CoreOutput {
+                    code: 1,
+                    stdout: String::new(),
+                    stderr: "texconv.exe not found; cannot build skin packs".into(),
+                });
+            };
+            Some(match analyze::run(
+                Path::new(bundle_dir),
+                Path::new(cache_dir),
+                &options,
+                &tool,
+            ) {
+                Ok(stdout) => CoreOutput { code: 0, stdout, stderr: String::new() },
+                Err(e) => CoreOutput { code: 1, stdout: String::new(), stderr: e },
+            })
+        }
         Some("workspace") => {
             let outdir = args.get(1)?;
             let spec_path = args.get(2)?;
@@ -155,27 +160,19 @@ fn run_rust_core(app: &tauri::AppHandle, args: &[String]) -> Option<CoreOutput> 
 /// looks frozen while the core parses bundles; `spawn_blocking` moves the work
 /// to a worker thread instead.
 #[tauri::command]
-async fn run_core(
-    app: tauri::AppHandle,
-    python: String,
-    core_dir: String,
-    args: Vec<String>,
-) -> Result<CoreOutput, String> {
-    // Commands with a Rust implementation run here; everything else (and any
-    // spec Rust deliberately declines) falls through to the Python core.
+async fn run_core(app: tauri::AppHandle, args: Vec<String>) -> Result<CoreOutput, String> {
     let rust = {
         let app = app.clone();
         let args = args.clone();
-        tauri::async_runtime::spawn_blocking(move || run_rust_core(&app, &args))
+        tauri::async_runtime::spawn_blocking(move || run_core_inner(&app, &args))
             .await
             .map_err(|e| format!("core task failed: {e}"))?
     };
-    if let Some(out) = rust {
-        return Ok(out);
-    }
-    tauri::async_runtime::spawn_blocking(move || run_core_blocking(python, core_dir, args))
-        .await
-        .map_err(|e| format!("core task failed: {e}"))?
+    Ok(rust.unwrap_or_else(|| CoreOutput {
+        code: 1,
+        stdout: String::new(),
+        stderr: format!("unsupported core command: {}", args.join(" ")),
+    }))
 }
 
 /// Reveal the main window once web content is ready.

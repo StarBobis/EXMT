@@ -7,8 +7,8 @@
 ## 何时看这里
 
 - 要改 `core-rs/` 下任何模块
-- 要把 Tauri 的 `run_core`（当前 spawn Python）换成直接调用
-- 要判断某层是否已可信、能否删对应 Python 实现
+- 要改 Tauri `run_core` 的命令分发（现在只调用 Rust，没有 Python 回退）
+- 要判断某层是否已可信、能否删历史实现
 
 ## 现在的状态
 
@@ -34,20 +34,20 @@
 | 预览 `thumbs` / `skinfo` | `src-tauri/src/preview.rs` | 完成，贴图网格走 texconv |
 | `backup` / `restore` / `backup-size` | `src-tauri/src/store.rs` | 完成，Tauri 已直接调用 |
 | `workspace`（Blender 导出） | `src-tauri/src/workspace.rs` + `skeleton.rs` + `anim.rs` | 完成（网格/贴图/骨架/动画） |
-| analyze（GameCache） | `src-tauri/src/analyze.rs` | 索引/皮肤/骨骼完成；packs 待迁 |
+| analyze（GameCache） | `src-tauri/src/analyze.rs` + `pairings.rs` | 完成：索引/皮肤/249 包/骨骼 |
 
-156 个测试。`cargo test` 在 `core-rs/` 下跑；`src-tauri` 另有 21 个单测和 6 个可选
-端到端测试（skinpack、modpack、exmtmesh、preview×2、workspace）。`texconv.exe`（966 KB，MIT，许可证同目录）随仓库放在
+156 个测试。`cargo test` 在 `core-rs/` 下跑；`src-tauri` 另有 27 个单测和 7 个可选
+端到端测试（skinpack、modpack、exmtmesh、preview×2、workspace、analyze）。`texconv.exe`（966 KB，MIT，许可证同目录）随仓库放在
 `src-tauri/bin/`，并由 `tauri.conf.json` 的 `bundle.resources` 打进安装包；`EXMT_TEXCONV`
-可覆盖路径，找不到时 `skinpack` 回退 Python。
+可覆盖路径，找不到时图像任务直接报错（没有 Python 回退）。
 
 真实数据默认路径：GF2 安装在 `D:\Program Files\GF2Exilium\GF2 Game\GF2_Exilium_Data\LocalCache\Data\AssetBundles_Windows`，
 Vepley 网格包 `872f1c4f93f07d6ba65b103ae5d1a337.bundle`、贴图包
-`287dc73c9302244853e6d72689dd51bb.bundle`。`tests/support/mod.rs` 与
-`core/tests/sample_bundle.py` 都按 `EXMT_GF2_BUNDLE` → 安装目录 → 旧缓存 的顺序解析，
-所以本机 `cargo test` 与 Python unittest 会真跑而不是 skip。
+`287dc73c9302244853e6d72689dd51bb.bundle`。`tests/support/mod.rs` 按
+`EXMT_GF2_BUNDLE` → 安装目录 → 旧缓存 的顺序解析，所以本机 `cargo test` 会真跑而不是 skip。
+Python core 与 Python 测试已删除。
 
-贴图验收用的 oracle 分两条：
+贴图验收的历史 oracle（Python 已删，以下结果用于说明当前实现的可信度）：
 - **原生解码**（`bc.rs`，工具/差分用）对 `texture2ddecoder` 1.0.6：7,508 个任意 BC 块
   逐字节一致，283 个真实贴图的 RGBA 哈希一致。**按规范"修正"BC1 三色模式的透明黑
   会直接让差分变红**——这里要的是与 Python 输出相同。
@@ -57,11 +57,10 @@ Vepley 网格包 `872f1c4f93f07d6ba65b103ae5d1a337.bundle`、贴图包
 
 ## 三条硬规矩
 
-1. **样例缺失时测试必须 skip 而不是 fail。** 四个 `tests/real_*.rs` 硬编码
-   `C:\DevCache\gf2\backup\872f1c4f93f07d6ba65b103ae5d1a337.bundle.orig`，
-   该文件不存在时打印 skip 行并 return。换机器后测试仍应全绿。texconv 相关测试
+1. **样例缺失时测试必须 skip 而不是 fail。** 四个 `tests/real_*.rs` 先找
+   `EXMT_GF2_BUNDLE`，再找安装目录，最后找旧缓存；不存在时打印 skip 行并 return。换机器后测试仍应全绿。texconv 相关测试
    找不到 `texconv.exe` 时同样 skip；`skinpack_real` 由 `EXMT_SKINPACK_SPEC` 开闸。
-2. **验收值必须来自独立实现。** Python 核心是对照 oracle，不是被测对象。
+2. **验收值必须来自独立实现。** 历史 Python 核心曾是对照 oracle；删除前它建立的期望值保留在测试里。
    导出工具：`examples/dump_typetree`、`examples/dump_values`、
    `examples/rebuild_bundle`。做法是两边导同一份文本投影再 diff，
    不要拿自己产出的值当期望值。
@@ -100,7 +99,7 @@ Vepley 网格包 `872f1c4f93f07d6ba65b103ae5d1a337.bundle`、贴图包
   对象 payload 按 data 段起点做 8 字节对齐，`byte_start` 相对 `data_offset`。
 - 类型表**不要重新编码**：字符串引用混用 type 内偏移和 Unity 内置名表索引，直接原样拷贝
   解析到的字节区间才是安全的；外部表、引用类型表同理。
-- v22 头布局与 v17–v21 不同，手头没有 v22 样例，`rebuild` 直接拒绝 v22 并回退 Python。
+- v22 头布局与 v17–v21 不同，手头没有 v22 样例，`rebuild` 直接拒绝 v22（读取仍可用）。
 - `np.savez_compressed` 写的是 data descriptor：本地头里的 size 是 `0xffffffff`，
   必须从**中央目录**读真实大小与偏移。
 - `.npy` 字符串是 **UTF-32LE**（`<U54` = 54 个码点），不是 UTF-8；头是 Python dict

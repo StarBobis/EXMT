@@ -2,9 +2,9 @@
  * Models page data: meshes of a skin, its textures, preview geometry and the
  * workspace export that the Blender add-on imports.
  *
- * Everything here shells out to `python -m exmt_core` (see `lib/core.ts`) except
- * the texture index, which is cached in the cache folder because building it
- * walks every bundle once (~10 s).
+ * Everything here goes through the Rust asset core (`lib/core.ts`); the texture
+ * index is cached in the cache folder because building it walks every bundle
+ * once (~10 s).
  */
 import { exists, mkdir, readDir, readTextFile, remove, writeTextFile } from "@tauri-apps/plugin-fs";
 import { appDataDir, join } from "@tauri-apps/api/path";

@@ -2,8 +2,6 @@
 # Fails fast on any step; prints a one-line summary per step.
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
-$py = 'C:\Users\Administrator\.dsh\dsh-runtimes\dsh-primary-runtime\dependencies\python\python.exe'
-if (-not (Test-Path $py)) { $py = 'python' }
 $cargo = Join-Path $env:USERPROFILE '.cargo\bin\cargo.exe'
 if (-not (Test-Path $cargo)) {
   $found = Get-Command cargo -ErrorAction SilentlyContinue
@@ -61,33 +59,13 @@ Step 'core-rs tests' {
   }
 }
 
-Step 'core syntax' {
-  & $py -m compileall -q (Join-Path $root 'core\exmt_core')
-}
-
-Step 'core smoke' {
-  Push-Location (Join-Path $root 'core')
-  try {
-    $candidates = @(
-      $env:EXMT_GF2_BUNDLE,
-      'D:\Program Files\GF2Exilium\GF2 Game\GF2_Exilium_Data\LocalCache\Data\AssetBundles_Windows\872f1c4f93f07d6ba65b103ae5d1a337.bundle',
-      'C:\DevCache\gf2\backup\872f1c4f93f07d6ba65b103ae5d1a337.bundle.orig'
-    )
-    $bundle = $candidates | Where-Object { $_ -and (Test-Path $_) } | Select-Object -First 1
-    if ($bundle) {
-      $out = & $py -m exmt_core meshes $bundle
-      if ($LASTEXITCODE -ne 0) { throw "meshes failed" }
-      if (-not ($out -match 'c_Vepley')) { throw "unexpected meshes output" }
-    } else {
-      Write-Host "skip: sample bundle missing"
-    }
-  } finally { Pop-Location }
-}
-
-Step 'core tests' {
-  # Contract tests for the self-hosted readers; no third-party packages needed.
-  Push-Location (Join-Path $root 'core')
-  try { & $py -m unittest discover -s tests -q } finally { Pop-Location }
+Step 'tauri tests' {
+  if (-not $cargo) {
+    Write-Host 'skip: cargo not found'
+  } else {
+    Push-Location (Join-Path $root 'src-tauri')
+    try { & $cargo test --quiet } finally { Pop-Location }
+  }
 }
 
 Step 'docs build' {

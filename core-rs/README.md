@@ -4,9 +4,10 @@ Self-hosted Unity asset pipeline for EXMT Modbox. Parses and writes the formats
 GF2's bundles use, using **only the Rust standard library** — no third-party
 crates, no Python at runtime.
 
-This exists because the Python core under `../core` depends on UnityPy, numpy,
-Pillow, `lz4` and `texture2ddecoder`. The goal is a pipeline we can read, fix and
-ship without upstream churn.
+The app used to ship a Python core built on UnityPy, numpy, Pillow, `lz4` and
+`texture2ddecoder`. That core (and its runtime) is gone: every command the UI
+sends is implemented here or in `../src-tauri`, so an install needs only the app
+and `texconv.exe`.
 
 ## Current state
 
@@ -31,9 +32,9 @@ ship without upstream churn.
 | preview `thumbs` / `skinfo` | done | `../src-tauri/src/preview.rs` |
 | `backup` / `restore` / `backup-size` | done | `../src-tauri/src/store.rs` |
 | `workspace` export (meshes, textures, skeleton, clips) | done | `../src-tauri/src/workspace.rs`, `src/skeleton.rs`, `src/anim.rs` |
-| `analyze` (GameCache) | index/skins/bones done; packs pending | `../src-tauri/src/analyze.rs` |
+| `analyze` (GameCache) | done (names, clips, skins, packs, bones) | `../src-tauri/src/analyze.rs` |
 
-`156 tests`, all green. See "Verification" below for what they actually prove.
+`156 tests`, all green (115 unit + 41 integration); `../src-tauri` adds 27 unit and 7 real-data end-to-end tests. See "Verification" below for what they actually prove.
 
 Pixel work is **not** implemented here: decoding, resizing, PNG output and BC
 encoding all go through the bundled DirectXTex `texconv.exe`
@@ -58,8 +59,8 @@ refuses to load it:
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\check.ps1
 ```
 
-It runs frontend types, the Rust build, `cargo test` for this crate, the Python
-core's syntax/smoke/tests, and the docs build, and ends with `all checks passed`.
+It runs frontend types, the Rust build, `cargo test` for this crate, the Tauri
+tests and the docs build, and ends with `all checks passed`.
 
 ## Sample data
 
@@ -94,8 +95,9 @@ Every layer is checked three ways, and the third is the one that matters:
 1. **Unit tests** with hand-built fixtures (no sample file needed).
 2. **Integration tests** against the real bundle, asserting values an
    independent implementation produced — not values this code produced.
-3. **Cross-implementation diff**: dump a normalized text projection from Rust and
-   from the Python core, then diff. Current results:
+3. **Cross-implementation diff**: while the Python core still existed, dump a
+   normalized projection from both and diff. The Python core has since been
+   removed; these are the results it established:
    - type-tree nodes: 296 nodes, line-for-line identical
    - decoded values: 211,904 leaves, zero differences (floats compared as raw
      bit patterns, strings as bytes)
@@ -165,14 +167,19 @@ Every layer is checked three ways, and the third is the one that matters:
      preferred pristine copy and a missing hash.
    - analyze, 200-bundle sample: `names.json` (386 meshes, 821 textures),
      `clips.json` (1,265 clips, equal `anim_bundles`) and all 41 `skins.json`
-     rows are equal to Python. Rust takes 6.8 s where Python takes 29.6 s. The
-     bone scan finds 31,906 paths (Python's truncated-prefix scan sees 928);
+     rows are equal to Python. All 13 roster packs have identical directories,
+     `groups.json` and `meshes.json`. Rust takes 15.7 s where Python takes 41.1 s.
+     The bone scan finds 31,906 paths (Python's truncated-prefix scan sees 928);
      every Python path is present with the identical string.
-   - The full 9,613-bundle scan and skin packs are the remaining analyze work.
+   - analyze, **full installed game** (9,613 bundles, 66 GB): 16,482 meshes,
+     47,008 textures, 39,974 clips, 464 skins, **249/249 packs** and 621,845 bone
+     paths in **744.9 s** (names 182.6 s, packs 337.2 s with 8 threads, bones
+     180.3 s). Manifest, names, clips and skins are written atomically, manifest
+     last.
 
 DirectXTex (`texconv.exe`) is vendored under `../src-tauri/bin/` with its MIT
 licence and bundled through `tauri.conf.json`. `EXMT_TEXCONV` overrides the
-path; without the binary the `skinpack` command falls back to Python.
+path; without the binary no image work can run (there is no fallback).
 
 Tools for this live in `examples/`: `rebuild_bundle`, `dump_typetree`,
 `dump_values`, `dump_textures`. They are the intended way to re-run the
@@ -285,8 +292,8 @@ Each of these cost a debugging round; all are now pinned by tests.
   parsed byte range preserves both. The same goes for external and reference-type
   tables: there is no reason to round-trip what this crate does not modify.
 - **v22 header layout differs** (the modern header repeats sizes after the
-  reserved bytes), and no v22 sample exists here, so `rebuild` refuses v22 and
-  the shell falls back to Python for those files.
+  reserved bytes), and no v22 sample exists here, so `rebuild` refuses v22.
+  Reads still work; a v22 patch would need a writer before it can ship.
 - **`np.savez_compressed` writes a data descriptor**: the local file header
   carries `0xffffffff` sizes, so entry sizes and offsets must come from the
   central directory. Reading local headers works only for archives written
@@ -326,12 +333,13 @@ Each of these cost a debugging round; all are now pinned by tests.
 
 ## Next steps
 
-1. **Finish `analyze`**: port `pairings.py` + the pack spec, build every roster
-   skin into `GameCache/skins/`, then run the full 9,613-bundle scan.
-2. **Retire the Python core** once packs are done; until then `run_core`
-   falls back to it only for `analyze`.
-3. Remove the Python defaults (`DEFAULT_PYTHON`, `DEFAULT_CORE`), the `core/`
-   runtime dependency and installation docs that mention Python.
+1. **Packaging**: confirm the installer ships only the app + `texconv.exe`
+   (there is no Python/core resource left) and that a clean machine can run
+   `analyze` end to end.
+2. **Performance**: the full analyze is dominated by bundle decompression; a
+   prefix reader for name-only scans would cut the names and bones passes.
+3. Keep the `examples/` differential drivers as historical tools; they no longer
+   have a Python side to compare against.
 
 ## Conventions
 

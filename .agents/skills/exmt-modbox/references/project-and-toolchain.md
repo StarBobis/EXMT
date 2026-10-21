@@ -6,7 +6,7 @@
 | --- | --- | --- |
 | `src/` | 前端（Vue 3 + TS + Vite）；视图 `src/views/`，样式 `src/styles/` | `bun run dev` |
 | `src-tauri/` | Rust 外壳（Tauri 2），命令 `run_core` / `show_main_window` | `bun run tauri dev` |
-| `core/exmt_core/` | Python 核心：`bundle.py` `sf.py` `mesh.py` `interchange.py` `textures.py` `preview.py` `bc1.py` `retarget.py` `subdivide.py` `anim.py` `cli.py` | `python -m exmt_core <cmd>`（cwd 必须在 `core`） |
+| `core-rs/` + `src-tauri/src/` | Rust 资产核心：容器/序列化/网格/贴图/动画/GameCache；运行时代码 | `cargo test --manifest-path core-rs/Cargo.toml`；命令经前端 `runCore` |
 | `C:\Dev\EXMTBlender\` | Blender 插件：导入/导出 `.exmtmesh`、传权重、蓝图、生成 Mod | Blender → 偏好设置 → 安装 `__init__.py` |
 | `C:\Dev\EXMTDoc\` | VitePress 2 文档站（独立 git 仓库，无 remote） | `bun run build` / `bun run preview` |
 | `.agents/skills/` | 能力：换目标也能用的判据 / 手法 | — |
@@ -20,7 +20,7 @@
 | 工具 | 路径 / 说明 |
 | --- | --- |
 | Bun | `C:\Users\Administrator\.bun\bin\bun.exe`（**不在 PATH**，一律全路径） |
-| 核心 Python | `C:\Users\Administrator\.dsh\dsh-runtimes\dsh-primary-runtime\dependencies\python\python.exe`（UnityPy 1.25 / lz4 / numpy / PIL / texture2ddecoder） |
+| Rust 工具链 | `cargo`（`%USERPROFILE%\.cargo\bin\cargo.exe`）；`texconv.exe` 在 `src-tauri/bin/` |
 | Blender | `C:\Program Files\Blender Foundation\Blender 5.2\blender.exe`；headless = `--background --factory-startup --python x.py` |
 | 游戏 | `C:\GF2Exilium\GF2 Game`，资源在 `GF2_Exilium_Data\LocalCache\Data\AssetBundles_Windows\` |
 | 窗口驱动 / 截图 | `C:\DevCache\gf2\app2.ps1 click <cx> <cy>` / `app2.ps1 shot [-out p.png]`（DPI-aware；老的 `app.ps1` 会错位） |
@@ -35,9 +35,9 @@ $bun = 'C:\Users\Administrator\.bun\bin\bun.exe'
 & $bun run tauri dev                   # 跑应用（1420 上已有 Vite 会自动复用）
 node scripts/dev.mjs                   # 只起前端
 & $bun run check                       # 质量门
-cd core; & $py -m exmt_core <cmd>      # 核心 CLI
-cd core; & $py -m exmt_core analyze <游戏bundles> <缓存目录> 8   # 重建 GameCache（≈4 分钟）
-cd core; & $py -m exmt_core cache <缓存目录>                     # 只查状态，不扫
+cargo test --manifest-path core-rs/Cargo.toml          # 资产核心测试
+cargo test --manifest-path src-tauri/Cargo.toml        # 外壳/命令测试
+# analyze 在应用内跑（设置里选游戏目录 → 重建缓存），全量约 12 分钟
 C:\DevCache\gf2\app2.ps1 shot -out p.png
 C:\DevCache\gf2\app2.ps1 click <cx> <cy>
 & 'C:\Program Files\Blender Foundation\Blender 5.2\blender.exe' --background --factory-startup --python x.py
@@ -49,9 +49,8 @@ C:\DevCache\gf2\app2.ps1 click <cx> <cy>
 
 1. `npx vue-tsc --noEmit`（前端类型）
 2. `cargo check`（`src-tauri/`，找不到 cargo 才跳过）
-3. `<核心 python> -m compileall -q core/exmt_core`
-4. `python -m exmt_core meshes <样例 bundle>`（断言输出含 `c_Vepley`；样例缺失则跳过）
-5. `vitepress build docs`（`C:\Dev\EXMTDoc` 存在时）
+3. `cargo test`（`core-rs/`，样例缺失时相关测试自动跳过）
+4. `vitepress build docs`（`C:\Dev\EXMTDoc` 存在时）
 
 任何一步失败都不许说「完成」。
 

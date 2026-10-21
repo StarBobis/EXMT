@@ -4,7 +4,7 @@
  *
  * Every mesh of the selected skin is rendered together in one scene (bind pose,
  * same coordinate space), so the character is complete instead of one part at a
- * time. Geometry arrives as typed arrays from the Python core.
+ * time. Geometry arrives as typed arrays from the Rust asset core.
  */
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import * as THREE from "three";

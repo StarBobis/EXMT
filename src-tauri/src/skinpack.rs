@@ -157,6 +157,11 @@ pub fn run(spec_path: &Path, texconv: &Texconv) -> Result<String, String> {
     let text = std::fs::read_to_string(spec_path)
         .map_err(|e| format!("read spec {}: {e}", spec_path.display()))?;
     let spec: Spec = serde_json::from_str(&text).map_err(|e| format!("parse spec: {e}"))?;
+    build(&spec, texconv)
+}
+
+/// Build one skin pack from an in-memory spec (used by `analyze`).
+pub fn build(spec: &Spec, texconv: &Texconv) -> Result<String, String> {
     let started = Instant::now();
 
     let out_dir = Path::new(&spec.dir);
@@ -307,8 +312,8 @@ pub fn run(spec_path: &Path, texconv: &Texconv) -> Result<String, String> {
 
     let summary = Summary {
         format: FORMAT,
-        key: spec.key,
-        dir: spec.dir,
+        key: spec.key.clone(),
+        dir: spec.dir.clone(),
         meshes: mesh_rows.len(),
         geometry: geometry_rows.len(),
         textures: thumbs.len(),

@@ -1,13 +1,13 @@
 ---
 name: exmt-modbox
-description: Work inside the EXMT Modbox repository (C:\Dev\EXMT) — a Tauri 2 + Vue 3 desktop mod toolbox for the Unity game GF2 Exilium. Use when changing the EXMT shell/UI, when touching the Python core that parses or patches UnityFS bundles, when extracting or replacing GF2 meshes/textures/animations, when building or exporting mods through the Blender add-on, or when verifying a UI/asset change in the real app.
+description: Work inside the EXMT Modbox repository (C:\Dev\EXMT) — a Tauri 2 + Vue 3 desktop mod toolbox for the Unity game GF2 Exilium. Use when changing the EXMT shell/UI, when touching the Rust asset core that parses or patches UnityFS bundles, when extracting or replacing GF2 meshes/textures/animations, when building or exporting mods through the Blender add-on, or when verifying a UI/asset change in the real app.
 metadata:
   version: "1"
 ---
 
 # EXMT Modbox
 
-EXMT 是一个 Tauri 2 + Vue 3 + Python 核心的桌面 Mod 工具箱，目标游戏是 Unity 2019.4 + IL2CPP 的《少女前线2：追放》。
+EXMT 是一个 Tauri 2 + Vue 3 + Rust 资产核心的桌面 Mod 工具箱，目标游戏是 Unity 2019.4 + IL2CPP 的《少女前线2：追放》。
 本 skill 只保留**判据、做法、坑与常量**；按任务查下面的参考页，不要通读。
 
 ## 先看哪里
@@ -46,15 +46,15 @@ EXMT 是一个 Tauri 2 + Vue 3 + Python 核心的桌面 Mod 工具箱，目标�
 
 ### 核心 / 资产改动
 
-1. `cd core; python -m exmt_core <cmd>`（cwd 必须在 `core`）。
-2. 改 `analyze.py` 产物格式时给 `FORMAT` 加版本；只改皮肤推导规则用 `packs`，不要重扫全库。
-3. 样例 bundle：`C:\DevCache\gf2\backup\872f1c4f93f07d6ba65b103ae5d1a337.bundle.orig`。
-4. 资产往返用「打包回 bundle 再解出来逐位相等」验收。
+1. 运行时只有 Rust：`core-rs/` + `src-tauri/src/`，没有 Python 回退。命令经前端 `runCore([...])` 进入 `run_core`。
+2. 改 `analyze` 产物格式时给 `FORMAT` 加版本；皮肤推导规则改动只需重跑 analyze，不依赖外部进程池。
+3. 真机样例：`D:\Program Files\GF2Exilium\...\AssetBundles_Windows`；单包可用 `EXMT_GF2_BUNDLE` 指定。
+4. 验收：`cargo test`（core-rs / src-tauri）+ 真机 `analyze` / `workspace` 产物；资产往返用「打包回 bundle 再解出来逐位相等」。
 
 ### 改包（贴图 / 网格 / 材质）
 
 1. 备份原包；改完还原并用 SHA256 校验。
-2. UnityPy 解析 SerializedFile，改属性。
+2. Rust `exmt-core` 解析 SerializedFile，改属性。
 3. 只重建与目标区间相交的块，其余搬运；更新 `cbis/ubis/size`。
 4. 只对前 `0x8000` 施加由原密文头派生的密钥流。
 5. 启动游戏验证；失败先区分「加密不对」还是「资源 ID/地址不匹配」。
@@ -66,7 +66,7 @@ EXMT 是一个 Tauri 2 + Vue 3 + Python 核心的桌面 Mod 工具箱，目标�
 
 ## 交付清单
 
-- [ ] `bun run check` 通过（类型 / cargo / 核心语法 / 冒烟）。
+- [ ] `bun run check` 通过（类型 / cargo check / core-rs 测试 / 文档）。
 - [ ] 四关自检：反证（把坏造一次，检查必须变红）、敏感指标、前提假设、用户视角。
 - [ ] 可见变更附真窗口截图，并说明截图对应哪次改动。
 - [ ] 改过的仓库都 commit + push。
