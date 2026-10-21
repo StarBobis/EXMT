@@ -33,5 +33,19 @@ fn runs_a_real_workspace_spec() {
     );
     let first = manifest["meshes"][0]["file"].as_str().unwrap();
     assert!(out.join(first).is_file());
+    let anims = manifest["animations"].as_array().unwrap();
+    assert_eq!(
+        anims.len(),
+        summary["animations"].as_u64().unwrap() as usize
+    );
+    for row in anims {
+        let file = row["file"].as_str().expect("animation file");
+        let path = out.join(file);
+        assert!(path.is_file(), "{} missing", path.display());
+        let clip: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap();
+        assert_eq!(clip["format"], "exmt-anim-1");
+        assert!(!clip["bones"].as_array().unwrap().is_empty());
+    }
     let _ = std::fs::remove_dir_all(&out);
 }

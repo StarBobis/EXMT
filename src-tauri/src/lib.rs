@@ -138,16 +138,6 @@ fn run_rust_core(app: &tauri::AppHandle, args: &[String]) -> Option<CoreOutput> 
         Some("workspace") => {
             let outdir = args.get(1)?;
             let spec_path = args.get(2)?;
-            let text = std::fs::read_to_string(spec_path).ok()?;
-            let value: serde_json::Value = serde_json::from_str(&text).ok()?;
-            let has_animations = value
-                .get("animations")
-                .and_then(|v| v.as_array())
-                .map(|a| !a.is_empty())
-                .unwrap_or(false);
-            if has_animations {
-                return None;
-            }
             let tool = texconv_for(app)?;
             Some(match workspace::run(Path::new(outdir), Path::new(spec_path), &tool) {
                 Ok(stdout) => CoreOutput { code: 0, stdout, stderr: String::new() },

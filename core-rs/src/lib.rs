@@ -16,6 +16,7 @@
 //! and it is removed once Rust covers them.
 
 pub mod asset;
+pub mod anim;
 pub mod base64;
 pub mod bc;
 pub mod commonstrings;

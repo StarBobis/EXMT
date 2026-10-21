@@ -82,6 +82,31 @@ impl Value {
         }
     }
 
+    /// Read any integer-shaped value as i64.
+    pub fn as_i64(&self) -> Option<i64> {
+        match self {
+            Value::I8(v) => Some(*v as i64),
+            Value::U8(v) => Some(*v as i64),
+            Value::I16(v) => Some(*v as i64),
+            Value::U16(v) => Some(*v as i64),
+            Value::I32(v) => Some(*v as i64),
+            Value::U32(v) => Some(*v as i64),
+            Value::I64(v) => Some(*v),
+            Value::U64(v) => i64::try_from(*v).ok(),
+            _ => None,
+        }
+    }
+
+    /// Read a boolean-shaped value.
+    pub fn as_bool(&self) -> Option<bool> {
+        match self {
+            Value::Bool(v) => Some(*v),
+            Value::U8(v) => Some(*v != 0),
+            Value::I32(v) => Some(*v != 0),
+            _ => None,
+        }
+    }
+
     /// Read any float-shaped value as f32.
     pub fn as_f32(&self) -> Option<f32> {
         match self {

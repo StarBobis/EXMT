@@ -33,10 +33,10 @@
 | modpack 网格补丁（`.exmtmesh`） | `mesh.rs` + `src-tauri/src/exmtmesh.rs` | 完成；异 cook 自动裁剪/补齐与骨骼重映射 |
 | 预览 `thumbs` / `skinfo` | `src-tauri/src/preview.rs` | 完成，贴图网格走 texconv |
 | `backup` / `restore` / `backup-size` | `src-tauri/src/store.rs` | 完成，Tauri 已直接调用 |
-| `workspace`（Blender 导出） | `src-tauri/src/workspace.rs` + `skeleton.rs` | 网格/贴图/骨架完成；动画仍回退 Python |
+| `workspace`（Blender 导出） | `src-tauri/src/workspace.rs` + `skeleton.rs` + `anim.rs` | 完成（网格/贴图/骨架/动画） |
 | analyze（GameCache） | — | 未开始（仍 Python） |
 
-154 个测试。`cargo test` 在 `core-rs/` 下跑；`src-tauri` 另有 18 个单测和 6 个可选
+156 个测试。`cargo test` 在 `core-rs/` 下跑；`src-tauri` 另有 18 个单测和 6 个可选
 端到端测试（skinpack、modpack、exmtmesh、preview×2、workspace）。`texconv.exe`（966 KB，MIT，许可证同目录）随仓库放在
 `src-tauri/bin/`，并由 `tauri.conf.json` 的 `bundle.resources` 打进安装包；`EXMT_TEXCONV`
 可覆盖路径，找不到时 `skinpack` 回退 Python。
@@ -156,10 +156,16 @@ NPZ 层不依赖本机游戏数据：`tests/npz.rs` 内嵌一个由 `numpy.savez
 `modpack`，**43,685 个对象 payload 逐字节相同**，UnityPy 读两边顶点、子网格和 AABB 一致。
 注意 UnityPy 不能直接读 NEP2 加密包，要用 `exmt_core.sf.open_bundle`。
 
-workspace（无动画）真机验法：Vepley 4 网格 + 2 贴图、无 `bone_names`。Rust 与 Python
-产物的骨架 161 根（local 相同、rest 差 ≤4.4e-16）、`workspace.json` 网格行相等、每个
-`.exmtmesh` 的全部数组逐字节相同，2048² PNG 最大差 1。Rust 的 NPZ 是**存储式**，所以
-summary 的 `bytes` 会比 Python 的压缩 NPZ 大，不影响 Blender 读取。
+workspace 真机验法：Vepley 4 网格 + 2 贴图、无 `bone_names`，再加 Liushih 马场剪辑
+（`0c01094c…`，108 条轨道）。Rust 与 Python 产物的骨架 161 根（local 相同、rest 差
+≤4.4e-16）、`workspace.json` 网格行相等、每个 `.exmtmesh` 的全部数组逐字节相同、
+2048² PNG 最大差 1，`.exmtanim` 的 JSON **完全相等**（轨道/时间/父子/事件）。
+Rust 的 NPZ 是**存储式**，所以 summary 的 `bytes` 会比 Python 的压缩 NPZ 大，不影响
+Blender 读取。
+
+动画坑：同一 bundle 里可能有**同名 AnimationClip**，Python `open_clips` 的 dict 后者覆盖
+前者；Rust 必须遍历完取最后一个，否则会少十几条轨道。采样用 f64 才能与 Python 的
+`round(…,5)` 逐位一致。
 
 ## 换机器后恢复真实数据
 

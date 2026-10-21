@@ -30,10 +30,10 @@ ship without upstream churn.
 | `.exmtmesh` mesh patches | done, including different cooks | `../src-tauri/src/exmtmesh.rs`, `src/mesh.rs` |
 | preview `thumbs` / `skinfo` | done | `../src-tauri/src/preview.rs` |
 | `backup` / `restore` / `backup-size` | done | `../src-tauri/src/store.rs` |
-| `workspace` export (meshes, textures, skeleton) | done; animations still Python | `../src-tauri/src/workspace.rs`, `src/skeleton.rs` |
+| `workspace` export (meshes, textures, skeleton, clips) | done | `../src-tauri/src/workspace.rs`, `src/skeleton.rs`, `src/anim.rs` |
 | `analyze` (GameCache) | **not started** (still Python) | — |
 
-`154 tests`, all green. See "Verification" below for what they actually prove.
+`156 tests`, all green. See "Verification" below for what they actually prove.
 
 Pixel work is **not** implemented here: decoding, resizing, PNG output and BC
 encoding all go through the bundled DirectXTex `texconv.exe`
@@ -44,7 +44,7 @@ DDS header, the process call and the asset logic around them.
 
 ```powershell
 cd core-rs
-cargo test            # 154 tests; skips sample-dependent ones if the file is absent
+cargo test            # 156 tests; skips sample-dependent ones if the file is absent
 cargo test --lib      # unit tests only, no sample file needed
 ```
 
@@ -152,12 +152,17 @@ Every layer is checked three ways, and the third is the one that matters:
      while an untouched BC7 texture keeps its hash. A 152-bundle sample under
      20 MB parsed with **0 errors** (42,335 objects), including five files that
      concatenate several UnityFS archives.
-   - workspace: real Vepley skin (4 meshes, 2 textures, no clips). The merged
-     161-bone skeleton matches Python (`local` identical, rest matrices within
-     4.4e-16), `workspace.json` mesh rows are equal, every exported `.exmtmesh`
-     array is byte-identical to `interchange.save`, and the 2048² PNGs differ by
-     at most 1 level. The Rust files are stored (uncompressed) NPZ, so the
-     folder's `bytes` total is larger than Python's compressed total.
+   - workspace: real Vepley skin (4 meshes, 2 textures, one 108-track clip from
+     the Liushih horse bundle). The merged 161-bone skeleton matches Python
+     (`local` identical, rest matrices within 4.4e-16), `workspace.json` mesh
+     rows are equal, every exported `.exmtmesh` array is byte-identical to
+     `interchange.save`, the 2048² PNGs differ by at most 1 level, and the
+     `.exmtanim` file is **JSON-equal** to Python (108/108 tracks, times, parents
+     and events). The Rust files are stored (uncompressed) NPZ, so the folder's
+     `bytes` total is larger than Python's compressed total.
+   - preview and store: `thumbs`/`skinfo` return the shapes the frontend reads;
+     `backup`/`restore` match Python field-for-field on a fixture with a
+     preferred pristine copy and a missing hash.
 
 DirectXTex (`texconv.exe`) is vendored under `../src-tauri/bin/` with its MIT
 licence and bundled through `tauri.conf.json`. `EXMT_TEXCONV` overrides the
@@ -319,10 +324,9 @@ Each of these cost a debugging round; all are now pinned by tests.
    produces `manifest.json`, `names.json`, `skins.json` and the skin packs. This
    is the last large Python-owned command.
 2. **Retire the Python core** once `analyze` is ported; until then `run_core`
-   falls back to it for `analyze`, `workspace`, `backup`/`restore` and mesh
-   patches whose cook differs.
-3. Keep `modpack`'s Python fallback as a safety net for exotic meshes
-   (compressed meshes, bone remapping) even after `analyze` moves.
+   falls back to it only for `analyze`.
+3. Keep `modpack`'s Python fallback out of the runtime: mesh patches are already
+   adapted in Rust, so the only remaining Python path is the GameCache scan.
 
 ## Conventions
 
