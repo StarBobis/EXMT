@@ -16,9 +16,6 @@ import type { PreviewGeometry } from "../lib/preview";
 const props = defineProps<{
   meshes: PreviewGeometry[];
   hidden: string[];
-  selected: string[];
-  /** 当前正在查看贴图的子网格（只加一层淡蓝，不改变导出选中态） */
-  active?: string | null;
   /** mesh name → `data:` URL of its diffuse texture */
   maps: Record<string, string>;
   loading?: boolean;
@@ -45,15 +42,9 @@ const boxText = computed(() => stats.value.box);
 let framing: { center: THREE.Vector3; maxDim: number } | null = null;
 
 /**
- * 正在查看（点行选中）的子网格涂成纯紫，并压掉贴图。
- *
- * 这是“我刚才点的是哪一块”的唯一答案，必须不依赖贴图：之前只加一点淡蓝自发光
- * （0x0a2436），有贴图的部件根本看不出来。勾选（会导出）不是这个信号——勾选
- * 不改贴图，只把没贴图的部件从灰提成白，两者不会互相混淆。
+ * 材质只按“有没有贴图”上色：有贴图 = 原色，没贴图 = 中性灰。
+ * 导出不再依赖勾选，点击左侧行只切换可见性，所以这里没有高亮状态。
  */
-const COLOR_ACTIVE = 0xa855f7;
-const EMISSIVE_ACTIVE = 0x3b0f7a;
-const COLOR_PICKED = 0xffffff;
 const COLOR_IDLE = 0x6c737c;
 const textureLoader = new THREE.TextureLoader();
 
@@ -338,43 +329,16 @@ function syncVisibility() {
   render();
 }
 
-/**
- * 一个子网格该长什么样。优先级从高到低：
- *   1. 正在查看（点行选中）→ 摘掉贴图涂纯紫：这是“我点的是哪一块”的唯一答案；
- *   2. 有贴图 → 原色贴图；
- *   3. 无贴图 → 勾选的白色（会导出）/ 未勾选的中性灰（这里没有图）。
- *
- * 摘/挂贴图会改变着色器分支（USE_MAP），所以只有 map 真的变了才 needsUpdate，
- * 否则每次重算颜色都重编译。
- */
+/** 贴图加载/失败后重刷一次颜色：有图就是原色，没图用中性灰。 */
 function paint(mesh: THREE.Mesh) {
   const material = mesh.material as THREE.MeshStandardMaterial;
-  const active = props.active === mesh.name;
-  const picked = props.selected.includes(mesh.name);
   const diffuse = (mesh.userData.diffuse as THREE.Texture | null | undefined) ?? null;
-  const nextMap = active ? null : diffuse;
-  if (material.map !== nextMap) {
-    material.map = nextMap;
+  if (material.map !== diffuse) {
+    // 摘/挂贴图会改变着色器分支（USE_MAP），只有 map 真的变了才 needsUpdate
+    material.map = diffuse;
     material.needsUpdate = true;
   }
-  material.color.setHex(
-    active ? COLOR_ACTIVE : nextMap ? 0xffffff : picked ? COLOR_PICKED : COLOR_IDLE,
-  );
-  material.emissive.setHex(active ? EMISSIVE_ACTIVE : 0x000000);
-  material.metalness = active ? 0 : 0.05;
-  // 选中态用高粗糙度：这套棚拍灯很亮，低粗糙度会把纯紫的镜面高光洗成粉白
-  material.roughness = active ? 0.92 : 0.72;
-  // 选中件画在最前：护目镜藏在头发下、躯干被外套包住，只变紫仍然看不见，
-  // 那就等于没选中。关掉深度测试后它总能露出来，回答“我点的是哪一块”。
-  material.depthTest = !active;
-  material.depthWrite = !active;
-  mesh.renderOrder = active ? 1 : 0;
-}
-
-/** 点击查看 / 勾选变化后重算颜色：全场景只有“正在查看”的那一块会被涂紫。 */
-function syncColors() {
-  for (const mesh of built.values()) paint(mesh);
-  render();
+  material.color.setHex(diffuse ? 0xffffff : COLOR_IDLE);
 }
 
 onMounted(() => {
@@ -449,8 +413,6 @@ watch(
 );
 watch(() => props.maps, () => build(props.meshes), { deep: true });
 watch(() => props.hidden, syncVisibility, { deep: true });
-watch(() => props.selected, syncColors, { deep: true });
-watch(() => props.active, syncColors);
 
 onBeforeUnmount(() => {
   cancelAnimationFrame(raf);

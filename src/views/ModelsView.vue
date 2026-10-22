@@ -45,9 +45,8 @@ import {
 // ------------------------------------------------------------------------- //
 const meshes = ref<SkinMesh[]>([]);
 const geometries = ref<PreviewGeometry[]>([]);
+/** 3D 里隐藏的部件；默认空 = 全部显示。点左侧一行切换。 */
 const hidden = ref<string[]>([]);
-const pickedMeshes = ref<string[]>([]);
-const pickedTextures = ref<string[]>([]);
 const textures = ref<TextureEntry[]>([]);
 const maps = ref<Record<string, string>>({});
 /** 这个皮肤的动作：只做参考（Mod 不打包动作），导出给 Blender 播来看蒙皮。 */
@@ -123,14 +122,6 @@ const activeLabel = computed(() => {
   if (activeShared.value) return t("models.studio.shared");
   return activeMesh.value ? shortName(activeMesh.value) : "";
 });
-
-/** 全部子网格 + 全部贴图都已纳入导出。 */
-const allPicked = computed(
-  () =>
-    (meshes.value.length > 0 || textures.value.length > 0) &&
-    pickedMeshes.value.length === meshes.value.length &&
-    pickedTextures.value.length === textures.value.length,
-);
 
 /** 动作列表：按搜索词过滤（`c_<皮肤>_` 前缀已在 shortName 里去掉了）。 */
 const visibleAnims = computed(() => {
@@ -216,44 +207,14 @@ function toggleMesh(name: string) {
     : [...hidden.value, name];
 }
 
-/** 勾选 = 会导出；默认全不勾，用户只勾想改的那几个。 */
-function togglePickMesh(name: string) {
-  if (pickedMeshes.value.includes(name)) {
-    pickedMeshes.value = pickedMeshes.value.filter((item) => item !== name);
-    return;
-  }
-  pickedMeshes.value = [...pickedMeshes.value, name];
-  // 勾选子网格时顺便展开它的贴图，少点一次
+/**
+ * 左侧一行 = 3D 里显示/隐藏这个部件，同时把中栏切到它的贴图。
+ *
+ * 导出不再看勾选：每次「开始制作」都导出全部子网格和贴图，只有动作按勾选来。
+ */
+function toggleMeshRow(name: string) {
   activateMesh(name);
-}
-
-function togglePickTexture(name: string) {
-  if (pickedTextures.value.includes(name)) {
-    pickedTextures.value = pickedTextures.value.filter((item) => item !== name);
-    return;
-  }
-  pickedTextures.value = [...pickedTextures.value, name];
-  // 勾贴图就意味着要改这个子网格；顺手把它纳入导出，避免“只勾贴图不能制作”
-  if (activeMesh.value && !activeShared.value && !pickedMeshes.value.includes(activeMesh.value)) {
-    pickedMeshes.value = [...pickedMeshes.value, activeMesh.value];
-  }
-}
-
-/** 一键全选：所有子网格 + 所有贴图；再点一次清空。 */
-function toggleSelectAll() {
-  if (allPicked.value) {
-    pickedMeshes.value = [];
-    pickedTextures.value = [];
-    return;
-  }
-  pickedMeshes.value = meshes.value.map((mesh) => mesh.name);
-  pickedTextures.value = textures.value.map((tex) => tex.name);
-  // 没在看任何贴图时，顺手打开第一个有贴图的子网格，避免中间还是空的
-  if (!activeMesh.value && !activeShared.value && meshes.value.length) {
-    const first =
-      meshes.value.find((mesh) => textureCount(mesh.name) > 0) ?? meshes.value[0];
-    activateMesh(first.name);
-  }
+  toggleMesh(name);
 }
 
 // ------------------------------------------------------------------------- //
@@ -485,22 +446,17 @@ async function unloadFromGame() {
   }
 }
 
-/** Restore the workspace's exported mesh/texture selection once its skin is loaded. */
+/** Restore which submesh the middle column looks at once its skin is loaded. */
 function applyWorkspaceSelection(ws: WorkspaceSummary) {
   if (!meshes.value.length || loadedId !== ws.entry.id) {
     pendingWorkspace = ws;
     return;
   }
   pendingWorkspace = null;
-  const meshSet = new Set(meshes.value.map((mesh) => mesh.name));
-  const texSet = new Set(textures.value.map((tex) => tex.name));
-  pickedMeshes.value = ws.meshNames.filter((name) => meshSet.has(name));
-  pickedTextures.value = ws.textureNames.filter((name) => texSet.has(name));
+  // 导出现在固定是全部资源；工作空间只用来恢复“中栏看哪一块贴图”。
   const first =
-    pickedMeshes.value.find((name) => textureCount(name) > 0) ??
-    pickedMeshes.value[0] ??
-    null;
-  activeMesh.value = first;
+    meshes.value.find((mesh) => textureCount(mesh.name) > 0) ?? meshes.value[0] ?? null;
+  activeMesh.value = first?.name ?? null;
   activeShared.value = false;
 }
 
@@ -601,8 +557,6 @@ function clearStudio() {
   meshes.value = [];
   geometries.value = [];
   hidden.value = [];
-  pickedMeshes.value = [];
-  pickedTextures.value = [];
   textures.value = [];
   skinGroups.value = {};
   maps.value = {};
@@ -644,9 +598,8 @@ async function openStudio(entry: CatalogEntry) {
     textures.value = data.textures;
     skinGroups.value = data.groups ?? {};
     maps.value = data.maps;
-    // 默认全不选：用户只勾自己要改的那几个，导出和回包都只动它们
-    pickedMeshes.value = [];
-    pickedTextures.value = [];
+    // 默认全部显示；导出始终是全部资源，不需要用户勾选
+    hidden.value = [];
     if (pendingWorkspace) {
       if (pendingWorkspace.entry.id === entry.id) {
         applyWorkspaceSelection(pendingWorkspace);
@@ -718,19 +671,13 @@ watch(selectedSkin, (entry) => {
 async function startMaking() {
   const entry = selectedSkin.value;
   if (!entry || !meshes.value.length) return;
-  const exportMeshes = meshes.value.filter((mesh) => pickedMeshes.value.includes(mesh.name));
+  // 默认导出全部资源：所有子网格 + 所有贴图。动作只是参考素材，按勾选来。
+  const exportMeshes = meshes.value;
   // 缩略图解码失败不代表贴图不能导出；能不能写出来交给核心的 failed_textures
-  const exportTextures = textures.value.filter((tex) =>
-    pickedTextures.value.includes(tex.name),
-  );
-  // 动作只是参考：勾了就导出到 animations/，没勾就完全不动（也不影响打包）
+  const exportTextures = textures.value;
   const exportAnims = animations.value.filter((clip) =>
     pickedAnims.value.includes(clip.name),
   );
-  if (!exportMeshes.length) {
-    status.value = { kind: "err", text: t("models.studio.pickOne") };
-    return;
-  }
   busy.value = t("models.making");
   status.value = null;
   generated.value = null;
@@ -816,15 +763,6 @@ async function startMaking() {
         </div>
         <span class="studio__hint" :title="hint">{{ hint }}</span>
         <div class="studio__bar-actions">
-          <button
-            class="btn"
-            type="button"
-            :title="t('models.studio.selectAllHint')"
-            :disabled="!!busy || (!meshes.length && !textures.length)"
-            @click="toggleSelectAll"
-          >
-            {{ allPicked ? t("models.studio.clearAll") : t("models.studio.selectAll") }}
-          </button>
           <button class="btn" type="button" @click="navigate('home')">
             <span class="glyph">&#xE72B;</span>
             {{ t("models.changeSkin") }}
@@ -855,7 +793,7 @@ async function startMaking() {
             class="btn btn--accent"
             type="button"
             :title="t('models.makeHint')"
-            :disabled="!!busy || !pickedMeshes.length"
+            :disabled="!!busy || !meshes.length"
             @click="startMaking"
           >
             <span class="glyph">&#xE768;</span>
@@ -869,53 +807,34 @@ async function startMaking() {
       </p>
 
       <div class="studio__grid">
-        <!-- 左：子网格。点一行 = 看它的贴图；复选框 = 纳入导出 -->
+        <!-- 左：子网格。点一行 = 在 3D 里显示/隐藏这块，同时看它的贴图；导出始终是全部 -->
         <section class="studio__meshes">
           <div class="studio__head">
             <span>{{ t("models.studio.meshes") }}</span>
             <span class="chip">{{ meshes.length }}</span>
           </div>
           <div class="meshline-list">
-            <div
+            <button
               v-for="mesh in meshes"
               :key="mesh.name"
+              type="button"
               class="meshline"
               :class="{
+                'meshline--on': !hidden.includes(mesh.name),
                 'meshline--off': hidden.includes(mesh.name),
-                'meshline--picked': pickedMeshes.includes(mesh.name),
-                'meshline--active': activeMesh === mesh.name,
               }"
+              :title="t('models.studio.toggle')"
+              :aria-pressed="!hidden.includes(mesh.name)"
+              @click="toggleMeshRow(mesh.name)"
             >
-              <input
-                class="meshline__check"
-                type="checkbox"
-                :checked="pickedMeshes.includes(mesh.name)"
-                :aria-label="shortName(mesh.name)"
-                :title="t('models.studio.pick')"
-                @change="togglePickMesh(mesh.name)"
-              />
-              <button
-                class="meshline__eye"
-                type="button"
-                :title="t('models.studio.toggle')"
-                :aria-label="t('models.studio.toggle')"
-                @click="toggleMesh(mesh.name)"
-              >
-                <span class="glyph">{{ hidden.includes(mesh.name) ? "\uED1A" : "\uE890" }}</span>
-              </button>
-              <button
-                class="meshline__body"
-                type="button"
-                :aria-pressed="activeMesh === mesh.name"
-                @click="activateMesh(mesh.name)"
-              >
+              <span class="meshline__body">
                 <span class="meshline__name mono">{{ shortName(mesh.name) }}</span>
                 <span class="meshline__meta">
                   {{ t("models.studio.verts", { n: compact(mesh.verts), m: compact(mesh.tris) }) }}
                   · {{ t("models.studio.texCount", { n: textureCount(mesh.name) }) }}
                 </span>
-              </button>
-            </div>
+              </span>
+            </button>
 
             <template v-if="sharedTextures.length">
               <div class="meshline-sep" role="separator"></div>
@@ -939,7 +858,7 @@ async function startMaking() {
           </div>
         </section>
 
-        <!-- 中：当前子网格关联的贴图，勾选 = 导出 -->
+        <!-- 中：当前子网格关联的贴图（只用来查看；导出始终包含全部贴图） -->
         <section class="studio__textures">
           <div class="studio__head">
             <span class="studio__head-main">
@@ -952,16 +871,11 @@ async function startMaking() {
           </div>
 
           <div v-if="activeTextures.length" class="texgrid">
-            <button
+            <div
               v-for="tex in activeTextures"
               :key="tex.name"
-              type="button"
               class="texcard"
-              :class="{ 'texcard--picked': pickedTextures.includes(tex.name) }"
               :title="tex.name"
-              :aria-label="tex.name"
-              :aria-pressed="pickedTextures.includes(tex.name)"
-              @click="togglePickTexture(tex.name)"
             >
               <span class="texcard__frame">
                 <img
@@ -971,15 +885,12 @@ async function startMaking() {
                   :alt="tex.name"
                 />
                 <span v-else class="texcard__ph">?</span>
-                <span class="texcard__check" aria-hidden="true">
-                  {{ pickedTextures.includes(tex.name) ? "✓" : "" }}
-                </span>
               </span>
               <span class="texcard__caption">
                 <span class="texcard__name mono">{{ shortName(tex.name) }}</span>
                 <span class="texcard__meta">{{ textureMeta(tex) }}</span>
               </span>
-            </button>
+            </div>
           </div>
 
           <p v-else-if="busy" class="studio__empty">{{ busy }}</p>
@@ -998,8 +909,6 @@ async function startMaking() {
           <MeshViewer
             :meshes="geometries"
             :hidden="hidden"
-            :selected="pickedMeshes"
-            :active="activeMesh"
             :maps="maps"
             :loading="!!busy"
           />
@@ -1252,10 +1161,15 @@ async function startMaking() {
   display: flex;
   align-items: center;
   gap: 6px;
+  width: 100%;
   padding: 5px 6px;
   border: 1px solid transparent;
   border-radius: 7px;
   background: rgba(255, 255, 255, 0.03);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
   transition: 120ms ease;
 }
 
@@ -1263,54 +1177,33 @@ async function startMaking() {
   background: rgba(255, 255, 255, 0.07);
 }
 
-/* 勾选 = 会导出；没勾的保持灰色 */
-.meshline--picked {
-  border-color: rgba(76, 194, 255, 0.55);
-  background: rgba(76, 194, 255, 0.08);
+/* 鼠标悬停只把当前状态提亮，不能把“显示中”的蓝色换成灰白——那会看成被取消选中 */
+.meshline--on:hover {
+  border-color: rgba(76, 194, 255, 0.45);
+  background: rgba(76, 194, 255, 0.2);
 }
 
-/* 当前正在看的那一行：压一层更亮的底，不等于“勾选导出” */
+.meshline--off:hover {
+  opacity: 0.6;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* 蓝色 = 这个部件正在 3D 里显示；点一行切换，多个部件可以同时是蓝色 */
+.meshline--on {
+  border-color: rgba(76, 194, 255, 0.3);
+  background: rgba(76, 194, 255, 0.12);
+}
+
+/* 共享贴图那一行：选中时用它自己的高亮（没有显隐语义） */
 .meshline--active {
+  border-color: rgba(76, 194, 255, 0.32);
   background: rgba(76, 194, 255, 0.16);
 }
 
-.meshline--active:not(.meshline--picked) {
-  border-color: rgba(76, 194, 255, 0.32);
-}
-
+/* 在 3D 里被隐藏的部件：仍然列出，方便再点回来 */
 .meshline--off {
   opacity: 0.45;
-}
-
-.meshline__check {
-  flex: none;
-  width: 13px;
-  height: 13px;
-  margin: 0;
-  accent-color: var(--accent, #4cc2ff);
-  cursor: pointer;
-}
-
-.meshline__eye {
-  flex: none;
-  width: 20px;
-  height: 20px;
-  display: grid;
-  place-items: center;
-  padding: 0;
-  border: none;
-  border-radius: 5px;
-  background: transparent;
-  color: var(--text-2, #9fb0c7);
-  cursor: pointer;
-}
-
-.meshline__eye:hover {
-  background: rgba(255, 255, 255, 0.1);
-}
-
-.meshline__eye .glyph {
-  font-size: 13px;
+  background: rgba(255, 255, 255, 0.02);
 }
 
 .meshline__body {
@@ -1319,13 +1212,6 @@ async function startMaking() {
   display: flex;
   flex-direction: column;
   gap: 1px;
-  padding: 0;
-  border: none;
-  background: transparent;
-  color: inherit;
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
 }
 
 .meshline__name {
@@ -1417,18 +1303,10 @@ async function startMaking() {
   padding: 0;
   display: flex;
   flex-direction: column;
-  border: none;
-  background: transparent;
   color: inherit;
   font: inherit;
   text-align: left;
-  cursor: pointer;
-  opacity: 0.8;
-  transition: 120ms ease;
-}
-
-.texcard:hover {
-  opacity: 1;
+  opacity: 0.9;
 }
 
 /* 边框只包住 1:1 的贴图本身，名称在框外；这样“正方形”是硬性的 */
@@ -1450,15 +1328,6 @@ async function startMaking() {
   border-color: var(--stroke-strong, rgba(255, 255, 255, 0.16));
 }
 
-.texcard--picked {
-  opacity: 1;
-}
-
-.texcard--picked .texcard__frame {
-  border-color: var(--accent, #4cc2ff);
-  box-shadow: 0 0 0 1px var(--accent, #4cc2ff) inset;
-}
-
 .texcard__img,
 .texcard__ph {
   position: absolute;
@@ -1476,28 +1345,6 @@ async function startMaking() {
   place-items: center;
   font-size: 16px;
   opacity: 0.35;
-}
-
-.texcard__check {
-  position: absolute;
-  left: 5px;
-  top: 5px;
-  width: 18px;
-  height: 18px;
-  border: 1px solid rgba(255, 255, 255, 0.65);
-  border-radius: 4px;
-  background: rgba(8, 12, 18, 0.55);
-  color: transparent;
-  font-size: 11px;
-  line-height: 16px;
-  font-weight: 700;
-  text-align: center;
-}
-
-.texcard--picked .texcard__check {
-  background: var(--accent, #4cc2ff);
-  border-color: var(--accent, #4cc2ff);
-  color: var(--accent-contrast, #04121f);
 }
 
 .texcard__caption {
@@ -1567,14 +1414,10 @@ async function startMaking() {
 }
 
 /* 鼠标点选不出现 focus 框 */
-.meshline__body:focus,
-.meshline__body:focus-visible,
-.meshline__eye:focus,
-.meshline__eye:focus-visible,
+.meshline:focus,
+.meshline:focus-visible,
 .meshline--shared:focus,
-.meshline--shared:focus-visible,
-.texcard:focus,
-.texcard:focus-visible {
+.meshline--shared:focus-visible {
   outline: none;
 }
 
