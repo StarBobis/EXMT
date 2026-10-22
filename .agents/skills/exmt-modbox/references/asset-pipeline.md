@@ -192,7 +192,7 @@ basis = (父pose · 父matrix_local⁻¹ · 本matrix_local)⁻¹ · pose
 | `workspace.json` | `bundles`、`mesh_bundles`、`texture_bundles`、`meshes[{index, alias, file}]`、`textures[{file, preview_file, width, height, format, format_name, mips, dds_bytes}]`、`animations/` |
 | `spec.json` | 核心写给 Blender 侧，Blender **不依赖 App 在跑** |
 | `EXMTConfig.json` | `%APPDATA%\com.exmt.modbox\EXMTConfig.json`，格式 `exmt-config-1`：`workspace_root`、`updated_at`、`workspace{id,label,dir,entry,created_at}`、`bone_names`；串行写，避免快速切换时后到的 `null` 覆盖新选择 |
-| 写工作空间 | 每次写入前先删 `meshes/`、`textures/`，保证目录内容严格等于本次勾选 |
+| 写工作空间 | 每次写入前先删 `meshes/`、`textures/`，保证目录内容严格等于本次导出（固定全部子网格/全部贴图；动作按勾选） |
 | 贴图产物 | `textures/<name>.dds` = **原始 payload + DDS 头**（整条 mip 链，逐字节等于 `.resS`）；`textures/<name>.jpg` = texconv 解 mip0 的预览（≤2048，只给蓝图节点/EXMT 看，**永不参与打包**） |
 | 贴图行序 | Unity payload 自下而上 → DDS 原样写，在普通查看器/Blender 里是**倒的**；Blender 插件在材质里 `UV Map → Mapping(Scale Y=-1, Location Y=1)` 翻 V，**不要对 BC 块做块行翻转**（只是块行重排，实测 31.7 dB，会花） |
 | 皮肤缓存 | `<cache>/skins/<skinKey>/{meshes,geometry,thumbs,groups,diffuse,meta}.json`；`groups` = 核心配对结果（mesh → 贴图名），旧包没有它时前端才退回 TS 规则 |
@@ -200,6 +200,9 @@ basis = (父pose · 父matrix_local⁻¹ · 本matrix_local)⁻¹ · pose
 | 代际标记 | `cache_built_at` **必须等于** manifest 的 `built_at`；整次 analyze 只取一次时间戳，别让各产物各取当前时间 |
 
 ### 11.1 子网格 ↔ 贴图：按家族，不按前缀
+
+- **同角色变体优先于跨变体同名**：`c_VepleySSR01_slg_cloth_lod0` 曾配上 `c_VepleyDorm_slg_cloth_d`（Dorm 的 `cloth` 头完全同名、但属于另一套衣服），3D 预览把另一套图集贴在这个网格 UV 上，看起来像碎布。现在只有**同变体存在同名编号层**（`cloth01`/`cloth02`）时，才让编号层压过别的变体的 exact head；编号层全部保留（网格有多个材质槽），并把**编号最大**的排前面作为 `diffuse_of` 的主图（Vepley 实测 cloth02 才是白蓝默认外观）。没有编号层时 exact-head 规则保持原样。
+- **编号层是多个材质槽**：一个网格 4 个材质槽时，同变体的 `cloth01`/`cloth02` 可能都在用；`groups` 保留整组，但 3D 预览只有一个 diffuse（取排序后的第一张），Blender 端也只会用一张——多材质预览还没实现，别把“预览只显示一张”当配对错误。
 
 - **旧缺陷**：只保留 `<skinKey>_` 开头的贴图 → 家庭级 `c_Balthilde_slg_face/hair`、武器 `cw_<char>_WL`、共享 `B_body_*` 全被过滤，body/hair 显示「0 贴图」。
 - **规则唯一来源** `core/exmt_core/pairings.py`（TS 孪生 `src/lib/pairings.ts` 只给旧包/按需路径用）：

@@ -443,7 +443,7 @@ fn pair_with(mesh_names: &[String], catalog: &Catalog) -> BTreeMap<String, Vec<S
     let all_names = &catalog.all_names;
     let mesh_heads: HashSet<String> = meshes.iter().map(|m| m.head.clone()).collect();
 
-    let mut winners: HashMap<String, Vec<(String, (i32, i32, i32, String))>> = meshes
+    let mut winners: HashMap<String, Vec<(String, (i32, i32, i32, i32, String))>> = meshes
         .iter()
         .map(|m| (m.name.clone(), Vec::new()))
         .collect();
@@ -482,11 +482,14 @@ fn pair_with(mesh_names: &[String], catalog: &Catalog) -> BTreeMap<String, Vec<S
             };
             let list = winners.get_mut(&mesh.name).unwrap();
             if let Some((_, entry)) = list.iter_mut().find(|(key, _)| key == &head) {
-                if (diffuse, score, chain) > (entry.0, entry.1, entry.2) {
-                    *entry = (diffuse, score, chain, stem.clone());
+                if (diffuse, score, chain, strength) > (entry.0, entry.1, entry.2, entry.3) {
+                    *entry = (diffuse, score, chain, strength, stem.clone());
                 }
             } else {
-                list.push((head.clone(), (diffuse, score, chain, stem.clone())));
+                list.push((
+                    head.clone(),
+                    (diffuse, score, chain, strength, stem.clone()),
+                ));
             }
         }
     }
@@ -495,7 +498,28 @@ fn pair_with(mesh_names: &[String], catalog: &Catalog) -> BTreeMap<String, Vec<S
         meshes.iter().map(|m| (m.name.clone(), Vec::new())).collect();
     for mesh in &meshes {
         let Some(found) = winners.get_mut(&mesh.name) else { continue };
-        let has_head = !mesh.head.is_empty() && found.iter().any(|(head, _)| head == &mesh.head);
+        // Vepley SSR01 的 cloth 曾因为 Dorm 的 `cloth` 头完全同名（strength 只有
+        // 1）而拿走 Dorm 的整套贴图，3D 预览把另一套衣服的图集贴在这个网格的
+        // UV 上。只有当**同变体**存在同名编号层（cloth01 / cloth02，strength 3）
+        // 时，才让编号层压过别的变体的 exact head；其余情况保持原规则。
+        let best_strength = found.iter().map(|(_, entry)| entry.3).max().unwrap_or(0);
+        let has_strong_layer = found.iter().any(|(head, entry)| {
+            entry.3 == best_strength
+                && head.starts_with(&mesh.head)
+                && head.len() > mesh.head.len()
+                && head[mesh.head.len()..]
+                    .chars()
+                    .all(|c| c.is_ascii_digit())
+        });
+        let exact_head_strength = found
+            .iter()
+            .find(|(head, _)| head == &mesh.head)
+            .map(|(_, entry)| entry.3);
+        let has_head = match exact_head_strength {
+            // 编号层才是同变体的真实贴图时，别让弱变体的同名家族独占
+            Some(strength) => !has_strong_layer || strength == best_strength,
+            None => false,
+        };
         if has_head {
             let mesh_head = mesh.head.clone();
             found.retain(|(head, _)| {
@@ -507,8 +531,17 @@ fn pair_with(mesh_names: &[String], catalog: &Catalog) -> BTreeMap<String, Vec<S
                 !((tail.starts_with(|c: char| c.is_ascii_digit()) && tail.chars().all(|c| c.is_ascii_digit()))
                     || (ext.starts_with(|c: char| c.is_ascii_digit()) && ext.chars().all(|c| c.is_ascii_digit())))
             });
+        } else if has_strong_layer {
+            // 同变体编号分层：保留整组（网格可能有多个材质槽），但把编号最大的
+            // 放前面，`diffuse_of` 取到主图。Vepley SSR01 实测默认外观是
+            // cloth02（白蓝制服），cloth01 是另一层。
+            found.retain(|(_, entry)| entry.3 == best_strength);
+            found.sort_by_key(|(head, _)| {
+                let tail = head.strip_prefix(&mesh.head).unwrap_or("");
+                (0i32, -tail.parse::<i32>().unwrap_or(0))
+            });
         }
-        for (_, (_, _, _, stem)) in found.iter() {
+        for (_, (_, _, _, _, stem)) in found.iter() {
             if let Some(names) = families.get(stem) {
                 out.get_mut(&mesh.name).unwrap().extend(names.clone());
             }
@@ -731,6 +764,35 @@ mod tests {
         println!("tex {:?}", parse("c_MosinnagantSSR01_slg_d"));
         let groups = pair(&["c_MosinnagantSSR00_1_lod1".to_string()], &textures, None, &[]);
         println!("groups {groups:?}");
+    }
+
+    #[test]
+    fn same_variant_cloth_beats_another_skins_exact_head() {
+        // Vepley SSR01: the Dorm cloth shares the exact head `cloth` but belongs
+        // to a different outfit; the numbered same-character layers are the real
+        // maps. Regression: the 3D preview used to paint this mesh with Dorm's
+        // atlas (random UV islands all over the clothing).
+        let textures = BTreeMap::from([
+            ("c_VepleyDorm_slg_cloth_d".to_string(), vec!["b".to_string()]),
+            ("c_VepleyDorm_slg_cloth_n".to_string(), vec!["b".to_string()]),
+            ("c_VepleySSR01_slg_cloth01_d".to_string(), vec!["b".to_string()]),
+            ("c_VepleySSR01_slg_cloth01_n".to_string(), vec!["b".to_string()]),
+            ("c_VepleySSR01_slg_cloth02_d".to_string(), vec!["b".to_string()]),
+            ("c_VepleySSR01_slg_cloth02_n".to_string(), vec!["b".to_string()]),
+        ]);
+        let groups = pair(
+            &["c_VepleySSR01_slg_cloth_lod0".to_string()],
+            &textures,
+            None,
+            &[],
+        );
+        let names = &groups["c_VepleySSR01_slg_cloth_lod0"];
+        assert!(!names.iter().any(|name| name.contains("Dorm")), "{names:?}");
+        assert_eq!(
+            diffuse_of(names).as_deref(),
+            Some("c_VepleySSR01_slg_cloth02_d"),
+            "{names:?}"
+        );
     }
 
     #[test]
