@@ -103,6 +103,9 @@
 
 - **导出的 PNG 不是源格式**：texconv 解 mip0 得到 8-bit RGBA（IHDR color type 6），PNG 容器无损，但像素来自 BC1/BC7 的有损解码；回打包是二次有损重编码（BC1 42.17 dB / BC7 54.94 dB），只有 `copy-texture` 的字节搬运零损失。要留原始数据就存 DDS（头 + 裸 BC payload + 整条 mip 链）。
 - **源格式看 `m_TextureFormat`**：维普蕾 SSR01 的 10 个包实测 48 条贴图（11 条 `10=DXT1`，37 条 `25=BC7`）：不透明 `_d` 走 DXT1，`_n`/`_rmo`/`_spc`/`_ramp`/`_da`/脸眼/plane 走 BC7；2048² 12 mips、1024² 11 mips、512² 10 mips，字节数与上表一致。核对命令：`cargo run --example dump_textures -- <bundle>`（输出 `name|WxH|format|payload|hash`）。
+- **工作空间导出 DDS，不再导 PNG**：`Texture::to_dds()`（`texture.rs`）校验整条链长度后 `dds::build_chain` 原样封装，`workspace.rs` 写 `textures/<name>.dds`；预览 JPG 由 `Texture::decode_jpg()` 走 texconv（`-vflip`，所以预览是正的）。单个包手工导出/核对：`cargo run --example export_dds -- <bundle> <out_dir> [name]`。
+- **为什么不能“转正”DDS**：BC 块 4×4，块内行序固定；块行整体翻转 ≠ 图像翻转（实测 31.7 dB）。要正的图只能重编码（二次有损）或用 Blender 的 V 翻转；所以 `workspace` 的 DDS 保持原始字节，`blender` 在材质节点翻 V。旧工作空间的 PNG 没有 Mapping 节点，按扩展名 `.dds` 判断。
+- **打包链路不变**：Mod 回写仍读 Blender `GeneratedMod/textures/*.png`（用户选的替换图），texconv 重编码；DDS/JPG 只是工作空间产物。`workspace` 真机验法：`EXMT_WORKSPACE_SPEC=<spec.json> cargo test -p exmt-modbox --test workspace_real`，断言每行 `.dds` 可解析、payload 长度 = 整条 mip 链、`.jpg` 有 SOI。
 - **PNG 只含 mip0**：原 12 级 mip 链不随 PNG 导出；重打包必须按目标 mips 重新生成整条链。
 
 - **typetree 键名是 `image data`（带空格）**；写 `m_ImageData`/`image_data` 会被当新键静默丢弃（症状：包只涨 140 字节、像素没变）。必须写 `tree["image data"]` 并清 `m_StreamData`。
@@ -186,10 +189,12 @@ basis = (父pose · 父matrix_local⁻¹ · 本matrix_local)⁻¹ · pose
 | 产物 | 位置 / 字段 |
 | --- | --- |
 | 工作空间目录 | `<cache>/workspace/<皮肤>__<YYYYMMDD-HHmmss>/`，每次新建不覆盖；旧版按皮肤命名的目录作为 legacy 列出 |
-| `workspace.json` | `bundles`、`mesh_bundles`、`texture_bundles`、`meshes[{index, alias, file}]`、`textures[{file}]`、`animations/` |
+| `workspace.json` | `bundles`、`mesh_bundles`、`texture_bundles`、`meshes[{index, alias, file}]`、`textures[{file, preview_file, width, height, format, format_name, mips, dds_bytes}]`、`animations/` |
 | `spec.json` | 核心写给 Blender 侧，Blender **不依赖 App 在跑** |
 | `EXMTConfig.json` | `%APPDATA%\com.exmt.modbox\EXMTConfig.json`，格式 `exmt-config-1`：`workspace_root`、`updated_at`、`workspace{id,label,dir,entry,created_at}`、`bone_names`；串行写，避免快速切换时后到的 `null` 覆盖新选择 |
 | 写工作空间 | 每次写入前先删 `meshes/`、`textures/`，保证目录内容严格等于本次勾选 |
+| 贴图产物 | `textures/<name>.dds` = **原始 payload + DDS 头**（整条 mip 链，逐字节等于 `.resS`）；`textures/<name>.jpg` = texconv 解 mip0 的预览（≤2048，只给蓝图节点/EXMT 看，**永不参与打包**） |
+| 贴图行序 | Unity payload 自下而上 → DDS 原样写，在普通查看器/Blender 里是**倒的**；Blender 插件在材质里 `UV Map → Mapping(Scale Y=-1, Location Y=1)` 翻 V，**不要对 BC 块做块行翻转**（只是块行重排，实测 31.7 dB，会花） |
 | 皮肤缓存 | `<cache>/skins/<skinKey>/{meshes,geometry,thumbs,groups,diffuse,meta}.json`；`groups` = 核心配对结果（mesh → 贴图名），旧包没有它时前端才退回 TS 规则 |
 | GameCache | `{manifest,names,skins,clips,bones}.json` + `skins/<key>/` + `progress.json`；**manifest 最后写**，它的存在即「缓存完整」 |
 | 代际标记 | `cache_built_at` **必须等于** manifest 的 `built_at`；整次 analyze 只取一次时间戳，别让各产物各取当前时间 |
@@ -227,7 +232,7 @@ basis = (父pose · 父matrix_local⁻¹ · 本matrix_local)⁻¹ · pose
 | 打包（EXMT 侧） | App 的 `pack_blender` 读 `job.json`：按目标 bundle 分组 → texconv 编码 PNG（必须 `-srgbi -srgbo`，否则 64→13 变暗）→ 复用 `modpack::run` 写 `<hash>.bundle` + `mod.json`。点「加载到游戏」时自动打包；`job.json` 不比 `mod.json` 新就跳过 |
 | 编码缓存 | `<GeneratedMod>/.encode/<name>.<bundle>.bin` + 同名 `.json`，键 = PNG mtime+size + 目标 format/width/height/mips + texconv mtime；实测 14 包 + 1 张贴图冷 23.7 s、热 19.2 s |
 | `exmtmesh` 版本 | 插件导出 `exmt-mesh-2`（Rust `exmtmesh.rs` 只接受 2；`physical` 缺失时按 logical `dimension` 兜底） |
-| 工作空间元数据 | 新导出的 `workspace.json`：mesh 行带 `materials`（目标子网格数）与 `bone_table`（目标骨骼 hash/name，外部模型按名匹配权重用），贴图行带 `format/format_name/mips`；旧工作空间重导一次即可 |
+| 工作空间元数据 | 新导出的 `workspace.json`：mesh 行带 `materials`（目标子网格数）与 `bone_table`（目标骨骼 hash/name，外部模型按名匹配权重用），贴图行带 `file`（DDS）/`preview_file`（JPG）/`format/format_name/mips`/`dds_bytes`；旧工作空间重导一次即可。蓝图节点预览优先 `preview_file`，老工作空间回落到 `file`（PNG） |
 | 重新导入 | **同名蓝图必须复用、不许 remove**（内含用户连线与选图）；`<label>_original` Frame 内物体节点按 `submesh` 重指向新网格，Frame 外节点不动 |
 | 清理旧导入 | 导入**前**删上一批网格**连 mesh 数据块一起删**（否则名字被占只能叫 `.001`），回收无孩子的旧骨架；骨架按「骨骼名集合相同」复用（姿势也保住） |
 | 视口说真话 | `reuse_rig()`：场景已有含这些骨骼的骨架就复用，否则按骨骼表新建；导出不读修改器，改它只为视口正确 |

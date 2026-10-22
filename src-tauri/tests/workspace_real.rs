@@ -33,6 +33,36 @@ fn runs_a_real_workspace_spec() {
     );
     let first = manifest["meshes"][0]["file"].as_str().unwrap();
     assert!(out.join(first).is_file());
+    // Textures are the original payload in a DDS wrapper plus a JPEG preview:
+    // the DDS must parse, cover the full mip chain and match the row's metadata.
+    let textures = manifest["textures"].as_array().expect("textures");
+    assert!(!textures.is_empty(), "no textures exported");
+    for row in textures {
+        let file = row["file"].as_str().expect("texture file");
+        assert!(file.ends_with(".dds"), "{file} is not a DDS");
+        let bytes = std::fs::read(out.join(file)).expect("read dds");
+        let dds = exmt_core::dds::parse(&bytes).expect("parse dds");
+        assert_eq!(dds.width as u64, row["width"].as_u64().unwrap());
+        assert_eq!(dds.height as u64, row["height"].as_u64().unwrap());
+        assert_eq!(dds.mip_count as u64, row["mips"].as_u64().unwrap());
+        assert_eq!(
+            dds.unity_format().unwrap() as u64,
+            row["format"].as_u64().unwrap()
+        );
+        let payload = dds.payload(&bytes).expect("dds payload");
+        let expected = exmt_core::texture::expected_bytes(
+            dds.unity_format().unwrap(),
+            dds.width as usize,
+            dds.height as usize,
+            dds.mip_count as usize,
+        )
+        .expect("mip chain size");
+        assert_eq!(payload.len(), expected, "{file}: truncated mip chain");
+        let preview = row["preview_file"].as_str().expect("preview_file");
+        assert!(preview.ends_with(".jpg"), "{preview} is not a JPEG");
+        let jpg = std::fs::read(out.join(preview)).expect("read jpg");
+        assert_eq!(&jpg[..2], &[0xff, 0xd8], "{preview}: not a JPEG");
+    }
     let anims = manifest["animations"].as_array().unwrap();
     assert_eq!(
         anims.len(),

@@ -170,6 +170,59 @@ impl Texconv {
         Ok(png)
     }
 
+    /// Decode mip 0 and optionally resize, returning a JPEG preview.
+    /// The original DDS payload is exported separately and remains lossless.
+    pub fn decode_jpg(
+        &self,
+        unity_format: i32,
+        width: u32,
+        height: u32,
+        payload: &[u8],
+        target: Option<(u32, u32)>,
+    ) -> Result<Vec<u8>> {
+        let format = dds::from_unity(unity_format).ok_or(Error::Unsupported {
+            what: "texconv input format",
+        })?;
+        let input = dds::build(width, height, format, payload)?;
+        let dir = TempDir::new()?;
+        let src = dir.path.join("in.dds");
+        std::fs::write(&src, &input)?;
+
+        let mut args = vec![
+            "-nologo".to_string(),
+            "-y".to_string(),
+            "-m".to_string(),
+            "1".to_string(),
+            "-f".to_string(),
+            "R8G8B8A8_UNORM".to_string(),
+            "-ft".to_string(),
+            "jpg".to_string(),
+            "-vflip".to_string(),
+            "-if".to_string(),
+            "FANT".to_string(),
+        ];
+        if let Some((w, h)) = target {
+            args.extend(["-w".into(), w.to_string(), "-h".into(), h.to_string()]);
+        }
+        args.extend(["-o".into(), dir.out_arg(), src_arg(&src)]);
+        self.run(&args)?;
+
+        let jpg = std::fs::read(dir.path.join("out").join("in.jpg"))?;
+        let got = jpeg_size(&jpg).ok_or(Error::Invalid {
+            what: "texconv jpg",
+            detail: "missing SOF marker".into(),
+        })?;
+        let expected = target.unwrap_or((width, height));
+        if got != expected {
+            return Err(Error::SizeMismatch {
+                what: "texconv jpg size",
+                got: (got.0 * got.1) as usize,
+                want: (expected.0 * expected.1) as usize,
+            });
+        }
+        Ok(jpg)
+    }
+
     /// Convert upright RGBA8 images to PNG, batching many images per process.
     ///
     /// A texconv start-up costs tens of milliseconds, which is most of a
@@ -376,6 +429,40 @@ fn png_size(png: &[u8]) -> Option<(u32, u32)> {
     Some((w, h))
 }
 
+fn jpeg_size(jpg: &[u8]) -> Option<(u32, u32)> {
+    if jpg.len() < 4 || jpg[..2] != [0xff, 0xd8] {
+        return None;
+    }
+    let mut at = 2usize;
+    while at + 4 <= jpg.len() {
+        while at < jpg.len() && jpg[at] != 0xff {
+            at += 1;
+        }
+        while at < jpg.len() && jpg[at] == 0xff {
+            at += 1;
+        }
+        let marker = *jpg.get(at)?;
+        at += 1;
+        if marker == 0xd8 || marker == 0xd9 {
+            continue;
+        }
+        let len = u16::from_be_bytes([*jpg.get(at)?, *jpg.get(at + 1)?]) as usize;
+        if len < 2 || at + len > jpg.len() {
+            return None;
+        }
+        if matches!(marker, 0xc0..=0xc3 | 0xc5..=0xc7 | 0xc9..=0xcb | 0xcd..=0xcf) {
+            if len < 7 {
+                return None;
+            }
+            let height = u16::from_be_bytes([jpg[at + 3], jpg[at + 4]]) as u32;
+            let width = u16::from_be_bytes([jpg[at + 5], jpg[at + 6]]) as u32;
+            return Some((width, height));
+        }
+        at += len;
+    }
+    None
+}
+
 fn src_arg(path: &Path) -> String {
     path.to_string_lossy().into_owned()
 }
@@ -469,6 +556,17 @@ mod tests {
         let png = tool.decode_png(10, 4, 4, &block, Some((2, 3))).unwrap();
         assert_eq!(png_size(&png), Some((2, 3)));
         assert_eq!(&png[..8], b"\x89PNG\r\n\x1a\n");
+    }
+
+    #[test]
+    fn decodes_a_jpeg_preview() {
+        let Some(tool) = texconv() else { return };
+        let block = [0x00, 0xF8, 0x00, 0x00, 0, 0, 0, 0];
+        let jpg = tool.decode_jpg(10, 4, 4, &block, None).unwrap();
+        assert_eq!(&jpg[..2], [0xff, 0xd8]);
+        assert_eq!(jpeg_size(&jpg), Some((4, 4)));
+        let small = tool.decode_jpg(10, 4, 4, &block, Some((2, 2))).unwrap();
+        assert_eq!(jpeg_size(&small), Some((2, 2)));
     }
 
     #[test]

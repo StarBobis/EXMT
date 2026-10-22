@@ -21,7 +21,7 @@
 | Mesh 顶点/索引 | `mesh.rs` | 完成 |
 | Texture2D | `texture.rs` | 完成 |
 | BC1/3/4/5/7 解码（原生） | `bc.rs` | 完成（差分/工具用，预览走 texconv） |
-| DDS 封装/解析 | `dds.rs` | 完成 |
+| DDS 封装/解析 | `dds.rs` | 完成；`Texture::to_dds()` 把整条 mip 链原样套头，workspace 贴图导出用它 |
 | texconv 调用 | `texconv.rs` | 完成 |
 | geometry（three.js） | `skin.rs` | 完成 |
 | SerializedFile 重建（v17–v21） | `serialized.rs` | 完成 |
@@ -33,7 +33,7 @@
 | modpack 网格补丁（`.exmtmesh`） | `mesh.rs` + `src-tauri/src/exmtmesh.rs` | 完成；异 cook 自动裁剪/补齐与骨骼重映射 |
 | 预览 `thumbs` / `skinfo` | `src-tauri/src/preview.rs` | 完成，贴图网格走 texconv |
 | `backup` / `restore` / `backup-size` | `src-tauri/src/store.rs` | 完成，Tauri 已直接调用 |
-| `workspace`（Blender 导出） | `src-tauri/src/workspace.rs` + `skeleton.rs` + `anim.rs` | 完成（网格/贴图/骨架/动画） |
+| `workspace`（Blender 导出） | `src-tauri/src/workspace.rs` + `skeleton.rs` + `anim.rs` | 完成（网格/贴图/骨架/动画）；贴图写原始 DDS + texconv JPG 预览 |
 | analyze（GameCache） | `src-tauri/src/analyze.rs` + `pairings.rs` | 完成：一次扫描收名字/动作/骨骼，原生解码 + 批量 PNG，原子替换 |
 
 161 个测试。`cargo test` 在 `core-rs/` 下跑；`src-tauri` 另有 28 个单测和 8 个可选
@@ -144,7 +144,10 @@ Python core 与 Python 测试已删除。
 - texconv 输出 DDS 时**默认生成整条 mip 链**；只要 mip0 时必须传 `-m 1`，否则
   "mip0 长度"检查会把 mip 尾巴当成像素。
 - DDS 是自上而下、Unity 贴图是自下而上：解码必须 `-vflip`，否则图整个倒过来；
-  对称测试图会掩盖这个错误。
+  对称测试图会掩盖这个错误。**workspace 的 `.dds` 是原样 payload**，所以它在查看器里就是倒的；
+  只有预览 JPG 走 `-vflip`。对 BC 块做「块行翻转」≠ 翻图（块内 4 行不翻，31.7 dB），别当转正手段。
+- `Texture::decode_jpg()` 走 texconv `-ft jpg`（同样 `-vflip`），只服务预览；`jpeg_size()`
+  从 SOF 段读宽高，找不到 SOF 就报错。JPEG 无 alpha，透明贴图的预览会是平色。
 - `-w`/`-h` **各自独立、会拉伸**：只给一个，另一个保持原尺寸。缩略图要先按 Pillow
   的 `thumbnail` 算法算好两个尺寸（`texture::thumbnail_size`，含 floor/ceil 取最近比例）。
 - `-o` 指定的目录**不会自动创建**；输出名沿用输入主名换扩展名（`in.dds` → `in.png`）。
@@ -185,7 +188,10 @@ Python core 与 Python 测试已删除。
 Texture2D 的 Unity `SerializedFile`（`.resS` 放在同目录），它会对每个可解码贴图检查
 mip 链长度、mip 0 解码，以及「存回 → 序列化 → 再读 → 解码」逐像素不变。
 不设变量就打印 skip，不失败。差分导出工具是 `examples/dump_textures`（输出
-`name|WxH|format|bytes|fnv64`，可直接和 Python 侧输出比较）。
+`name|WxH|format|bytes|fnv64`，可直接和 Python 侧输出比较）。原样 DDS 导出/核对用
+`examples/export_dds <bundle> <out_dir> [name]`（写 `to_dds` 的产物并回读校验）。
+`workspace` 的真实产物验收：`EXMT_WORKSPACE_SPEC=<spec.json> cargo test --test workspace_real`，
+断言每个贴图行 `.dds` 可解析、payload 长度等于整条 mip 链、`.jpg` 有 SOI。
 
 skinpack 的端到端验法（无 GF2 数据也能做）：
 1. 取任意 Unity 2019/2020 的 `.assets` + `.resS`（本机用 ZZZ 的 `globalgamemanagers`，
@@ -214,9 +220,13 @@ NPZ 层不依赖本机游戏数据：`tests/npz.rs` 内嵌一个由 `numpy.savez
 workspace 真机验法：Vepley 4 网格 + 2 贴图、无 `bone_names`，再加 Liushih 马场剪辑
 （`0c01094c…`，108 条轨道）。Rust 与 Python 产物的骨架 161 根（local 相同、rest 差
 ≤4.4e-16）、`workspace.json` 网格行相等、每个 `.exmtmesh` 的全部数组逐字节相同、
-2048² PNG 最大差 1，`.exmtanim` 的 JSON **完全相等**（轨道/时间/父子/事件）。
+`.exmtanim` 的 JSON **完全相等**（轨道/时间/父子/事件）。
 Rust 的 NPZ 是**存储式**，所以 summary 的 `bytes` 会比 Python 的压缩 NPZ 大，不影响
 Blender 读取。
+2026-10-22 起贴图改为 `.dds`（原始 payload）+ `.jpg` 预览：Vepley 23 张实测 0 失败；
+`texconv -vflip` 解 DDS 出的 PNG 与旧工作空间 PNG **SHA256 全等**（证明 DDS 里就是原始字节）；
+Blender 导入后三视图渲染与旧 PNG 工作空间比 PSNR 68.7–70.4 dB（差异来自 DXT1 解码器与着色）。
+材质节点必须带 `Mapping(Scale Y=-1, Location Y=1)`，否则贴图上下颠倒；块行翻转不能替代它。
 
 动画坑：同一 bundle 里可能有**同名 AnimationClip**，Python `open_clips` 的 dict 后者覆盖
 前者；Rust 必须遍历完取最后一个，否则会少十几条轨道。采样用 f64 才能与 Python 的

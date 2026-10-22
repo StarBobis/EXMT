@@ -20,6 +20,7 @@ use std::borrow::Cow;
 
 use crate::bc::{self, Bc};
 use crate::container::Node;
+use crate::dds;
 use crate::error::{Error, Result};
 use crate::texconv::Texconv;
 use crate::typetree::Value;
@@ -407,6 +408,81 @@ impl Texture {
         let (w, h) = target.unwrap_or((self.width as u32, self.height as u32));
         Ok((w, h, png))
     }
+
+    /// Decode mip 0 to an upright JPEG preview through texconv, optionally downscaled.
+    ///
+    /// Previews only: mip 0, 8-bit, no alpha. The workspace's `.dds` keeps the
+    /// original payload, so nothing downstream encodes this JPEG back into the game.
+    pub fn decode_jpg(
+        &self,
+        nodes: &[Node],
+        texconv: &Texconv,
+        limit: Option<usize>,
+    ) -> Result<(u32, u32, Vec<u8>)> {
+        if self.width == 0 || self.height == 0 {
+            return Err(Error::Invalid {
+                what: "texture size",
+                detail: format!("{}x{} has no pixels", self.width, self.height),
+            });
+        }
+        let payload = self.payload(nodes)?;
+        let mip0 = expected_bytes(self.format, self.width, self.height, 1)?;
+        if payload.len() < mip0 {
+            return Err(Error::Truncated {
+                what: "texture mip 0",
+                offset: 0,
+                wanted: mip0,
+                available: payload.len(),
+            });
+        }
+        let target = limit
+            .and_then(|l| thumbnail_size(self.width, self.height, l))
+            .map(|(w, h)| (w as u32, h as u32));
+        let jpg = texconv.decode_jpg(
+            self.format,
+            self.width as u32,
+            self.height as u32,
+            &payload[..mip0],
+            target,
+        )?;
+        let (w, h) = target.unwrap_or((self.width as u32, self.height as u32));
+        Ok((w, h, jpg))
+    }
+
+    /// The complete payload wrapped in a DDS header, byte for byte.
+    ///
+    /// This is not a conversion: the file is `128`/`148` header bytes followed by
+    /// exactly the `.resS` slice, including every mip. Unity stores rows
+    /// bottom-up, so a top-down viewer (Blender included) shows the image
+    /// vertically flipped; that is the price of keeping the bytes original.
+    /// Formats without a DDS mapping (`RGBAHalf`, `BC6H`, ...) are rejected.
+    pub fn to_dds(&self, nodes: &[Node]) -> Result<Vec<u8>> {
+        if self.width == 0 || self.height == 0 {
+            return Err(Error::Invalid {
+                what: "texture size",
+                detail: format!("{}x{} has no pixels", self.width, self.height),
+            });
+        }
+        let format = dds::from_unity(self.format).ok_or(Error::Unsupported {
+            what: "texture format for DDS",
+        })?;
+        let payload = self.payload(nodes)?;
+        let expected = self.expected_bytes()?;
+        if payload.len() != expected {
+            return Err(Error::SizeMismatch {
+                what: "texture payload for DDS",
+                got: payload.len(),
+                want: expected,
+            });
+        }
+        dds::build_chain(
+            self.width as u32,
+            self.height as u32,
+            format,
+            self.mip_count as u32,
+            &payload,
+        )
+    }
 }
 
 /// Area-average an upright RGBA8 image down to `dw x dh`.
@@ -702,6 +778,33 @@ mod tests {
         let (w, h, rgba) = texture.decode_rgba_resized(&[], Some(2)).expect("native");
         assert_eq!((w, h), (2, 2));
         assert_eq!(rgba.len(), 2 * 2 * 4);
+    }
+
+    #[test]
+    fn to_dds_wraps_the_payload_verbatim() {
+        // 4x4 BC1 with 3 mips: 4x4, 2x2, 1x1 -> 8 + 8 + 8 bytes.
+        let payload = [0xABu8; 24];
+        let texture = Texture::from_value(&tree(4, 4, 10, 3, &payload, None)).unwrap();
+        let dds = texture.to_dds(&[]).expect("dds");
+        let parsed = crate::dds::parse(&dds).expect("parse");
+        assert_eq!((parsed.width, parsed.height, parsed.mip_count), (4, 4, 3));
+        assert_eq!(parsed.unity_format(), Some(10));
+        assert_eq!(parsed.payload(&dds).unwrap(), payload.as_slice());
+        assert_eq!(dds.len(), 128 + payload.len());
+        // BC7 needs the DX10 header, so the payload starts 20 bytes later.
+        let texture = Texture::from_value(&tree(4, 4, 25, 1, &[0u8; 16], None)).unwrap();
+        let dds = texture.to_dds(&[]).unwrap();
+        assert_eq!(
+            crate::dds::parse(&dds).unwrap().payload_offset,
+            148,
+            "BC7 needs a DX10 header"
+        );
+        // Formats without a DDS mapping are refused instead of guessed.
+        let texture = Texture::from_value(&tree(4, 4, 17, 1, &[0u8; 4], None)).unwrap();
+        assert!(texture.to_dds(&[]).is_err());
+        // A short payload must not produce a truncated mip chain.
+        let texture = Texture::from_value(&tree(4, 4, 10, 1, &[0u8; 4], None)).unwrap();
+        assert!(texture.to_dds(&[]).is_err());
     }
 
     #[test]

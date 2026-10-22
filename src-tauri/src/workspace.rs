@@ -4,7 +4,8 @@
 //!
 //! ```text
 //! meshes/<mesh>.exmtmesh   geometry + full typetree + skeleton view
-//! textures/<name>.png      decoded (max 2048) textures
+//! textures/<name>.dds      original payload + DDS header (full mip chain, byte-identical)
+//! textures/<name>.jpg      mip-0 preview for EXMT / the blueprint node (never packed)
 //! animations/*.exmtanim    reference clips (not part of a Mod)
 //! skeleton.json            merged rig for the whole skin
 //! workspace.json           what the add-on reads
@@ -14,6 +15,12 @@
 //! This is the Rust replacement for `preview.make_workspace`: meshes, textures,
 //! the merged skeleton and reference animation clips all run here. The Blender
 //! add-on reads the same folder layout from either implementation.
+//!
+//! Textures are exported the way the pack stores them: a DDS header in front of
+//! the untouched Unity payload (`m_TextureFormat` + full mip chain), no PNG
+//! round-trip. Unity keeps rows bottom-up, so the DDS looks vertically flipped in
+//! a top-down viewer; the add-on flips V in the material node instead of
+//! re-encoding the file. The JPEG is for previews only.
 
 use std::collections::{BTreeMap, HashMap};
 use std::path::Path;
@@ -209,18 +216,38 @@ pub fn run(outdir: &Path, spec_path: &Path, texconv: &Texconv) -> Result<String,
             let (_, texture) = bundle
                 .texture_object(&item.name)
                 .map_err(|e| e.to_string())?;
-            let (width, height, png) = texture
-                .decode_png(&bundle.nodes, texconv, Some(2048))
-                .map_err(|e| e.to_string())?;
-            let fname = format!("{}.png", safe(&item.name));
-            let path = tex_dir.join(&fname);
-            std::fs::write(&path, &png).map_err(|e| format!("write {}: {e}", path.display()))?;
-            Ok(serde_json::json!({
-                "file": format!("textures/{fname}"),
+            // Original bytes first: a DDS is the Unity payload plus a header, so
+            // no decode/encode happens here. The file can be repacked or compared
+            // against the `.resS` slice byte for byte.
+            let dds = texture.to_dds(&bundle.nodes).map_err(|e| e.to_string())?;
+            let stem = safe(&item.name);
+            let dds_name = format!("{stem}.dds");
+            let dds_path = tex_dir.join(&dds_name);
+            std::fs::write(&dds_path, &dds)
+                .map_err(|e| format!("write {}: {e}", dds_path.display()))?;
+            // The JPEG is a preview for the blueprint node / EXMT only; it is
+            // never packed. A preview failure must not drop the original texture.
+            let (preview_file, preview_error) =
+                match texture.decode_jpg(&bundle.nodes, texconv, Some(2048)) {
+                    Ok((_, _, jpg)) => {
+                        let jpg_name = format!("{stem}.jpg");
+                        let jpg_path = tex_dir.join(&jpg_name);
+                        match std::fs::write(&jpg_path, &jpg) {
+                            Ok(()) => (Some(format!("textures/{jpg_name}")), None),
+                            Err(e) => (
+                                None,
+                                Some(short(&format!("write {}: {e}", jpg_path.display()), 200)),
+                            ),
+                        }
+                    }
+                    Err(e) => (None, Some(short(&e.to_string(), 200))),
+                };
+            let mut row = serde_json::json!({
+                "file": format!("textures/{dds_name}"),
                 "name": item.name,
                 "bundle": item.bundle,
-                "width": width,
-                "height": height,
+                "width": texture.width,
+                "height": texture.height,
                 // The add-on no longer asks a Python core for these; keeping
                 // them in workspace.json also lets the node draw its format
                 // label on a workspace imported after the core moved to Rust.
@@ -229,7 +256,15 @@ pub fn run(outdir: &Path, spec_path: &Path, texconv: &Texconv) -> Result<String,
                     .map(|f| f.name)
                     .unwrap_or(""),
                 "mips": texture.mip_count,
-            }))
+                "dds_bytes": dds.len(),
+            });
+            if let Some(preview) = preview_file {
+                row["preview_file"] = serde_json::json!(preview);
+            }
+            if let Some(error) = preview_error {
+                row["preview_error"] = serde_json::json!(error);
+            }
+            Ok(row)
         })();
         match result {
             Ok(row) => written_textures.push(row),
