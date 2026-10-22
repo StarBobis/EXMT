@@ -248,8 +248,7 @@ const zh = {
   "gate.cacheBody": "到设置里点「重新分析游戏缓存」，分析完模型页就能用。",
   "settings.envConnected": "桌面外壳已连接",
   "settings.envBrowser": "浏览器预览模式",
-  "settings.aboutDesc":
-    "面向《少女前线2：追放》的离线模型工具箱：选角色、导出 .exmtmesh、在 Blender 里改完，一键打包回游戏。",
+  "settings.aboutDesc": "一个简单的少女前线2追放Mod工具箱",
   "settings.aboutDocs": "使用文档",
   "settings.aboutGuide": "替换模型教程",
   "settings.aboutSponsor": "赞助与主页",
@@ -501,8 +500,7 @@ const en: Record<MessageKey, string> = {
   "gate.cacheBody": "Open Settings and run “Re-analyse game cache”; the model page unlocks afterwards.",
   "settings.envConnected": "Desktop shell connected",
   "settings.envBrowser": "Browser preview",
-  "settings.aboutDesc":
-    "An offline model toolbox for Girls' Frontline 2: Exilium — pick a character, export .exmtmesh, edit it in Blender, then pack it back into the game.",
+  "settings.aboutDesc": "A simple mod toolbox for Girls' Frontline 2: Exilium.",
   "settings.aboutDocs": "Documentation",
   "settings.aboutGuide": "Model replacement guide",
   "settings.aboutSponsor": "Sponsor and homepage",
