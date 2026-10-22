@@ -23,13 +23,7 @@ import {
   type SkinPhase,
   type TextureEntry,
 } from "../lib/preview";
-import {
-  characterOfEntry,
-  findEntry,
-  label,
-  skinLabel,
-  type CatalogEntry,
-} from "../lib/roster";
+import { findEntry, label, type CatalogEntry } from "../lib/roster";
 import { selectedSkin, selectSkin } from "../lib/selection";
 import {
   applyMods,
@@ -88,11 +82,6 @@ let loadedId = "";
 /** `c_AlvaSSR01` — the asset-name prefix shared by this skin's meshes and textures. */
 let skinKey = "";
 
-const character = computed(() => characterOfEntry(selectedSkin.value));
-const title = computed(() => character.value?.display ?? "");
-const skinName = computed(() =>
-  selectedSkin.value ? skinLabel(selectedSkin.value) : "",
-);
 const skinCode = computed(() => selectedSkin.value?.name ?? "");
 
 /** mesh name → textures whose names share its part stem. */
@@ -549,6 +538,20 @@ async function onWorkspaceChange(id: string) {
   await chooseWorkspace(id);
 }
 
+/** 下拉右边的图标按钮：在资源管理器里打开当前工作空间。 */
+async function openWorkspaceFolder() {
+  const ws = activeWorkspace.value;
+  if (!ws || !isTauri) return;
+  try {
+    await openPath(ws.dir);
+  } catch (e) {
+    status.value = {
+      kind: "err",
+      text: t("models.workspace.openFail", { error: String(e) }),
+    };
+  }
+}
+
 /** Load the workspace list and restore the last active one on first activation. */
 async function initWorkspaces() {
   await refreshWorkspaces();
@@ -786,14 +789,6 @@ async function startMaking() {
     <div class="studio-page">
       <header class="studio__bar">
         <div class="studio__id">
-          <h2 class="studio__title">{{ title }}</h2>
-          <span v-if="skinName && skinName !== title" class="chip chip--accent">
-            {{ skinName }}
-          </span>
-          <span class="chip">
-            {{ t("models.studio.counts", { meshes: meshes.length, textures: textures.length }) }}
-          </span>
-          <span v-if="skinCode" class="studio__code mono">{{ skinCode }}</span>
           <span class="workspace-pick" :title="t('models.workspace.hint')">
             <span class="workspace-pick__label">{{ t("models.workspace.label") }}</span>
             <span class="workspace-pick__control">
@@ -806,7 +801,18 @@ async function startMaking() {
                 @change="onWorkspaceChange"
               />
             </span>
+            <button
+              class="workspace-pick__open"
+              type="button"
+              :title="t('models.workspace.open')"
+              :aria-label="t('models.workspace.open')"
+              :disabled="!activeWorkspace || !isTauri"
+              @click="openWorkspaceFolder"
+            >
+              <span class="glyph">&#xE838;</span>
+            </button>
           </span>
+          <span v-if="skinCode" class="studio__code mono">{{ skinCode }}</span>
         </div>
         <span class="studio__hint" :title="hint">{{ hint }}</span>
         <div class="studio__bar-actions">
@@ -1085,19 +1091,8 @@ async function startMaking() {
   min-width: 0;
 }
 
-.studio__title {
-  font-family: var(--font-display);
-  font-size: 18px;
-  font-weight: 600;
-  line-height: 26px;
-  white-space: nowrap;
-}
-
-.studio__id .chip {
-  align-self: center;
-}
-
 .studio__code {
+  min-width: 0;
   font-size: 11px;
   color: var(--text-3);
   white-space: nowrap;
@@ -1107,6 +1102,7 @@ async function startMaking() {
 
 .workspace-pick {
   display: inline-flex;
+  flex: none;
   align-items: center;
   gap: 6px;
   min-width: 0;
@@ -1123,6 +1119,45 @@ async function startMaking() {
   display: block;
   width: 230px;
   min-width: 0;
+}
+
+/* 下拉右边的图标按钮：打开当前工作空间的文件夹 */
+.workspace-pick__open {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid var(--stroke-strong);
+  border-radius: var(--radius-sm);
+  background: var(--card-bg);
+  color: var(--text-2);
+  cursor: pointer;
+  transition:
+    background-color var(--dur-fast) var(--ease),
+    border-color var(--dur-fast) var(--ease),
+    color var(--dur-fast) var(--ease);
+}
+
+.workspace-pick__open:hover:not(:disabled) {
+  border-color: var(--accent);
+  background: var(--fill-subtle-hover);
+  color: var(--text-1);
+}
+
+.workspace-pick__open:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.workspace-pick__open:focus,
+.workspace-pick__open:focus-visible {
+  outline: none;
+}
+
+.workspace-pick__open .glyph {
+  font-size: 13px;
 }
 
 .studio__hint {
