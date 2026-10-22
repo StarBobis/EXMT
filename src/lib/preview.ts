@@ -6,13 +6,13 @@
  * index is cached in the cache folder because building it walks every bundle
  * once (~10 s).
  */
-import { exists, mkdir, readDir, readTextFile, remove, writeTextFile } from "@tauri-apps/plugin-fs";
+import { copyFile, exists, mkdir, readDir, readTextFile, remove, writeTextFile } from "@tauri-apps/plugin-fs";
 import { appDataDir, join } from "@tauri-apps/api/path";
 import catalogData from "../data/catalog.json";
 import { gameBundles, runCore } from "./core";
 import { ensureGameCache } from "./gamecache";
 import { diffuseOf, familyOf, pairTextures, parseName } from "./pairings";
-import { backup, cacheFolder, refreshBackup } from "./settings";
+import { cacheFolder, refreshBackup } from "./settings";
 import { isTauri } from "./tauri";
 import { newWorkspaceIdentity, workspaceRoot } from "./workspaces";
 
@@ -145,11 +145,57 @@ export interface WorkspaceResult {
   bytes: number;
 }
 
-export function bundlePathOf(hash: string): string {
-  const clean = hash.replace(/\.bundle$/i, "");
-  // 预览一律读我们自己的原始备份；备份里没有时才回落到游戏目录
-  if (backup.value.ready) return `${backup.value.dir}\\${clean}.bundle`;
-  return `${gameBundles()}\\${clean}.bundle`;
+/** Bundle hash / file name without the `.bundle` suffix. */
+function bundleName(hash: string): string {
+  return hash.replace(/\.bundle$/i, "");
+}
+
+/**
+ * Where to read a bundle's bytes from, best source first.
+ *
+ * `<cache>/game/bundles` (pristine backup) → legacy `%APPDATA%\…\backups` →
+ * the live game folder. Reading the live file is safe when no backup exists:
+ * installing a Mod backs the original up *before* patching, so a bundle that was
+ * never backed up was never patched.
+ *
+ * A bundle missing from both places means the GameCache and the folders are out
+ * of sync (game path changed, or the backup was made before a newer analysis
+ * found more bundles), so the error names what to redo instead of leaking an
+ * `os error 2` from the Rust core.
+ */
+export async function bundleFileOf(hash: string): Promise<string> {
+  const name = bundleName(hash);
+  const cached = `${cacheFolder.value}\\game\\bundles\\${name}.bundle`;
+  if (await exists(cached).catch(() => false)) return cached;
+  const legacy = `${await appDataDir()}\\com.exmt.modbox\\backups\\${name}.bundle`;
+  if (await exists(legacy).catch(() => false)) return legacy;
+  const live = `${gameBundles()}\\${name}.bundle`;
+  if (await exists(live).catch(() => false)) return live;
+  throw new Error(
+    `缺少资源包 ${name}：游戏目录和原始备份里都找不到。` +
+      "请在设置页确认游戏路径并重新分析游戏；如果是旧缓存/旧备份，再点一次「备份原始模型」补齐。",
+  );
+}
+
+/**
+ * Best-effort: top the pristine backup up with a live game bundle it predates.
+ *
+ * The backup is built from one analysis and is not rebuilt when a later analysis
+ * finds more bundles (new skins/audio assets); reading the live copy keeps the
+ * export working, and copying it here makes the next run use the backup again.
+ * Failure must never fail the export.
+ */
+async function healBackup(hash: string, live: string): Promise<void> {
+  try {
+    const name = bundleName(hash);
+    const dir = `${cacheFolder.value}\\game\\bundles`;
+    const dest = `${dir}\\${name}.bundle`;
+    if (await exists(dest).catch(() => false)) return;
+    await mkdir(dir, { recursive: true }).catch(() => undefined);
+    await copyFile(live, dest);
+  } catch {
+    // topping up the backup is opportunistic; the caller already has a valid path
+  }
 }
 
 /**
@@ -157,15 +203,14 @@ export function bundlePathOf(hash: string): string {
  *
  * Previewing a Modded game folder is fine (that is what the game shows), but
  * packing must start from the original bytes — otherwise generating a Mod twice
- * would bake the first Mod into the second one.
+ * would bake the first Mod into the second one. A live game copy is only used for
+ * bundles the backup predates; those get copied into the backup on the way.
  */
 export async function packSource(hash: string): Promise<string> {
-  const clean = hash.replace(/\.bundle$/i, "");
-  const cached = `${cacheFolder.value}\\game\\bundles\\${clean}.bundle`;
-  if (await exists(cached)) return cached;
-  const legacy = `${await appDataDir()}\\com.exmt.modbox\\backups\\${clean}.bundle`;
-  if (await exists(legacy)) return legacy;
-  return bundlePathOf(hash);
+  const live = `${gameBundles()}\\${bundleName(hash)}.bundle`;
+  const source = await bundleFileOf(hash);
+  if (source === live) await healBackup(hash, live);
+  return source;
 }
 
 /** Every bundle hash a catalog entry mentions, de-duplicated. */
@@ -495,7 +540,7 @@ export async function loadMeshes(hashes: string[]): Promise<SkinMesh[]> {
     let list = meshCache.get(hash);
     if (!list) {
       try {
-        const data = await runJson(["skinfo", bundlePathOf(hash)]);
+        const data = await runJson(["skinfo", await bundleFileOf(hash)]);
         list = (data.meshes as SkinMesh[]).map((mesh) => ({ ...mesh, bundle: hash }));
       } catch {
         // a bundle listed in the catalog may not be downloaded
@@ -536,7 +581,7 @@ function decodeGeometry(raw: any): PreviewGeometry {
 /** Downscaled PNGs for the grid; `size` is the long edge in pixels. */
 export async function loadThumbs(hash: string, names: string[], size = 160): Promise<TextureEntry[]> {
   if (!names.length) return [];
-  const data = await runJson(["thumbs", bundlePathOf(hash), String(size), ...names]);
+  const data = await runJson(["thumbs", await bundleFileOf(hash), String(size), ...names]);
   return (data.textures as TextureEntry[]).map((tex) => ({ ...tex, bundle: hash }));
 }
 
