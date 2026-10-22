@@ -18,6 +18,7 @@
 | `0x8000FFFF 灾难性故障`、`PluginInitialization("http", 拒绝访问 os error 5)` | 工作区内的 exe 被以 Low IL（S-1-16-4096）启动；低 IL 受 no-write-up 限制，写不了 `%LOCALAPPDATA%` → WebView2 建不了 profile | 30 秒证伪代码：换 `tauri::Builder::default()`（零插件/零 setup）照样崩；10 秒锁定环境：同一份 `whoami.exe` 放工作区 = Low、放 `C:\DevCache` = High。修法 `icacls <dir> /setintegritylevel "(OI)(CI)LW"`；加 LW 意味着任何低 IL 进程都能改它，属开发取舍，正常双击运行不需要 |
 | 崩溃发生在 `msedgewebview2.exe` 里 | 症状出现在别人的进程里 | 先量**自己进程**的上下文（IL / AppContainer / job / 父进程），别去读业务代码；判定某变量必须 A/B 交叉来回跑并固定「谁拉起它」，否则沙箱里成败成片波动只是噪声 |
 | `Port 1420 is already in use` | 上次留下的后台 dev server 还活着（后台 job 会活过对话） | 改成探测-复用：`beforeDevCommand = node scripts/dev.mjs`，`GET /@vite/client` 200 就打 reusing 并 exit 0；端口空才 spawn vite；被别的程序占则 exit 1。收尾必须关掉自己起的 server |
+| `bun tauri dev` 编译/链接失败：`rust-lld: undefined symbol: anon.…llvm.…`，引用 `libexmt_core-*.rlib` | `src-tauri/target` 里的 exmt-core 增量/rlib 坏了（源码已变但 cargo 复用了旧 rlib；`cargo check` 能过、一链接就炸） | 不是代码错误。`cd src-tauri; cargo clean -p exmt-core -p exmt-modbox` 后重跑（2026-10-22 实测清了 7.3 GB、重建 3.5 min，之后 `bun tauri dev` 1.9 s 起）：先怀疑增量缓存，不要改代码 |
 | 点按钮没反应、截图还是上一页 | **有两个同名窗口叠着**，脚本只认第一个匹配 | `Get-Process <name> \| Measure-Object`，多个就全 `Stop-Process` 再重启；否则所有 UI 证据作废 |
 | 长流程中途回到第一步 / 整窗白屏 | HMR 重置 Vue 本地状态、热更新把组件树更新坏 | 分析类长流程中途不要改前端源码；白屏直接重启应用，别当代码 bug 查 |
 
