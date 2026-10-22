@@ -125,6 +125,15 @@ $env:WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS='--remote-debugging-port=9222'
 ```
 
 - 页面 target 的 URL 是 devUrl（`http://localhost:1420`），不是 `file://`。
+- 本机是 bun 安装树（`node_modules/.bin` 只有 `.exe`/`.bunx` shim）：`npx.cmd tauri dev` 报
+  "could not determine executable to run"，用 `bun run tauri dev`（`cargo run` 有增量缓存，秒起）。
+- Node 22+ 自带全局 `WebSocket`：30 行脚本就够用（`GET /json/list` → 取 page target → WS →
+  `Runtime.evaluate` / `Page.captureScreenshot` / 任意 `raw <CdpMethod> <json>`）。`Runtime.evaluate` 带
+  `returnByValue + awaitPromise + userGesture`，点按钮直接 `el.click()`，不依赖前台窗口、DPI 或鼠标坐标。
+- 验证「打开文件夹」这类系统动作：别只看调用返回码。`EnumWindows` 找标题含目标目录名的窗口
+  （资源管理器标题 = `<文件夹名> - 文件资源管理器`），再回查 `EXMTConfig.json` 的 `workspace.dir` 存在。
+- 窄窗布局验证：`SetWindowPos` 把无边框窗口 outer 改成 920×600，viewport 会变成 904×591（左右各 8px 边框）；
+  读 `document.documentElement.scrollWidth === clientWidth` 和顶栏 `scrollWidth` 证明零横向溢出。
 - 小 UI 改动优先复用已在运行的 dev 窗口，不要冷启动新的 exe；验证前用 `document.querySelector` 读真实 DOM 宽度/选中态。
 - PowerShell 调快照脚本时，**整体表达式用双引号包、内部用单引号**；单引号包整体会被原生参数传递吞掉双引号。
 
