@@ -23,7 +23,7 @@
 | Rust 工具链 | `cargo`（`%USERPROFILE%\.cargo\bin\cargo.exe`）；`texconv.exe` 在 `src-tauri/bin/` |
 | Blender | `C:\Program Files\Blender Foundation\Blender 5.2\blender.exe`；headless = `--background --factory-startup --python x.py` |
 | 游戏 | `C:\GF2Exilium\GF2 Game`，资源在 `GF2_Exilium_Data\LocalCache\Data\AssetBundles_Windows\` |
-| 窗口驱动 / 截图 | `C:\DevCache\gf2\app2.ps1 click <cx> <cy>` / `app2.ps1 shot [-out p.png]`（DPI-aware；老的 `app.ps1` 会错位） |
+| 窗口驱动 / 截图 | 无现成脚本（`C:\DevCache\gf2\app2.ps1` 已不存在）：按 §6.1 骨架在 `C:\DevCache\<任务名>\` 现写 DPI-aware 的 `shot.ps1` / `click.ps1` |
 | 质量门 | `bun run check` → `scripts/check.ps1` |
 
 `beforeDevCommand` 是 `node scripts/dev.mjs`：1420 上已有 Vite 就直接复用（打印 `reusing it` 并 exit 0），端口空才自己起，被别的程序占则 exit 1。**不要把残留 dev server 当错误**，但收尾要关掉自己起的。
@@ -105,6 +105,16 @@ C:\DevCache\gf2\app2.ps1 click <cx> <cy>
 - 抓图进程必须 DPI-aware（`SetProcessDpiAwarenessContext(-4)`），否则 150% 缩放下坐标与像素空间不一致。
 - 点击/拖拽用 `ClientToScreen + SetCursorPos + mouse_event`，坐标用 CSS 像素。
 - **截图前关掉所有 `exmt-modbox`**：两个窗口叠在一起时，点击和截图会落在旧窗口上。
+- **`app2.ps1` 在本机不存在**（`C:\DevCache\gf2\` 也没有）：不要照抄路径，直接写一个 40 行的自用脚本到
+  `C:\DevCache\<任务名>\`。可复用的最小骨架：
+  1. `[W]::SetProcessDpiAwarenessContext([IntPtr](-4))`；
+  2. 找窗口：`Get-Process exmt-modbox | ? MainWindowHandle -ne 0`；
+  3. **只 `SetForegroundWindow` 不够**（前台锁会失败，`GetForegroundWindow` 对不上，截到的是别人的窗口）：
+     先 `SetWindowPos(h, HWND_TOPMOST(-1), 0,0,0,0, SWP_NOMOVE|SWP_NOSIZE|SWP_SHOWWINDOW)`，
+     再 `SetForegroundWindow`，等 900 ms，最后 `SetWindowPos(h, HWND_NOTOPMOST(-2), …)` 还原；
+  4. `GetWindowRect` + `Graphics.CopyFromScreen` 存 PNG；窗口内相对坐标 `屏幕点 = rect.Left + x`。
+  5. 点导航/按钮单独写 `click.ps1 -X -Y`（同样先 topmost 再 `SetCursorPos` + `mouse_event` 0x0002/0x0004）。
+- 验证文案/布局：截图后直接看图，别用 DOM 断言替代。
 
 ### 6.2 CDP 驱动（无人工点击）
 
