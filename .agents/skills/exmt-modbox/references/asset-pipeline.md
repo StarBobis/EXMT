@@ -101,6 +101,10 @@
 | BC7 2048² + 12 mips | **5592432 B** |
 | 游戏贴图 | 全部正方形；尺寸/格式/mip 数与槽位**定长** |
 
+- **导出的 PNG 不是源格式**：texconv 解 mip0 得到 8-bit RGBA（IHDR color type 6），PNG 容器无损，但像素来自 BC1/BC7 的有损解码；回打包是二次有损重编码（BC1 42.17 dB / BC7 54.94 dB），只有 `copy-texture` 的字节搬运零损失。要留原始数据就存 DDS（头 + 裸 BC payload + 整条 mip 链）。
+- **源格式看 `m_TextureFormat`**：维普蕾 SSR01 的 10 个包实测 48 条贴图（11 条 `10=DXT1`，37 条 `25=BC7`）：不透明 `_d` 走 DXT1，`_n`/`_rmo`/`_spc`/`_ramp`/`_da`/脸眼/plane 走 BC7；2048² 12 mips、1024² 11 mips、512² 10 mips，字节数与上表一致。核对命令：`cargo run --example dump_textures -- <bundle>`（输出 `name|WxH|format|payload|hash`）。
+- **PNG 只含 mip0**：原 12 级 mip 链不随 PNG 导出；重打包必须按目标 mips 重新生成整条链。
+
 - **typetree 键名是 `image data`（带空格）**；写 `m_ImageData`/`image_data` 会被当新键静默丢弃（症状：包只涨 140 字节、像素没变）。必须写 `tree["image data"]` 并清 `m_StreamData`。
 - **行序**：Unity Texture2D 自下而上，texconv 对 PNG 自上而下 → 每个 mip 的块行整体翻一次（不翻 10.1 dB，翻后 59.2 dB）。
 - **色彩**：texconv 把 PNG 当 sRGB，输出 UNORM 会转线性（31→4、219→181）→ 固定加 `-srgbi -srgbo`（恒等）：端到端 BC1 42.17 dB、BC7 54.94 dB（最大通道差 2–4）。
