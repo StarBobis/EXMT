@@ -21,6 +21,7 @@
 | `bun tauri dev` 编译/链接失败：`rust-lld: undefined symbol: anon.…llvm.…`，引用 `libexmt_core-*.rlib` | `src-tauri/target` 里的 exmt-core 增量/rlib 坏了（源码已变但 cargo 复用了旧 rlib；`cargo check` 能过、一链接就炸） | 不是代码错误。`cd src-tauri; cargo clean -p exmt-core -p exmt-modbox` 后重跑（2026-10-22 实测清了 7.3 GB、重建 3.5 min，之后 `bun tauri dev` 1.9 s 起）：先怀疑增量缓存，不要改代码 |
 | 点按钮没反应、截图还是上一页 | **有两个同名窗口叠着**，脚本只认第一个匹配 | `Get-Process <name> \| Measure-Object`，多个就全 `Stop-Process` 再重启；否则所有 UI 证据作废 |
 | 长流程中途回到第一步 / 整窗白屏 | HMR 重置 Vue 本地状态、热更新把组件树更新坏 | 分析类长流程中途不要改前端源码；白屏直接重启应用，别当代码 bug 查 |
+| `cargo` 跑起来的程序写 `%TEMP%` 或 `C:\DevCache` → `拒绝访问 (os error 5)`，同样的目录用 PowerShell 直接写却正常 | DSH 会话里**孙进程**（cargo 再拉起的测试二进制 / example）只能写工作区内路径；直接子进程（PowerShell、Blender、cmd）不受限 | 权限正常 ≠ 子进程能写：先核对 ACL（`NOT_THIS_CLASS` 就是无关），再把输出改到工作区内的 gitignore 目录（`tmp/`）；门禁已把 `TEMP`/`TMP` 指向 `tmp\check-temp` |
 
 ## 3. PowerShell / 截图 / CDP 验证
 
@@ -61,6 +62,9 @@
 | 播动作时头飞了 / 挂件留在原地 | 零权重挂件（脸 3 组、武器 21 组全 0）在游戏里是刚性挂在某根骨上的 | 先看「受驱动顶点数」再看姿势；`used=0` 的网格要单独约定挂点，别当蒙皮网格 |
 | 权重行和差 1.2e-7、往返不是逐位一致 | 等权重影响槽排序方向反了（游戏数据是索引升序）；权重和已 ≈1 还在归一化 | 并列槽按索引**升序**；和 ≈1 时不再归一化 |
 | 武器/挂件网格解不出几何（`buffer is smaller than requested size`） | 该类型在打包里的烘焙方式不同 | 前端按 `error` 过滤，不显示点不开的行 |
+| 校验报「bone index 81 out of range」 | 拿**影响槽数 4**去比骨骼索引上限；索引指的是该网格**自己的骨骼表**（长度 = 顶点组数，body 是 82） | 上限 = `len(obj.vertex_groups)`，不是槽位数 |
+| 权重行和全 0、判定「蒙皮失败」 | 该网格是**刚性挂件**（玩偶/饰品/武器），游戏把它钉死在某根骨上 | `used == 0` → 归为刚性挂件单独约定挂点，别当蒙皮网格 |
+| 骨骼全叫 `bone_<hash>`、层级全是根 | 该皮肤的 `bones.json` 里没有这些哈希的路径（新下载的资源不在旧索引里） | 重建索引：`analyze_cli <bundle_dir> <dir> 0 16 bones`（旧 GameCache 不含新资源）；仍无路径的骨按规范不猜父级 |
 
 ## 6. Blender API
 
@@ -80,6 +84,9 @@
 | 重新导入后用户连线/选图没了、物体变 `.001` | `new_blueprint()` 同名直接 remove；旧网格数据块没删（名字被占） | 同名蓝图复用；Frame 内物体节点按 `submesh` 重指向；导入**前**删旧网格**连数据块**、回收无孩子的旧骨架 |
 | 自定义属性存 uint32 抛 `OverflowError` | `bpy` 属性类型限制 | 转 JSON 字符串 |
 | 没有窗口也想验证 UI 代码 | `UILayout` 只在绘制时存在 | 写 `FakeLayout`（`label/prop/row/column/box/operator/template_ID/template_preview`）+ `FakeOp`，真调 `draw_buttons()` |
+| 渲染出来的人**躺着**（模型本身是好的） | `Vector.to_track_quat(track, up)` 的 up 轴固定对齐**世界 Z**，不是你想给的轴；角色沿 Y 站就被拍成侧躺 | 不用 `to_track_quat` 定朝向：手工搭基向量 `right = forward × up`、`true_up = right × forward`、`Matrix((right, true_up, -forward)).transposed()`；先量角色轴向（骨骼 `Head - Hip` 的方向）再定 up |
+| Workbench 渲染里骨架完全看不见 | 骨骼物体不参与 Workbench 渲染（它不是可渲染物体） | 验证骨架靠数据：层级树 + 姿势变形测试（转骨 → 量顶点位移 → 转回）；渲染只用来看形体 |
+| 骨架能动但网格不动 / 只动一点 | 顶点组名 ≠ 骨骼名，或权重全 0 | 顶点组名逐字等于骨名；转 `Spine1_M` 看 body 网格 90%+ 顶点跟随 |
 
 ## 7. UI / 渲染 / i18n
 

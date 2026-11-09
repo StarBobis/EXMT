@@ -92,6 +92,8 @@ Rust 测试经 `std::env::temp_dir()` 写临时 bundle 与贴图。门禁脚本�
 
 **关键不变量**：`skins/<key>/meta.json` 的 `cache_built_at` 必须等于 `manifest.json` 的 `built_at`。整个 `analyze` 只取一次时间戳，manifest 和所有包共用；前端只认「两者相等」的包。
 
+**索引会过期**：GameCache 是某次 analyze 的快照，**新下载的角色不在旧索引里**（实测：DestroyerSSR0101 在 9840 个包里，但旧 `names.json` 查不到）。找不到目标资源时重建索引：`src-tauri\target\release\examples\analyze_cli.exe "<bundle_dir>" "<scan_dir>" 0 16 bones`（约 1 分钟，输出 60 万条骨骼路径；`bones` 参数不能省，否则没有骨骼名）。
+
 **启动三态**（`src/lib/boot.ts`）：`loading → ready | setup | error`。`ready` = setup 标记 + 游戏路径可用 + `cacheState() === "ready"`（manifest 可解析、format 对、`bundle_dir` 与当前游戏目录一致、三个数据文件在）。不满足进向导，第 4 步分析完才进主界面。没有游戏路径时 `boot()` 会先自动探测一次。
 
 改这些地方会互相影响：
@@ -174,6 +176,7 @@ $env:WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS='--remote-debugging-port=9222'
 | `bun` 不在 PATH | 一律 `C:\Users\Administrator\.bun\bin\bun.exe run <script>` |
 | `cargo` 不存在 → 门禁打印 `skip: cargo not found` | Rust 根本没编译/测试，**假绿**；装 stable MSVC 工具链（§2） |
 | `cargo test` 报 `PermissionDenied (os error 5)` 拒绝访问 | 测试子进程写不了 `%TEMP%`；把 `TEMP`/`TMP` 指向工作区内目录（门禁已做，§4）。别去改 `%TEMP%` 的权限——它的 ACL 本来就正常 |
+| `cargo` 拉起的程序写 `C:\DevCache` 报「拒绝访问」，PowerShell 直接写却正常 | DSH 会话里**孙进程**（cargo 再拉起的 example / 测试二进制）只能写工作区内路径 | 输出改到工作区内的 `tmp/`（gitignore，用完即删）；或改由直接子进程执行 |
 | 1420 端口已有 Vite | 正常复用；不要杀掉别人的 dev server，只关自己起的 |
 | `PrintWindow` 截图为黑 | WebView2 GPU 合成；改 `CopyFromScreen` 抓客户区 |
 | 高 DPI 坐标偏移 | 抓图进程必须 `SetProcessDpiAwarenessContext(-4)` |

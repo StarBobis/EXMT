@@ -243,7 +243,39 @@ basis = (父pose · 父matrix_local⁻¹ · 本matrix_local)⁻¹ · pose
 
 插件侧高频坑：`node.parent is frame` 会对自己所属的 frame 返回 False（用 `==`）；`foreach_get` 写非连续视图（`out[:, :3]`）读回全 0（用连续临时数组）；枚举 label/description 含非 ASCII 会整格乱码（全 ASCII，中文放 description）；`bpy` 存 uint32 抛 `OverflowError`（转 JSON 字符串）。
 
+### 12.1 从工作空间导出 `.blend`（解包一个角色的骨骼）
+
+链路：`bundle → spec.json → workspace_cli → skeleton.json + *.exmtmesh → build_blend.py → .blend`。
+
+```powershell
+# 1) 重建资源与骨骼索引（旧的 GameCache 不含新下载的角色）
+cd src-tauri
+.\target\release\examples\analyze_cli.exe "<bundle_dir>" "<scan_dir>" 0 16 bones
+# 2) 写 spec.json：bundles{hash: 路径} + meshes[{bundle, mesh}] + bone_names
+#    mesh 名 = <皮肤前缀>_lod0，lod1/lodm0 不要；bone_names 指向上一步的 bones.json
+.\target\release\examples\workspace_cli.exe "<out_dir>" "<spec.json>"
+# 3) 建 .blend（Blender 5.2 headless）
+& 'C:\Program Files\Blender Foundation\Blender 5.2\blender.exe' --background --factory-startup `
+  --python scripts\build_blend.py -- --workspace "<out_dir>" --out "<out>.blend" `
+  --label "<角色名>" --preview "<preview>.png" --report "<report>.json"
+```
+
+| 事实 | 判据 |
+| --- | --- |
+| `spec.bundles` 是 **hash → 绝对路径** | 少了就报 `bundle <hash> has no path in the spec` |
+| `spec.bone_names` 指 `bones.json`（`{hash: 路径}`） | 骨骼真名与父子链全靠它；路径为空的骨才叫 `bone_<hash>` |
+| 骨骼并集 = 该皮肤**全部 lod0 网格**的骨骼表之和 | 少一个网格就少一批骨（weapon/cloth 挂点） |
+| 网格的 bone index 上限 = **它自己的骨骼表长度（= 顶点组数）** | 不是影响槽数 4；拿 4 去比会误报「索引越界」 |
+| 权重全 0 的网格 = **刚性挂件**（玩偶/饰品） | 游戏把它钉在某根骨上；`used=0` 不是坏数据，别当蒙皮网格 |
+| 骨架里出现多个根（`Hip_M` 与 `Spine1_M` 并列） | 正常：共同父 `Root_M` 不在网格骨骼表里；不猜父级 |
+| `bone_<hash>`（无路径名） | 游戏的 prefab 路径里确实没有它；**不猜父级**，宁可平铺 |
+
+实测（DestroyerSSR0101）：15 个 lod0 网格 → 204 根骨（156 根有真名、48 根 `bone_<hash>`），max_depth 14，204 个顶点组与骨骼一一对应，权重行和全为 1.0，10 个蒙皮网格 + 5 个刚性挂件。
+
+**验收**（四关自检）：① 层级树读起来像人（`Spine1_M→Spine2_M→Chest_M→Neck_M→Head_M→Hair_*`、`Hip_L→Knee_L→Ankle_L→Toes_L→BigToe1_L`）；② 旋转 `Spine1_M` 35°，body 网格 7078 顶点里 6916 个跟着动（97.8%）；③ **反证**：清零权重后同样旋转 → 0 顶点动；④ 渲染图里角色**站立**（GF2 数据本身是 Y-up，躺倒只可能是相机问题，见 §6）。
+
 ## 13. 命令速查
+
 
 ```powershell
 # 读 / 导出
