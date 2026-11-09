@@ -20,7 +20,7 @@
 | 工具 | 路径 / 说明 |
 | --- | --- |
 | Bun | `C:\Users\Administrator\.bun\bin\bun.exe`（**不在 PATH**，一律全路径） |
-| Rust 工具链 | `cargo`（`%USERPROFILE%\.cargo\bin\cargo.exe`）；`texconv.exe` 在 `src-tauri/bin/` |
+| Rust 工具链 | `cargo`（`%USERPROFILE%\.cargo\bin\cargo.exe`）；`texconv.exe` 在 `src-tauri/bin/`；**缺失时门禁会跳过 Rust 检查（假绿），装：`rustup-init.exe -y --profile minimal --default-toolchain stable --default-host x86_64-pc-windows-msvc`** |
 | Blender | `C:\Program Files\Blender Foundation\Blender 5.2\blender.exe`；headless = `--background --factory-startup --python x.py` |
 | 游戏 | `C:\GF2Exilium\GF2 Game`，资源在 `GF2_Exilium_Data\LocalCache\Data\AssetBundles_Windows\` |
 | 窗口驱动 / 截图 | 无现成脚本（`C:\DevCache\gf2\app2.ps1` 已不存在）：按 §6.1 骨架在 `C:\DevCache\<任务名>\` 现写 DPI-aware 的 `shot.ps1` / `click.ps1` |
@@ -53,6 +53,10 @@ C:\DevCache\gf2\app2.ps1 click <cx> <cy>
 4. `vitepress build docs`（`C:\Dev\EXMTDoc` 存在时）
 
 任何一步失败都不许说「完成」。
+
+**「skip: cargo not found」等于 Rust 部分根本没跑**，不能当全绿；先确认 `%USERPROFILE%\.cargo\bin\cargo.exe` 存在（见 §7）。
+
+Rust 测试经 `std::env::temp_dir()` 写临时 bundle 与贴图。门禁脚本把 `TEMP`/`TMP` 指向 `tmp\check-temp`（工作区内、gitignore、结束即删），否则受限主机上会报 `PermissionDenied (os error 5)`，而 `%TEMP%` 目录本身的 ACL 看起来完全正常——**权限正常 ≠ 子进程能写**。
 
 ## 4.1 别造轮子：已有的轮子
 
@@ -168,6 +172,8 @@ $env:WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS='--remote-debugging-port=9222'
 | `Start-Process` 长时间无输出/进后台 | 直接 `& exe` 放后台作业，或 `Start-Process` 后立刻查进程与端口 |
 | WebView2 `HRESULT(0x8000FFFF) 灾难性故障` | 工作区内 exe 以 Low IL 启动，`%LOCALAPPDATA%\com.exmt.modbox\EBWebView` 建不出来；`icacls <appdata>\com.exmt.modbox /setintegritylevel (OI)(CI)LW`（详见 skill `tauri-winui-shell`） |
 | `bun` 不在 PATH | 一律 `C:\Users\Administrator\.bun\bin\bun.exe run <script>` |
+| `cargo` 不存在 → 门禁打印 `skip: cargo not found` | Rust 根本没编译/测试，**假绿**；装 stable MSVC 工具链（§2） |
+| `cargo test` 报 `PermissionDenied (os error 5)` 拒绝访问 | 测试子进程写不了 `%TEMP%`；把 `TEMP`/`TMP` 指向工作区内目录（门禁已做，§4）。别去改 `%TEMP%` 的权限——它的 ACL 本来就正常 |
 | 1420 端口已有 Vite | 正常复用；不要杀掉别人的 dev server，只关自己起的 |
 | `PrintWindow` 截图为黑 | WebView2 GPU 合成；改 `CopyFromScreen` 抓客户区 |
 | 高 DPI 坐标偏移 | 抓图进程必须 `SetProcessDpiAwarenessContext(-4)` |

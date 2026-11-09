@@ -8,6 +8,16 @@ if (-not (Test-Path $cargo)) {
   if ($found) { $cargo = $found.Source } else { $cargo = $null }
 }
 
+# The Rust tests write scratch bundles and textures through
+# std::env::temp_dir(). A locked-down host can deny that path to the test
+# process even though the user owns it, so aim the cargo steps at a scratch
+# directory inside the workspace instead. It is dropped again at the end.
+$scratch = Join-Path $root 'tmp\check-temp'
+if (New-Item -ItemType Directory -Force -Path $scratch -ErrorAction SilentlyContinue) {
+  $env:TEMP = $scratch
+  $env:TMP = $scratch
+}
+
 function Step($name, $block) {
   Write-Host "== $name" -ForegroundColor Cyan
   & $block
@@ -79,3 +89,7 @@ Step 'docs build' {
 }
 
 Write-Host "`nall checks passed" -ForegroundColor Green
+
+if (Test-Path $scratch) {
+  Remove-Item -Recurse -Force $scratch -ErrorAction SilentlyContinue
+}
